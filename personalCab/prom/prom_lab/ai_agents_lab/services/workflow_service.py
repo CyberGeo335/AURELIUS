@@ -6,6 +6,7 @@ from typing import Any, Protocol
 
 from ..repositories.case_repository import AccessDenied, CaseRepository, check_access
 from ..schemas.models import ActorContext, Case, Extraction, LoanRequest, ModuleResult, Scope, Status, ToolResult
+from ..schemas.products import DataRequirements, ProductSelection
 
 
 class ModuleUnavailable(RuntimeError):
@@ -75,6 +76,8 @@ class ToolSession:
         dependencies = {"get_data_requirements": "products", "request_evidence": "requirements", "get_assessment_status": "assessment", "get_bank_status": "bank_application"}
         if operation in dependencies and dependencies[operation] not in self.case.result_refs:
             raise AccessDenied("MISSING_PROCESS_REFERENCE")
+        if hasattr(self.adapter, "supports") and not self.adapter.supports(operation):
+            raise ModuleUnavailable(operation)
         scope = {"request_evidence": Scope.EVIDENCE_COLLECTION, "get_assessment_status": Scope.CREDIT_ASSESSMENT, "get_bank_status": Scope.BANK_STATUS}.get(operation)
         if scope:
             if scope in self.actor.denied_scopes:
@@ -104,6 +107,8 @@ class ToolSession:
             self.case.request = candidate
             self.case.result_refs = {key: value for key, value in self.case.result_refs.items() if key == "bank_application"}
             self.case.pending_action = None
+            self.case.product_selection = None
+            self.case.product_requirements = None
             self.case.last_error = None
             transition(self.case, Status.NEEDS_INPUT if self.case.missing_required else Status.REQUEST_READY)
         return ToolResult(ok=True, code="REQUEST_UPDATED" if changed else "NO_CHANGE", data={"changed": changed, "revision": self.case.revision})
@@ -124,6 +129,7 @@ class ToolSession:
                 "status": self.case.status, "correlation_id": self.case.correlation_id,
                 "borrower_id": self.case.request.borrower_id, "request": self.case.request.model_dump(mode="json"),
                 "result_refs": self.case.result_refs.copy(), "document_refs": self.case.document_refs.copy(),
+                "verified_facts": self.case.verified_facts.copy(),
             }
             # Stable across retries/new messages; correlation_id is intentionally excluded.
             key = hashlib.sha256(json.dumps([self.case.case_id, self.case.revision, operation], ensure_ascii=False).encode()).hexdigest()
@@ -132,6 +138,16 @@ class ToolSession:
                 return ToolResult(ok=False, code="RESULT_SCOPE_MISMATCH")
             if response.ok and not response.result_ref:
                 return ToolResult(ok=False, code="MISSING_RESULT_REFERENCE")
+            if response.ok and operation == "get_product_candidates" and "selection" in response.data:
+                selection = ProductSelection.model_validate(response.data["selection"])
+                if (selection.case_id, selection.revision, selection.borrower_id) != (self.case.case_id, self.case.revision, self.case.request.borrower_id):
+                    return ToolResult(ok=False, code="RESULT_SCOPE_MISMATCH")
+                self.case.product_selection = selection
+            if response.ok and operation == "get_data_requirements" and "requirements" in response.data:
+                requirements = DataRequirements.model_validate(response.data["requirements"])
+                if (requirements.case_id, requirements.revision, requirements.product_selection_ref) != (self.case.case_id, self.case.revision, self.case.result_refs.get("products")):
+                    return ToolResult(ok=False, code="RESULT_SCOPE_MISMATCH")
+                self.case.product_requirements = requirements
             return ToolResult.model_validate(response.model_dump(include=set(ToolResult.model_fields)))
         except AccessDenied as exc:
             return ToolResult(ok=False, code=str(exc))
