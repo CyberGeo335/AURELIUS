@@ -153,18 +153,30 @@ class DialogueWorkflow:
                     action = "POLL_EXISTING_PROCESS"
                 return
             # Existing requests to module 3 are not recreated for every chat turn.
+            if hasattr(self.adapter, "needs_refresh") and self.adapter.needs_refresh(case):
+                case.result_refs = {key: value for key, value in case.result_refs.items() if key == "bank_application"}
+                case.product_selection = None
+                case.product_requirements = None
             if "evidence" in case.result_refs:
                 transition(case, Status.WAITING_DOCUMENTS)
                 action, next_module = "PROVIDE_DOCUMENTS", 3
                 return
             transition(case, Status.REQUEST_READY)
             next_module = 2
+            if case.product_selection and case.product_selection.status == "NEEDS_CLARIFICATION":
+                transition(case, Status.NEEDS_INPUT)
+                action, next_module = "CLARIFY_PRODUCT_NEED", None
+                return
             for operation, key in (("get_product_candidates", "products"), ("get_data_requirements", "requirements")):
                 if key not in case.result_refs:
                     response = invoke(operation)
                     if not response.ok:
                         return
                     case.result_refs[key] = response.result_ref
+                    if key == "products" and case.product_selection and case.product_selection.status == "NEEDS_CLARIFICATION":
+                        transition(case, Status.NEEDS_INPUT)
+                        action, next_module = "CLARIFY_PRODUCT_NEED", None
+                        return
             next_module = 3
             transition(case, Status.WAITING_DOCUMENTS)
             response = invoke("request_evidence")
@@ -187,6 +199,8 @@ class DialogueWorkflow:
             message = "Чтобы подготовить запрос, уточните: " + "; ".join(missing) + "."
         elif action == "SELECT_BORROWER":
             message = "Выберите одно ИП или компанию для этого обращения. Данные разных субъектов не объединяются."
+        elif action == "CLARIFY_PRODUCT_NEED":
+            message = case.product_selection.clarification
         elif action == "SPLIT_PURPOSES":
             message = "В сообщении несколько потребностей. Уточните одну цель и относящиеся к ней сумму и срок; остальные оформим отдельно."
         elif action == "PROVIDE_CONSENT":
@@ -206,7 +220,11 @@ class DialogueWorkflow:
         elif action in {"POLL_EXISTING_PROCESS", "WAIT_FOR_INTEGRATION"}:
             message = "Ожидается результат существующего внешнего процесса. Новый процесс не создавался."
         elif error == "MODULE_NOT_CONFIGURED":
-            message = f"Запрос сохранён. Для следующего шага требуется подключить модуль {state['next_module']}. Кредитное решение не принималось."
+            if case.product_selection:
+                names = [candidate.name for candidate in case.product_selection.candidates if candidate.eligibility != "NO_MATCH"]
+                message = "Предварительные кандидаты: " + ", ".join(names) + f". Ограничения и необходимые документы — в общем логе. Следующий шаг — модуль {state['next_module']}, он пока не подключён. Подбор не является одобрением кредита."
+            else:
+                message = f"Запрос сохранён. Для следующего шага требуется подключить модуль {state['next_module']}. Кредитное решение не принималось."
         elif action == "RETRY_MESSAGE":
             message = "Не удалось надёжно разобрать сообщение. Уточните сведения или повторите запрос; недостающие значения не заполнены предположениями."
         else:
@@ -214,7 +232,8 @@ class DialogueWorkflow:
         result = DialogueResult(case_id=case.case_id, revision=case.revision, mode=case.mode, status=case.status,
                                 correlation_id=case.correlation_id, request=case.request, unknown_fields=case.unknown_fields,
                                 next_module=state.get("next_module"), next_action=action, message=message,
-                                result_refs=case.result_refs, tool_traces=[ToolTrace.model_validate(t) for t in state["traces"]], error_code=error)
+                                result_refs=case.result_refs, tool_traces=[ToolTrace.model_validate(t) for t in state["traces"]], error_code=error,
+                                product_selection=case.product_selection, product_requirements=case.product_requirements)
         return {"result": result.model_dump(mode="json")}
 
     def persist(self, state: DialogueState) -> dict:
@@ -233,7 +252,10 @@ class WorkflowApp:
         self.repository = CaseRepository(database)
         self.checkpoint_connection = sqlite3.connect(self.repository.path, check_same_thread=False, timeout=15)
         self.checkpointer = SqliteSaver(self.checkpoint_connection)
-        self.workflow = DialogueWorkflow(self.repository, extractor or OllamaExtractor(), adapter or UnconfiguredModules(), self.checkpointer)
+        if adapter is None:
+            from ..services.product_matching import ProductModuleAdapter
+            adapter = ProductModuleAdapter()
+        self.workflow = DialogueWorkflow(self.repository, extractor or OllamaExtractor(), adapter, self.checkpointer)
 
     def handle(self, message: MessageInput, actor: ActorContext) -> DialogueResult:
         with self.repository.actor_lock(actor.actor_id):

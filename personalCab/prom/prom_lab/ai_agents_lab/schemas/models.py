@@ -7,6 +7,7 @@ from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from .products import DataRequirements, ProductSelection
 
 
 def utcnow() -> datetime:
@@ -92,6 +93,11 @@ class LoanRequest(Model):
     known_obligations: str | None = Field(default=None, max_length=2000)
     seasonality: str | None = Field(default=None, max_length=1000)
     collateral: str | None = Field(default=None, max_length=2000)
+    financing_need: Literal["ONE_TIME_PURCHASE", "REPEATED_PURCHASES", "CASH_GAP", "MARKETPLACE", "VEHICLE", "PREMISES", "PROPERTY_BACKED", "REFINANCING", "CONTRACT_SECURITY", "DEFERRED_PAYMENT", "STATE_SUPPORT", "CARD_EXPENSES", "SMALL_TRANCHES", "RESERVE", "PARTNER_PURCHASE", "EQUIPMENT_USE"] | None = None
+    business_age_months: int | None = Field(default=None, ge=0, le=2400)
+    monthly_revenue_rub: int | None = Field(default=None, ge=0)
+    operating_cycle_days: int | None = Field(default=None, gt=0, le=3650)
+    has_collateral: bool | None = None
 
 
 REQUIRED_FIELDS = ("borrower_id", "legal_form", "purpose", "amount_rub", "term_months")
@@ -149,6 +155,8 @@ class Case(Model):
     history: list[dict[str, str]] = Field(default_factory=list)
     pending_action: str | None = None
     last_error: str | None = None
+    product_selection: ProductSelection | None = None
+    product_requirements: DataRequirements | None = None
 
     @property
     def unknown_fields(self) -> list[str]:
@@ -194,3 +202,5 @@ class DialogueResult(Model):
     result_refs: dict[str, str]
     tool_traces: list[ToolTrace] = Field(default_factory=list)
     error_code: str | None = None
+    product_selection: ProductSelection | None = None
+    product_requirements: DataRequirements | None = None

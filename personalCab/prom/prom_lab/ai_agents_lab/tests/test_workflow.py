@@ -65,7 +65,7 @@ def test_unknown_fields_not_invented_and_module_boundary(tmp_path):
         assert first.status == Status.NEEDS_INPUT
         assert first.request.term_months is None and "term_months" in first.unknown_fields
         second = app.handle(msg("m2"), actor())
-        assert second.status == Status.REQUEST_READY and second.next_module == 2
+        assert second.status == Status.WAITING_DOCUMENTS and second.next_module == 3
         assert second.error_code == "MODULE_NOT_CONFIGURED"
         assert "needed_by" in second.unknown_fields
         assert first.case_id == second.case_id

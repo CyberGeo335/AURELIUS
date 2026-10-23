@@ -84,11 +84,13 @@ def test_http_chat_persists_retries_and_revisions(http_server, service):
     status, _, _ = request(http_server, 'POST', '/api/chat', {**command, 'text': 'Другое сообщение'}, cookie)
     assert status == 409
     _, second, _ = request(http_server, 'POST', '/api/chat', {'message_id': 'turn-2', 'text': text2}, cookie)
-    assert second['result']['status'] == 'REQUEST_READY'
-    assert second['workflow_log']['next_module'] == 2
+    assert second['result']['status'] == 'WAITING_DOCUMENTS'
+    assert second['workflow_log']['next_module'] == 3
     assert second['workflow_log']['error_code'] == 'MODULE_NOT_CONFIGURED'
     assert second['workflow_log']['missing_required'] == []
-    assert second['result']['tool_traces'][-1]['tool_name'] == 'get_product_candidates'
+    assert second['result']['tool_traces'][-1]['tool_name'] == 'request_evidence'
+    assert second['workflow_log']['module_2']['status'] == 'PRODUCTS_READY'
+    assert second['workflow_log']['requirements']['routes']
     _, third, _ = request(http_server, 'POST', '/api/chat', {'message_id': 'turn-3', 'text': text3}, cookie)
     assert third['result']['case_id'] == first['result']['case_id']
     assert third['result']['revision'] == second['result']['revision'] + 1
