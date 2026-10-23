@@ -4,6 +4,9 @@
 /src/
 /Альфа_Хак_Умный_кредитный_кабинет.pdf
 
+# Agent lab data (from its former local .gitignore)
+/personalCab/prom/prom_lab/ai_agents_lab/**/data/
+
 # Python
 __pycache__/
 *.py[cod]
