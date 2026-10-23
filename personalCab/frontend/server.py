@@ -54,6 +54,7 @@ ACTION_HINTS = {
     'POLL_EXISTING_PROCESS': 'Дождаться результата существующего внешнего процесса',
     'WAIT_FOR_INTEGRATION': 'Подключить адаптер существующего процесса',
     'DONE': 'Процесс завершён',
+    'CLARIFY_PRODUCT_NEED': 'Уточнить потребность или известные ограничения для подбора продукта',
 }
 
 
@@ -64,7 +65,7 @@ def result_envelope(result: DialogueResult, message_id: str | None = None) -> di
     completed = [trace.tool_name for trace in result.tool_traces if trace.result.ok]
     completed.append('persist')  # handle() returned only after the atomic commit.
     waiting = ACTION_HINTS.get(result.next_action, result.next_action)
-    ready = result.status == 'REQUEST_READY'
+    ready = not missing and result.error_code != 'LLM_UNAVAILABLE_OR_INVALID_OUTPUT'
     return {
         'message_id': message_id,
         'result': result.model_dump(mode='json'),
@@ -74,9 +75,11 @@ def result_envelope(result: DialogueResult, message_id: str | None = None) -> di
             'subject': {'borrower_id': request['borrower_id'], 'legal_form': request['legal_form']},
             'purpose': request['purpose'], 'amount_rub': request['amount_rub'],
             'term_months': request['term_months'], 'needed_by': request['needed_by'],
-            'constraints': {key: request[key] for key in ('known_obligations', 'collateral', 'seasonality', 'repayment_source', 'recurring')},
+            'constraints': {key: request[key] for key in ('known_obligations', 'collateral', 'seasonality', 'repayment_source', 'recurring', 'financing_need', 'business_age_months', 'monthly_revenue_rub', 'operating_cycle_days', 'has_collateral')},
             'unknown_fields': result.unknown_fields, 'missing_required': missing,
-            'completed_stage': 'Структурированный запрос подготовлен' if ready else 'Диалог модуля 1; см. статус и следующий шаг',
+            'completed_stage': 'Модули 1–2: запрос, кандидаты и требования подготовлены' if result.product_requirements else 'Модуль 1: структурированный запрос подготовлен' if ready else 'Уточнение потребности в модуле 1',
+            'module_2': result.product_selection.model_dump(mode='json') if result.product_selection else None,
+            'requirements': result.product_requirements.model_dump(mode='json') if result.product_requirements else None,
             'completed_operations': completed, 'waiting_on': waiting,
             'next_action': result.next_action, 'next_module': result.next_module,
             'error_code': result.error_code, 'correlation_id': result.correlation_id,
@@ -132,9 +135,9 @@ class ChatService:
             with urlopen(base_url + '/api/tags', timeout=3) as response:
                 models = json.load(response).get('models', [])
             available = any(item.get('name') == MODEL or item.get('model') == MODEL for item in models)
-            return {'status': 'ready' if available else 'model_missing', 'model': MODEL, 'module': 1, 'mode': 'DEMO'}
+            return {'status': 'ready' if available else 'model_missing', 'model': MODEL, 'module': 1, 'modules': [1, 2], 'mode': 'DEMO'}
         except (OSError, URLError, ValueError):
-            return {'status': 'ollama_unavailable', 'model': MODEL, 'module': 1, 'mode': 'DEMO'}
+            return {'status': 'ollama_unavailable', 'model': MODEL, 'module': 1, 'modules': [1, 2], 'mode': 'DEMO'}
 
 
 class CabinetHandler(SimpleHTTPRequestHandler):
@@ -245,7 +248,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s: %(message)s')
     service = ChatService(args.database)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), partial(CabinetHandler, service=service))
-    print(f'AURELIUS: http://127.0.0.1:{server.server_port} · module 1 · {MODEL}', flush=True)
+    print(f'AURELIUS: http://127.0.0.1:{server.server_port} · modules 1–2 · {MODEL}', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

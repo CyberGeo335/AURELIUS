@@ -1,0 +1,1586 @@
+{
+  "version": "DEMO-CATALOG-2026-10-23-v1",
+  "source": "DataAndArcBuild/architecture/02_product_matching.md; servicesAlfa/AlfaRecs.md",
+  "products": [
+    {
+      "product_id": "term",
+      "product_family": "WORKING_CAPITAL_TERM_LOAN",
+      "name": "Кредит для бизнеса",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/businesscredit/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "ONE_TIME_PURCHASE",
+        "DEVELOPMENT"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "PURCHASE",
+          "label": "Описание закупки или бизнес-плана",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить цель и источник возврата"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "state",
+      "product_family": "STATE_SUPPORTED_LOAN",
+      "name": "Кредит с господдержкой",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/goscredit/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "STATE_SUPPORT"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "PROGRAM",
+          "label": "Условия программы и подтверждение участия",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить программу и условия поручительства"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "rcl",
+      "product_family": "REVOLVING_CREDIT_LINE",
+      "name": "Возобновляемая кредитная линия",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/creditline/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "REPEATED_PURCHASES"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "TRANCHE_TERM",
+          "label": "Оборотный цикл и срок транша",
+          "field": "operating_cycle_days",
+          "maximum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "CYCLE",
+          "label": "План закупок, оборотный цикл и график траншей",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Разделить срок договора и срок транша"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "auto",
+      "product_family": "AUTO_LOAN",
+      "name": "Автокредит",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/autocredit/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "VEHICLE"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "COLLATERAL",
+          "label": "Допустимость обеспечения",
+          "field": "has_collateral",
+          "expected_bool": true,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "VEHICLE",
+          "label": "Предложение продавца и сведения о транспорте",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить предмет, продавца и первоначальный взнос"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "overdraft",
+      "product_family": "OVERDRAFT",
+      "name": "Овердрафт",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/overdraft/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "CASH_GAP"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "GAP",
+          "label": "Платёжный календарь и график поступлений",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить кассовый разрыв и сроки возврата"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "card",
+      "product_family": "BUSINESS_CREDIT_CARD",
+      "name": "Business One Credit",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/creditcard/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "CARD_EXPENSES"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "CARD_TARIFF",
+          "label": "Тариф карты и планируемые операции",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить операции, льготный период и погашение"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "mortgage",
+      "product_family": "BUSINESS_MORTGAGE",
+      "name": "Бизнес-ипотека",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/businessipoteka/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "PREMISES"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "COLLATERAL",
+          "label": "Допустимость обеспечения",
+          "field": "has_collateral",
+          "expected_bool": true,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "PROPERTY",
+          "label": "Документы на объект, оценка и сведения об обременениях",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить объект, титул и обеспечение"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "secured",
+      "product_family": "PROPERTY_BACKED_LOAN",
+      "name": "Деньги на дело",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/lombardnyj_kredit/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "PROPERTY_BACKED"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "COLLATERAL",
+          "label": "Допустимость обеспечения",
+          "field": "has_collateral",
+          "expected_bool": true,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "COLLATERAL",
+          "label": "Документы на имущество, права и обременения",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить допустимость и доступность обеспечения"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "refinance",
+      "product_family": "REFINANCING",
+      "name": "Рефинансирование",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/refin/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "REFINANCING"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "DEBT",
+          "label": "Действующие кредитные договоры, остатки и графики",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить заменяемый долг и стоимость замены"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "start",
+      "product_family": "SMALL_TRANCHES",
+      "name": "Альфа-Старт",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/alfastart/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "SMALL_TRANCHES"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "TRANCHE_TERM",
+          "label": "Оборотный цикл и срок транша",
+          "field": "operating_cycle_days",
+          "maximum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "TRANCHES",
+          "label": "План небольших выдач и фактические условия продукта",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить дневную ставку, транши и погашение; название не доказывает доступность новому бизнесу"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "limit",
+      "product_family": "UNIVERSAL_CREDIT_LIMIT",
+      "name": "Универсальный кредитный лимит",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/ukl/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "RESERVE"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "TRANCHE_TERM",
+          "label": "Оборотный цикл и срок транша",
+          "field": "operating_cycle_days",
+          "maximum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "LIMIT",
+          "label": "План использования лимита и конкретных выдач",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Разделить условия лимита, траншей и выборки"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "sellers",
+      "product_family": "MARKETPLACE_LOAN",
+      "name": "Кредит для селлеров",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/creditsellers/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "MARKETPLACE"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "MARKETPLACE",
+          "label": "Отчёты маркетплейса о продажах, возвратах и выплатах",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить выплаты и сезонность продаж"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "partner",
+      "product_family": "PARTNER_PURCHASE_LOAN",
+      "name": "Кредит на покупки для бизнеса",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/partners/online_payment/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "PARTNER_PURCHASE"
+      ],
+      "process": "CREDIT",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "PARTNER",
+          "label": "Заказ, счёт и сведения о партнёре",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить партнёра и схему оплаты"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "guarantee",
+      "product_family": "BANK_GUARANTEE",
+      "name": "Банковская гарантия",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/guarantee/client/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "CONTRACT_SECURITY"
+      ],
+      "process": "GUARANTEE",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "CONTRACT",
+          "label": "Контракт, бенефициар, вид и срок гарантии",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Передать в профильный гарантийный процесс"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "leasing",
+      "product_family": "LEASING",
+      "name": "Лизинг",
+      "lender": "Альфа-Лизинг",
+      "source_url": "https://alfaleasing.ru/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "VEHICLE",
+        "EQUIPMENT_USE"
+      ],
+      "process": "LEASING",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "LEASE",
+          "label": "Предмет лизинга, аванс, платежи и условия выкупа",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Передать в профильный лизинговый процесс"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    },
+    {
+      "product_id": "factoring",
+      "product_family": "FACTORING",
+      "name": "Факторинг",
+      "lender": "Альфа-Банк",
+      "source_url": "https://alfabank.ru/sme/profits/factoring/",
+      "source_version": "PROJECT-STRUCTURE-2026-10-23",
+      "rule_version": "DEMO-ROUTING-1",
+      "approved": false,
+      "effective_from": null,
+      "effective_until": null,
+      "needs": [
+        "DEFERRED_PAYMENT"
+      ],
+      "process": "FACTORING",
+      "rules": [
+        {
+          "code": "LEGAL_FORM",
+          "label": "Допустимая форма бизнеса",
+          "field": "legal_form",
+          "allowed": null
+        },
+        {
+          "code": "AMOUNT",
+          "label": "Допустимая сумма",
+          "field": "amount_rub",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "CONTRACT_TERM",
+          "label": "Срок договора",
+          "field": "term_months",
+          "minimum": null,
+          "maximum": null
+        },
+        {
+          "code": "BUSINESS_TENURE",
+          "label": "Срок работы бизнеса",
+          "field": "business_age_months",
+          "minimum": null,
+          "verified_only": true
+        },
+        {
+          "code": "VERIFIED_CASHFLOW",
+          "label": "Подтверждённый оборот",
+          "field": "monthly_revenue_rub",
+          "minimum": null,
+          "verified_only": true
+        }
+      ],
+      "requirements": [
+        {
+          "code": "PRODUCT_TERMS",
+          "label": "Утверждённая карточка продукта и актуальные условия",
+          "source": "Кредитор или владелец продуктового каталога",
+          "purpose": "Установить неизвестные пороги и подтвердить период действия правил; не запрашивать эти сведения у клиента как его документы"
+        },
+        {
+          "code": "IDENTITY",
+          "label": "Сведения о субъекте и полномочиях представителя",
+          "source": "Реестр и документы представителя",
+          "purpose": "Проверить субъект и полномочия"
+        },
+        {
+          "code": "CASHFLOW",
+          "label": "Выписки по расчётным счетам",
+          "source": "Банк с действующим согласием или документы клиента",
+          "purpose": "Подтвердить денежный поток и источник возврата"
+        },
+        {
+          "code": "RECEIVABLE",
+          "label": "Договор поставки, документы дебитора и условия уступки",
+          "source": "Документы клиента или профильный источник",
+          "purpose": "Проверить поставку, уступку и регресс в профильном процессе"
+        }
+      ],
+      "limitations": [
+        "Предварительная структура по спецификации проекта, без подтверждения актуальной доступности кредитора.",
+        "Числовые пороги, тарифы и утверждённый перечень документов неизвестны.",
+        "Не является кредитным решением или персональными условиями."
+      ],
+      "contract_term_months": {
+        "minimum": null,
+        "maximum": null
+      },
+      "tranche_term_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "drawdown_period_days": {
+        "minimum": null,
+        "maximum": null
+      },
+      "published_min_rate": null
+    }
+  ]
+}

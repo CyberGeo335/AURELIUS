@@ -115,7 +115,7 @@ function addMessage(text, kind, attachment) {
   const message = document.createElement('div');
   message.className = `message ${kind}-message`;
   const label = document.createElement('small');
-  label.textContent = kind === 'user' ? 'Вы' : kind === 'assistant' ? 'Ассистент · модуль 1' : 'Системное сообщение';
+  label.textContent = kind === 'user' ? 'Вы' : kind === 'assistant' ? 'Бизнес-ассистент' : 'Системное сообщение';
   const content = document.createElement('p'); content.textContent = text;
   message.append(label,content);
   if (attachment) { const file = document.createElement('p'); file.className = 'attached'; file.textContent = `Файл: ${attachment.name} · остаётся локально, не анализируется`; message.append(file); }
@@ -123,13 +123,14 @@ function addMessage(text, kind, attachment) {
   messages.scrollTop = messages.scrollHeight;
   return message;
 }
-const fieldLabels = {borrower_id:'субъект',legal_form:'форма бизнеса',purpose:'цель',amount_rub:'сумма',term_months:'срок',needed_by:'дата потребности',repayment_source:'источник возврата',recurring:'повторяемость потребности',known_obligations:'обязательства',seasonality:'сезонность',collateral:'обеспечение'};
+const fieldLabels = {borrower_id:'субъект',legal_form:'форма бизнеса',purpose:'цель',amount_rub:'сумма',term_months:'срок',needed_by:'дата потребности',repayment_source:'источник возврата',recurring:'повторяемость потребности',known_obligations:'обязательства',seasonality:'сезонность',collateral:'обеспечение',financing_need:'характер потребности',business_age_months:'возраст бизнеса, мес.',monthly_revenue_rub:'месячный оборот, ₽',operating_cycle_days:'оборотный цикл, дней',has_collateral:'наличие обеспечения'};
 const purposeLabels = {INVENTORY:'Закупка товара',WORKING_CAPITAL:'Оборотные средства',INVESTMENT:'Инвестиции',REAL_ESTATE:'Недвижимость',VEHICLE:'Транспорт',REFINANCING:'Рефинансирование',GUARANTEE:'Гарантия',OTHER:'Другая цель'};
 const legalLabels = {IP:'ИП',OOO:'ООО',AO:'АО',OTHER:'Другая форма'};
 function appendWorkflowLog(envelope) {
   const log = envelope.workflow_log;
+  messages.querySelectorAll('.workflow-log').forEach(item=>item.remove());
   const details = document.createElement('details'); details.className='workflow-log'; details.open=true;
-  const summary = document.createElement('summary'); summary.textContent=`Лог модуля 1 · ревизия ${log.revision} · ${log.status}`;
+  const summary = document.createElement('summary'); summary.textContent=`Общий лог · модули 1–2 · ревизия ${log.revision} · ${log.status}`;
   const body = document.createElement('div'); body.className='workflow-log-body';
   const revisionNote = document.createElement('p'); revisionNote.className='revision-note';
   revisionNote.textContent = lastRevision !== null && log.revision > lastRevision ? `Заявка обновлена: ревизия ${lastRevision} → ${log.revision}. Зависимые результаты пересматриваются модулем 1.` : 'Состояние сохранено на сервере · SQLite. Сведения клиента ещё не проверены.';
@@ -154,10 +155,41 @@ function appendWorkflowLog(envelope) {
   add('Следующий модуль',log.next_module ? `Модуль ${log.next_module}${log.error_code==='MODULE_NOT_CONFIGURED'?' · пока не подключён':''}` : 'Пока не выбран');
   if(log.error_code) add('Код диагностики',log.error_code);
   const raw=document.createElement('details'); raw.className='raw-log';
-  const rawSummary=document.createElement('summary'); rawSummary.textContent='JSON и вызовы инструментов';
+  const rawSummary=document.createElement('summary'); rawSummary.textContent='Единый JSON и вызовы инструментов';
   const pre=document.createElement('pre'); pre.textContent=JSON.stringify(envelope,null,2); raw.append(rawSummary,pre);
-  body.append(revisionNote,list,raw); details.append(summary,body); messages.append(details);
+  body.append(revisionNote);
+  if(log.module_2){
+    const step=document.createElement('p');step.className='process-next-step';step.textContent=`${log.completed_stage}. ${log.next_module?`Далее: модуль ${log.next_module}`:'Ждём уточнения'}${log.error_code==='MODULE_NOT_CONFIGURED'?' — пока не подключён':''}.`;body.append(step);
+    const requestDetails=document.createElement('details');requestDetails.className='candidate-details';const requestTitle=document.createElement('summary');requestTitle.textContent=`Параметры заявки · ${log.amount_rub===null?'сумма не указана':rubles(log.amount_rub)} · ${log.term_months===null?'срок не указан':log.term_months+' мес.'}`;requestDetails.append(requestTitle,list);body.append(requestDetails);
+  }else{body.append(list);}
+  appendProductLog(body,log);
+  body.append(raw); details.append(summary,body); messages.append(details);
   messages.scrollTop=details.offsetTop-messages.offsetTop;
+}
+const eligibilityLabels={MATCH:'Подходит',NO_MATCH:'Не подходит',UNKNOWN:'Неизвестно'};
+function appendProductLog(body,log) {
+  const title=document.createElement('h3'); title.className='product-log-title'; title.textContent='Подбор продукта'; body.append(title);
+  const selection=log.module_2;
+  if(!selection){const note=document.createElement('p');note.className='revision-note';note.textContent='Модуль 2 ещё не завершил подбор для этой заявки. Сначала нужны обязательные параметры запроса.';body.append(note);return;}
+  const version=document.createElement('p');version.className='revision-note';version.textContent=`${selection.catalog_version} · ${selection.status} · ревизия ${selection.revision}`;body.append(version);
+  if(selection.clarification){const note=document.createElement('p');note.className='revision-note';note.textContent=selection.clarification;body.append(note);}
+  for(const candidate of selection.candidates){
+    const card=document.createElement('article');card.className='product-result';
+    const heading=document.createElement('div');heading.className='product-result-heading';
+    const name=document.createElement('strong');name.textContent=candidate.name;
+    const status=document.createElement('span');status.className=`eligibility ${candidate.eligibility.toLowerCase()}`;status.textContent=eligibilityLabels[candidate.eligibility];heading.append(name,status);card.append(heading);
+    const reason=document.createElement('p');reason.textContent=candidate.reasons.join('; ');card.append(reason);
+    if(candidate.process!=='CREDIT'){const process=document.createElement('p');process.className='revision-note';process.textContent=`Профильный процесс: ${candidate.process}. Требования обычного кредита его не заменяют.`;card.append(process);}
+    const checks=document.createElement('details');checks.className='candidate-details';
+    const checksTitle=document.createElement('summary');checksTitle.textContent=`Условия: ${candidate.checks.length} · неизвестно: ${candidate.missing_checks.length}`;checks.append(checksTitle);
+    for(const check of candidate.checks){const row=document.createElement('div');row.className='condition-check';const label=document.createElement('strong');label.textContent=check.label;const result=document.createElement('span');result.className=`eligibility ${check.status.toLowerCase()}`;result.textContent=eligibilityLabels[check.status];const text=document.createElement('p');const knownExpected=check.expected&&typeof check.expected==='object'?Object.fromEntries(Object.entries(check.expected).filter(([,value])=>value!==null)):check.expected;text.textContent=`${check.reason} [${check.provenance}]${check.actual!==null?' · Значение: '+JSON.stringify(check.actual):''}${knownExpected&&Object.keys(knownExpected).length?' · Условие: '+JSON.stringify(knownExpected):''}`;row.append(label,result,text);checks.append(row);}card.append(checks);
+    const documents=document.createElement('details');documents.className='candidate-details';const docTitle=document.createElement('summary');docTitle.textContent='Документы и ограничения';documents.append(docTitle);
+    for(const requirement of candidate.requirements){const item=document.createElement('p');item.textContent=`• ${requirement.label}. Источник: ${requirement.source}. Зачем: ${requirement.purpose}`;documents.append(item);}
+    for(const limitation of candidate.limitations){const item=document.createElement('p');item.className='revision-note';item.textContent=limitation;documents.append(item);}card.append(documents);
+    const source=document.createElement('p');source.className='product-source';source.textContent=`Источник: ${candidate.source_url} · ${candidate.source_version} · правила ${candidate.rule_version}`;card.append(source);body.append(card);
+  }
+  if(log.requirements){const note=document.createElement('p');note.className='revision-note';note.textContent=`Для следующего этапа: ${log.requirements.routes.length} маршрутов, ${log.requirements.documents.length} видов документов. ${log.requirements.note}`;body.append(note);}
+  if(selection.excluded.length){const excluded=document.createElement('details');excluded.className='candidate-details';const label=document.createElement('summary');label.textContent=`Другие направления: ${selection.excluded.length}`;excluded.append(label);for(const check of selection.excluded){const text=document.createElement('p');text.textContent=`${check.label}: не подходит к текущей потребности. ${check.reason}`;excluded.append(text);}body.append(excluded);}
 }
 async function api(path,options={}) {
   let response;
@@ -191,7 +223,7 @@ async function refreshAssistant() {
     }
     const health=await api('/api/health');
     const label=$('#assistant-connection span');
-    label.textContent=health.status==='ready'?'Модуль 1 · gpt-oss:20b':health.status==='model_missing'?'Модель gpt-oss:20b не установлена':'Ollama недоступен';
+    label.textContent=health.status==='ready'?'Модули 1–2 · gpt-oss:20b':health.status==='model_missing'?'Модель gpt-oss:20b не установлена':'Ollama недоступен';
     $('#assistant-connection').dataset.state=health.status;
   } catch(error) {
     if(!chatConnected) $('#assistant-connection span').textContent='Нет соединения с сервером';
