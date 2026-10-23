@@ -1,0 +1,4 @@
+split,rows,events,borrowers,event_rate_per_month_row
+train,3005103,36418,140489,0.01212
+val,616878,10484,30903,0.017
+test,541990,10377,28608,0.01915
