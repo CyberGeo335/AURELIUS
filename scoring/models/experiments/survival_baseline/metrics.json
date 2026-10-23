@@ -1,0 +1,70 @@
+{
+  "model": "CatBoost discrete-time hazard (synthetic)",
+  "seed": 42,
+  "best_iteration": 73,
+  "horizon_months": 12,
+  "warning": "Synthetic data only; no real-world credit calibration.",
+  "train": {
+    "row_level": {
+      "rows": 150353,
+      "defaults": 1871,
+      "row_logloss": 0.0644735554165087,
+      "row_brier": 0.012182214725939597,
+      "row_roc_auc": 0.6873947656897459,
+      "row_pr_auc": 0.04333258139863674
+    },
+    "horizon": {
+      "horizon_months": 12,
+      "episodes": 6933,
+      "known_outcomes": 6529,
+      "censored_before_horizon": 404,
+      "weighted_event_fraction": 0.11605965009691449,
+      "mean_predicted_pd": 0.15302573932039176,
+      "ipcw_brier": 0.09559135820669715,
+      "ipcw_roc_auc": 0.6876998155091849,
+      "ipcw_pr_auc": 0.3091308702912952
+    }
+  },
+  "val": {
+    "row_level": {
+      "rows": 33716,
+      "defaults": 542,
+      "row_logloss": 0.08064278487440113,
+      "row_brier": 0.015745750823014087,
+      "row_roc_auc": 0.6225190080169928,
+      "row_pr_auc": 0.03130908776884848
+    },
+    "horizon": {
+      "horizon_months": 12,
+      "episodes": 1656,
+      "known_outcomes": 1538,
+      "censored_before_horizon": 118,
+      "weighted_event_fraction": 0.1434555953004164,
+      "mean_predicted_pd": 0.15197809299352774,
+      "ipcw_brier": 0.1167402962762304,
+      "ipcw_roc_auc": 0.6495849221562516,
+      "ipcw_pr_auc": 0.27901483474336897
+    }
+  },
+  "test": {
+    "row_level": {
+      "rows": 28112,
+      "defaults": 465,
+      "row_logloss": 0.0820672600467228,
+      "row_brier": 0.01616777316492422,
+      "row_roc_auc": 0.632394655975818,
+      "row_pr_auc": 0.03857377291004673
+    },
+    "horizon": {
+      "horizon_months": 12,
+      "episodes": 1411,
+      "known_outcomes": 1329,
+      "censored_before_horizon": 82,
+      "weighted_event_fraction": 0.19729366587674985,
+      "mean_predicted_pd": 0.15815030593117133,
+      "ipcw_brier": 0.1480435062106566,
+      "ipcw_roc_auc": 0.6744695511759726,
+      "ipcw_pr_auc": 0.4013738352047892
+    }
+  }
+}

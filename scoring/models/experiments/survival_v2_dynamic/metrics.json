@@ -1,0 +1,74 @@
+{
+  "purpose": "Compare dynamic vs origination one-month hazard on IDENTICAL V2 rows",
+  "prediction_time": "start of each month; outcome is default during that month",
+  "important": "Not a 12-month forecast using future realized dynamic covariates",
+  "best_iteration": 144,
+  "splits": {
+    "train": {
+      "dynamic": {
+        "rows": 149680,
+        "events": 1870,
+        "event_rate": 0.012493319080705506,
+        "logloss": 0.062124596632817254,
+        "brier": 0.01205975029061729,
+        "mean_predicted_hazard": 0.012463492914143991,
+        "roc_auc": 0.7162863656081102,
+        "pr_auc": 0.08560680394118354
+      },
+      "origination_baseline": {
+        "rows": 149680,
+        "events": 1870,
+        "event_rate": 0.012493319080705506,
+        "logloss": 0.06534251887604896,
+        "brier": 0.012258074039684532,
+        "mean_predicted_hazard": 0.016280094330522868,
+        "roc_auc": 0.6800853096926354,
+        "pr_auc": 0.03958430661061033
+      }
+    },
+    "val": {
+      "dynamic": {
+        "rows": 31178,
+        "events": 519,
+        "event_rate": 0.016646353197767656,
+        "logloss": 0.08026613763837599,
+        "brier": 0.0161478718164682,
+        "mean_predicted_hazard": 0.01665200985130298,
+        "roc_auc": 0.6842196223848623,
+        "pr_auc": 0.04794660722752603
+      },
+      "origination_baseline": {
+        "rows": 31178,
+        "events": 519,
+        "event_rate": 0.016646353197767656,
+        "logloss": 0.08289838363732906,
+        "brier": 0.01629162004729449,
+        "mean_predicted_hazard": 0.015886630232503068,
+        "roc_auc": 0.6157587713088111,
+        "pr_auc": 0.034742461136111416
+      }
+    },
+    "test": {
+      "dynamic": {
+        "rows": 27758,
+        "events": 524,
+        "event_rate": 0.01887744073780532,
+        "logloss": 0.08741387741976914,
+        "brier": 0.01818836405913768,
+        "mean_predicted_hazard": 0.01776565095462451,
+        "roc_auc": 0.7145121836366419,
+        "pr_auc": 0.05843109065617827
+      },
+      "origination_baseline": {
+        "rows": 27758,
+        "events": 524,
+        "event_rate": 0.01887744073780532,
+        "logloss": 0.09116689496298876,
+        "brier": 0.018404227158126566,
+        "mean_predicted_hazard": 0.017710079069992994,
+        "roc_auc": 0.6373260972056147,
+        "pr_auc": 0.04155149488298922
+      }
+    }
+  }
+}
