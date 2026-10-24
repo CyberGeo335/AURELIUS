@@ -62,6 +62,7 @@ generated_credentials.csv
 *.pth
 *.onnx
 *.cbm
+!main/ml_scoring/model/best_model.cbm
 *.pkl
 *.pickle
 *.joblib
@@ -92,6 +93,7 @@ optuna_storage/
 
 *.log
 logs/
+main/reports/
 tmp/
 temp/
 *.tmp

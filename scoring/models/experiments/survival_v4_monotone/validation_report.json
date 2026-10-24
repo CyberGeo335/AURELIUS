@@ -1,0 +1,292 @@
+{
+  "baseline": {
+    "weighted_ipcw_brier": 0.12564068424436126,
+    "max_calibration_abs_error": 0.036896999313183354,
+    "by_horizon": [
+      {
+        "term_months": 12,
+        "horizon_months": 6,
+        "n": 4775,
+        "ipcw_brier": 0.06854391623373095,
+        "calibration_abs_error": 0.008039000147214453
+      },
+      {
+        "term_months": 18,
+        "horizon_months": 6,
+        "n": 3864,
+        "ipcw_brier": 0.06649730070585616,
+        "calibration_abs_error": 0.00936306138136869
+      },
+      {
+        "term_months": 18,
+        "horizon_months": 12,
+        "n": 3864,
+        "ipcw_brier": 0.11385211370298175,
+        "calibration_abs_error": 0.01266403313374506
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 6,
+        "n": 7239,
+        "ipcw_brier": 0.069239808288783,
+        "calibration_abs_error": 0.0056856824925342955
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 12,
+        "n": 7239,
+        "ipcw_brier": 0.11652246252848238,
+        "calibration_abs_error": 0.012446601025315281
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 18,
+        "n": 7239,
+        "ipcw_brier": 0.15135228782170837,
+        "calibration_abs_error": 0.012189726759193975
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 6,
+        "n": 7185,
+        "ipcw_brier": 0.07341885470370153,
+        "calibration_abs_error": 0.008160393406450313
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 12,
+        "n": 7185,
+        "ipcw_brier": 0.12425299601141221,
+        "calibration_abs_error": 0.013599560579653525
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 24,
+        "n": 7185,
+        "ipcw_brier": 0.18236026515546264,
+        "calibration_abs_error": 0.01760508443193838
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 6,
+        "n": 4196,
+        "ipcw_brier": 0.06720493663052284,
+        "calibration_abs_error": 0.011519022866594836
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 12,
+        "n": 4196,
+        "ipcw_brier": 0.1153119253650623,
+        "calibration_abs_error": 0.009460081610320727
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 24,
+        "n": 4196,
+        "ipcw_brier": 0.17783081426353503,
+        "calibration_abs_error": 0.01708026763679764
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 36,
+        "n": 4196,
+        "ipcw_brier": 0.20906520260470612,
+        "calibration_abs_error": 0.02507370108638791
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 6,
+        "n": 2741,
+        "ipcw_brier": 0.07643118471097642,
+        "calibration_abs_error": 0.017295348381212775
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 12,
+        "n": 2741,
+        "ipcw_brier": 0.12534356371687957,
+        "calibration_abs_error": 0.022924357205096522
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 24,
+        "n": 2741,
+        "ipcw_brier": 0.18759752687786538,
+        "calibration_abs_error": 0.036896999313183354
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 36,
+        "n": 2741,
+        "ipcw_brier": 0.2121971481819962,
+        "calibration_abs_error": 0.03651306788720437
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 48,
+        "n": 2741,
+        "ipcw_brier": 0.22073672978974543,
+        "calibration_abs_error": 0.024624338873682712
+      }
+    ]
+  },
+  "candidate": {
+    "weighted_ipcw_brier": 0.1278136247844353,
+    "max_calibration_abs_error": 0.02779441700160208,
+    "by_horizon": [
+      {
+        "term_months": 12,
+        "horizon_months": 6,
+        "n": 4775,
+        "ipcw_brier": 0.06812059344357789,
+        "calibration_abs_error": 0.010000479983177029
+      },
+      {
+        "term_months": 18,
+        "horizon_months": 6,
+        "n": 3864,
+        "ipcw_brier": 0.0669213394255834,
+        "calibration_abs_error": 0.010746604626441648
+      },
+      {
+        "term_months": 18,
+        "horizon_months": 12,
+        "n": 3864,
+        "ipcw_brier": 0.11491968983823539,
+        "calibration_abs_error": 0.020758418255507394
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 6,
+        "n": 7239,
+        "ipcw_brier": 0.06963247984265107,
+        "calibration_abs_error": 0.006035986000022744
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 12,
+        "n": 7239,
+        "ipcw_brier": 0.11791050317860274,
+        "calibration_abs_error": 0.01799758389255359
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 18,
+        "n": 7239,
+        "ipcw_brier": 0.15377114115915075,
+        "calibration_abs_error": 0.02051513808061456
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 6,
+        "n": 7185,
+        "ipcw_brier": 0.07371989289572145,
+        "calibration_abs_error": 0.004491083098841898
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 12,
+        "n": 7185,
+        "ipcw_brier": 0.12589096546686002,
+        "calibration_abs_error": 0.012404487448730527
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 24,
+        "n": 7185,
+        "ipcw_brier": 0.18612994807700597,
+        "calibration_abs_error": 0.015467472485882316
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 6,
+        "n": 4196,
+        "ipcw_brier": 0.06749225801191473,
+        "calibration_abs_error": 0.010806505278427164
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 12,
+        "n": 4196,
+        "ipcw_brier": 0.11743900625390385,
+        "calibration_abs_error": 0.020146002493313588
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 24,
+        "n": 4196,
+        "ipcw_brier": 0.18202650445583024,
+        "calibration_abs_error": 0.020578317874748155
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 36,
+        "n": 4196,
+        "ipcw_brier": 0.21681576764686106,
+        "calibration_abs_error": 0.0207398457277047
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 6,
+        "n": 2741,
+        "ipcw_brier": 0.07727760701912033,
+        "calibration_abs_error": 0.018556651815846936
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 12,
+        "n": 2741,
+        "ipcw_brier": 0.12744680944186468,
+        "calibration_abs_error": 0.027224663793848844
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 24,
+        "n": 2741,
+        "ipcw_brier": 0.19243979615890797,
+        "calibration_abs_error": 0.025182752967617274
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 36,
+        "n": 2741,
+        "ipcw_brier": 0.21858989690573627,
+        "calibration_abs_error": 0.02779441700160208
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 48,
+        "n": 2741,
+        "ipcw_brier": 0.22553394586415415,
+        "calibration_abs_error": 0.02695474475299105
+      }
+    ]
+  },
+  "baseline_monotonicity_violations": {
+    "dscr": 191,
+    "debt_to_revenue": 85,
+    "cash_buffer_months": 49,
+    "operating_margin": 79,
+    "revenue_trend_12m": 239,
+    "prior_overdue_30d": 0,
+    "requested_amount": 87,
+    "macro_stress": 122,
+    "annual_rate": 158,
+    "revenue_volatility": 114
+  },
+  "candidate_monotonicity_violations": {
+    "dscr": 0,
+    "debt_to_revenue": 0,
+    "cash_buffer_months": 0,
+    "operating_margin": 0,
+    "revenue_trend_12m": 0,
+    "prior_overdue_30d": 0,
+    "requested_amount": 0,
+    "macro_stress": 0,
+    "annual_rate": 0,
+    "revenue_volatility": 0
+  },
+  "accepted": true,
+  "elapsed_seconds": 83.0
+}

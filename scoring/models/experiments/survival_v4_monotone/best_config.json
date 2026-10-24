@@ -1,0 +1,108 @@
+{
+  "model_name": "dt_monotone_v1",
+  "features": [
+    "age_months",
+    "industry",
+    "entity_type",
+    "monthly_revenue",
+    "revenue_trend_12m",
+    "revenue_volatility",
+    "operating_margin",
+    "cash_buffer_months",
+    "dscr",
+    "debt_to_revenue",
+    "prior_overdue_30d",
+    "requested_amount",
+    "annual_rate",
+    "macro_stress",
+    "month_on_book"
+  ],
+  "categorical_features": [
+    "industry",
+    "entity_type"
+  ],
+  "horizons_by_term": {
+    "12": [
+      6
+    ],
+    "18": [
+      6,
+      12
+    ],
+    "24": [
+      6,
+      12,
+      18
+    ],
+    "36": [
+      6,
+      12,
+      24
+    ],
+    "48": [
+      6,
+      12,
+      24,
+      36
+    ],
+    "60": [
+      6,
+      12,
+      24,
+      36,
+      48
+    ]
+  },
+  "monotone_constraints": {
+    "dscr": -1,
+    "debt_to_revenue": 1,
+    "cash_buffer_months": -1,
+    "operating_margin": -1,
+    "revenue_trend_12m": -1,
+    "prior_overdue_30d": 1,
+    "requested_amount": 1,
+    "macro_stress": 1,
+    "annual_rate": 1,
+    "revenue_volatility": 1
+  },
+  "training_params": {
+    "iterations": 500,
+    "learning_rate": 0.08,
+    "depth": 3,
+    "l2_leaf_reg": 3,
+    "loss_function": "Logloss",
+    "border_count": 128,
+    "thread_count": 2,
+    "random_seed": 42,
+    "verbose": 50,
+    "max_ctr_complexity": 1,
+    "eval_metric": "Logloss",
+    "used_ram_limit": "1200mb",
+    "allow_writing_files": false,
+    "task_type": "CPU",
+    "early_stopping_rounds": 80,
+    "monotone_constraints": {
+      "dscr": -1,
+      "debt_to_revenue": 1,
+      "cash_buffer_months": -1,
+      "operating_margin": -1,
+      "revenue_trend_12m": -1,
+      "prior_overdue_30d": 1,
+      "requested_amount": 1,
+      "macro_stress": 1,
+      "annual_rate": 1,
+      "revenue_volatility": 1
+    }
+  },
+  "best_iteration": 270,
+  "training_dataset": "data/processed/ml_survival_dataset.parquet",
+  "train_sample_episodes": 35000,
+  "train_sample_seed": 20261024,
+  "train_reference_episodes": 140000,
+  "validation_episodes": 30000,
+  "split_sha256": "fc2f4ad3fd559ef8ad2aa64a195cb94285ef947096be56414f0ceb3e345f0bcf",
+  "selection": "original validation only; no tuning on 30 demo businesses or test",
+  "test_used_for_selection": false,
+  "accepted": true,
+  "acceptance_rule": "validation weighted IPCW Brier <= original + 0.003; max bin calibration error <=0.06; zero tested monotonicity violations"
+}

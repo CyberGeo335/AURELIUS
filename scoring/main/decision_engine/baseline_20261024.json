@@ -1,0 +1,33 @@
+{
+  "policy_version": "AURELIUS_MVP_20261024_V1",
+  "effective_from": "2026-10-24",
+  "effective_to": "2026-12-17",
+  "products": ["R01", "R02", "R03"],
+  "demo_only": true,
+  "funding_spread_pct": "1.50",
+  "operating_cost_pct": "2.00",
+  "required_margin_pct": "3.00",
+  "lgd_pct": "45.00",
+  "key_rate": {
+    "indicator_code": "KEY_RATE",
+    "indicator_value": "14.00",
+    "effective_date": "2026-07-27",
+    "source": "CBR official decision 2026-07-24",
+    "source_url": "https://www.cbr.ru/press/pr/?file=24072026_133000key.htm",
+    "verified_as_of": "2026-10-24",
+    "verification_url": "https://www.cbr.ru/press/pr/?file=23102026_133000key.htm"
+  },
+  "assumptions": {
+    "funding_spread_pct": "MVP assumption: +1.5 percentage points for funding/liquidity above KEY_RATE; not Alfa-Bank internal transfer pricing",
+    "operating_cost_pct": "MVP assumption: 2 percentage points annually on exposure; not a measured product expense ratio",
+    "required_margin_pct": "MVP assumption: 3 percentage points of required annual residual return; capital remuneration is not separately calibrated",
+    "lgd_pct": "MVP conservative assumption: 45%; external reference for senior unsecured non-financial corporates is 40%, plus an explicit 5 percentage point uncertainty buffer. Not a calibrated Russian SME or IP loss estimate",
+    "product_differences": "Common baseline for all three unsecured products; no unsupported product-specific calibration",
+    "expiry": "Explicit MVP review deadline before the next scheduled CBR meeting on 2026-12-18; not an assertion that KEY_RATE changes on that date"
+  },
+  "references": [
+    "https://www.cbr.ru/press/pr/?file=23102026_133000key.htm",
+    "https://www.cbr.ru/press/pr/?file=24072026_133000key.htm",
+    "https://www.bankofengland.co.uk/prudential-regulation/publication/2022/november/implementation-of-the-basel-3-1-standards/credit-risk-internal-rating-based"
+  ]
+}

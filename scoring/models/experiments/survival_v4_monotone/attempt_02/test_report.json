@@ -1,0 +1,271 @@
+{
+  "baseline": {
+    "weighted_ipcw_brier": 0.12833633570010386,
+    "max_calibration_abs_error": 0.03746361865440971,
+    "by_horizon": [
+      {
+        "term_months": 12,
+        "horizon_months": 6,
+        "n": 4868,
+        "ipcw_brier": 0.06355574969620296,
+        "calibration_abs_error": 0.01131814247022835
+      },
+      {
+        "term_months": 18,
+        "horizon_months": 6,
+        "n": 3909,
+        "ipcw_brier": 0.0693020320005443,
+        "calibration_abs_error": 0.005538817301604507
+      },
+      {
+        "term_months": 18,
+        "horizon_months": 12,
+        "n": 3909,
+        "ipcw_brier": 0.11444040442312772,
+        "calibration_abs_error": 0.010094184887638843
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 6,
+        "n": 7260,
+        "ipcw_brier": 0.07392067691106861,
+        "calibration_abs_error": 0.008473293325300207
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 12,
+        "n": 7260,
+        "ipcw_brier": 0.12261635364725855,
+        "calibration_abs_error": 0.009971587066256228
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 18,
+        "n": 7260,
+        "ipcw_brier": 0.15563104671117137,
+        "calibration_abs_error": 0.014844666619230736
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 6,
+        "n": 7118,
+        "ipcw_brier": 0.0740415569436247,
+        "calibration_abs_error": 0.01287316754209733
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 12,
+        "n": 7118,
+        "ipcw_brier": 0.12135280349250413,
+        "calibration_abs_error": 0.01696103760864332
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 24,
+        "n": 7118,
+        "ipcw_brier": 0.17854889061872173,
+        "calibration_abs_error": 0.015981184441200665
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 6,
+        "n": 4197,
+        "ipcw_brier": 0.07962883257336913,
+        "calibration_abs_error": 0.01572975046560991
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 12,
+        "n": 4197,
+        "ipcw_brier": 0.1301256444947681,
+        "calibration_abs_error": 0.018713895693143093
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 24,
+        "n": 4197,
+        "ipcw_brier": 0.18761719796399576,
+        "calibration_abs_error": 0.019243115481287435
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 36,
+        "n": 4197,
+        "ipcw_brier": 0.2175969587020067,
+        "calibration_abs_error": 0.02208458128570548
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 6,
+        "n": 2648,
+        "ipcw_brier": 0.07317386500839418,
+        "calibration_abs_error": 0.01934514850003649
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 12,
+        "n": 2648,
+        "ipcw_brier": 0.12695069511190973,
+        "calibration_abs_error": 0.01807835292519798
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 24,
+        "n": 2648,
+        "ipcw_brier": 0.18675807155910362,
+        "calibration_abs_error": 0.02917522475936355
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 36,
+        "n": 2648,
+        "ipcw_brier": 0.21415764845463445,
+        "calibration_abs_error": 0.03746361865440971
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 48,
+        "n": 2648,
+        "ipcw_brier": 0.22610757330783637,
+        "calibration_abs_error": 0.031606166833713485
+      }
+    ]
+  },
+  "candidate": {
+    "weighted_ipcw_brier": 0.13030905740158846,
+    "max_calibration_abs_error": 0.027660369159148643,
+    "by_horizon": [
+      {
+        "term_months": 12,
+        "horizon_months": 6,
+        "n": 4868,
+        "ipcw_brier": 0.0640992181856829,
+        "calibration_abs_error": 0.016150535556214873
+      },
+      {
+        "term_months": 18,
+        "horizon_months": 6,
+        "n": 3909,
+        "ipcw_brier": 0.07007965758370727,
+        "calibration_abs_error": 0.012379843762055144
+      },
+      {
+        "term_months": 18,
+        "horizon_months": 12,
+        "n": 3909,
+        "ipcw_brier": 0.11684452807316693,
+        "calibration_abs_error": 0.017804495373553275
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 6,
+        "n": 7260,
+        "ipcw_brier": 0.07433782328163883,
+        "calibration_abs_error": 0.006910256586270896
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 12,
+        "n": 7260,
+        "ipcw_brier": 0.12387060244126415,
+        "calibration_abs_error": 0.008034296343522394
+      },
+      {
+        "term_months": 24,
+        "horizon_months": 18,
+        "n": 7260,
+        "ipcw_brier": 0.15797238425373794,
+        "calibration_abs_error": 0.010297689359560441
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 6,
+        "n": 7118,
+        "ipcw_brier": 0.07395118323928672,
+        "calibration_abs_error": 0.010202991935056357
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 12,
+        "n": 7118,
+        "ipcw_brier": 0.12263653672632738,
+        "calibration_abs_error": 0.013984631789093616
+      },
+      {
+        "term_months": 36,
+        "horizon_months": 24,
+        "n": 7118,
+        "ipcw_brier": 0.18123526646561428,
+        "calibration_abs_error": 0.020413997306970754
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 6,
+        "n": 4197,
+        "ipcw_brier": 0.07982441804103259,
+        "calibration_abs_error": 0.011440362488230882
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 12,
+        "n": 4197,
+        "ipcw_brier": 0.13172900032250898,
+        "calibration_abs_error": 0.01830457842681906
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 24,
+        "n": 4197,
+        "ipcw_brier": 0.19174950756707457,
+        "calibration_abs_error": 0.012235312552734018
+      },
+      {
+        "term_months": 48,
+        "horizon_months": 36,
+        "n": 4197,
+        "ipcw_brier": 0.22365944574901628,
+        "calibration_abs_error": 0.021708057471507693
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 6,
+        "n": 2648,
+        "ipcw_brier": 0.07397881201963667,
+        "calibration_abs_error": 0.02160441450873861
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 12,
+        "n": 2648,
+        "ipcw_brier": 0.12799133253330996,
+        "calibration_abs_error": 0.01505568358869612
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 24,
+        "n": 2648,
+        "ipcw_brier": 0.1901968115387511,
+        "calibration_abs_error": 0.013481709026981412
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 36,
+        "n": 2648,
+        "ipcw_brier": 0.22059920854874082,
+        "calibration_abs_error": 0.020463771747998908
+      },
+      {
+        "term_months": 60,
+        "horizon_months": 48,
+        "n": 2648,
+        "ipcw_brier": 0.23220081125216938,
+        "calibration_abs_error": 0.027660369159148643
+      }
+    ]
+  },
+  "notes": [
+    "Frozen candidate selected on original validation; no HPO on test or demo businesses",
+    "Synthetic holdout; does not establish calibration on real bank borrowers",
+    "The original test split was previously examined for the original model; this is not a newly collected external holdout"
+  ]
+}

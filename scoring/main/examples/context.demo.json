@@ -1,0 +1,60 @@
+{
+  "as_of": "2026-10-24",
+  "individual_annual_rate_pct": "28.00",
+  "individual_rate_source": "DEMO assumption; not a bank quote",
+  "internal_confirmations": {
+    "guarantor_requirement_resolved": true,
+    "legal_checks_clear": true,
+    "credit_history_checked": true,
+    "fees_resolved": true,
+    "purpose_resolved": true
+  },
+  "feature_contract_version": "synthetic_origination_v2",
+  "model_features": {
+    "industry": "services",
+    "monthly_revenue": 1200000,
+    "revenue_trend_12m": 0.05,
+    "revenue_volatility": 0.15,
+    "operating_margin": 0.25,
+    "cash_buffer_months": 2.0,
+    "dscr": 3.0,
+    "debt_to_revenue": 0.3,
+    "prior_overdue_30d": 0,
+    "macro_stress": 0.0
+  },
+  "feature_provenance": {
+    "industry": "DEMO training taxonomy",
+    "monthly_revenue": "DEMO origination monthly revenue",
+    "revenue_trend_12m": "DEMO revenue(t)/revenue(t-12)-1",
+    "revenue_volatility": "DEMO population std(last 12 revenues)/mean(last 12 revenues)",
+    "operating_margin": "DEMO operating cash flow/monthly revenue",
+    "cash_buffer_months": "DEMO cash balance/monthly revenue",
+    "dscr": "DEMO operating cash available/existing debt service",
+    "debt_to_revenue": "DEMO synthetic base debt ratio",
+    "prior_overdue_30d": "DEMO complete synthetic history",
+    "macro_stress": "DEMO scenario 0; not KEY_RATE"
+  },
+  "capacity": {
+    "monthly_cash_available_for_debt_service": "300000.00",
+    "existing_monthly_debt_service": "100000.00",
+    "source": "DEMO synthetic cash capacity independent of model risk score"
+  },
+  "risk_policy": {
+    "product_code": "R01",
+    "policy_version": "DEMO_ECONOMICS_V1",
+    "funding_spread_pct": "1.00",
+    "operating_cost_pct": "1.00",
+    "required_margin_pct": "2.00",
+    "lgd_pct": "45.00"
+  },
+  "key_rate_pct": "15.00",
+  "key_rate_source": "DEMO invented scenario; not current central bank data",
+  "key_rate_effective_date": "2026-10-24",
+  "economics_source": "DEMO_ECONOMICS_V1: all economic numbers are assumptions",
+  "fees": [],
+  "eligibility_rules": [],
+  "purposes": [],
+  "terms_id": 1,
+  "rate_option_id": 1,
+  "repayment_option_id": 6
+}
