@@ -247,10 +247,10 @@
         },
         {
           "code": "TRANCHE_TERM",
-          "label": "Оборотный цикл и срок транша",
-          "field": "operating_cycle_days",
+          "label": "Срок отдельного транша, дней",
+          "field": "tranche_term_days",
           "maximum": null,
-          "verified_only": true
+          "verified_only": false
         }
       ],
       "requirements": [

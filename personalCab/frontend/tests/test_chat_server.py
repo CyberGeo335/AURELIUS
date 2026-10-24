@@ -70,7 +70,8 @@ def test_http_chat_persists_retries_and_revisions(http_server, service):
         patch(text3, amount_rub=5000000),
     )
     status, state, cookie = request(http_server, 'GET', '/api/chat/state')
-    assert status == 200 and state == {'history': [], 'latest': None}
+    assert status == 200 and state['history'] == [] and state['latest'] is None
+    assert state['context']['mode']=='DEMO' and state['context']['company_id'] is None
     assert 'HttpOnly' in cookie and 'SameSite=Strict' in cookie
     cookie = cookie.split(';')[0]
     command = {'message_id': 'turn-1', 'text': text1}
