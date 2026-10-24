@@ -46,3 +46,20 @@ def test_unchanged_restatements_need_no_new_provenance():
     extractor.chain = FixtureChain()
     result = extractor.extract(MessageInput(session_id="s", message_id="m", text="Теперь пять миллионов"), Case(owner_id="test", request=LoanRequest(legal_form="IP", amount_rub=3000000)))
     assert result.patch.legal_form is None and result.patch.amount_rub == 5000000
+
+
+def test_goal_change_cannot_silently_clear_known_purpose():
+    text='Измени цель: покупка автомобиля для бизнеса'
+    bad=Extraction(clear_fields=['purpose'],evidence={'purpose':text}).model_dump(mode='json')
+    good=Extraction(patch=LoanRequest(purpose='VEHICLE',financing_need='VEHICLE'),evidence={'purpose':text,'financing_need':text}).model_dump(mode='json')
+    class FixtureChain:
+        def __init__(self):
+            self.responses=[bad,good]
+            self.calls=0
+        def invoke(self,messages):
+            self.calls+=1
+            return self.responses.pop(0)
+    extractor=object.__new__(OllamaExtractor)
+    extractor.chain=FixtureChain()
+    result=extractor.extract(MessageInput(session_id='s',message_id='m',text=text),Case(owner_id='test',request=LoanRequest(purpose='INVENTORY')))
+    assert result.patch.purpose=='VEHICLE' and not result.clear_fields and extractor.chain.calls==2
