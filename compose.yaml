@@ -1,0 +1,50 @@
+services:
+  db:
+    build:
+      context: .
+      dockerfile: deploy/Postgres.Dockerfile
+    environment:
+      POSTGRES_DB: business_scoring
+      POSTGRES_USER: aurelius
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aurelius_local_demo_only}
+      PGDATA: /var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${PG_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scoring/bd/business_scoring.backup:/seed/business_scoring.backup:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  init:
+    build: .
+    command: ["python", "-m", "personalCab.prom.prom_lab.ai_agents_lab.database", "--init-workflow"]
+    environment: &database_environment
+      PG_HOST: db
+      PG_PORT: 5432
+      PG_DATABASE: business_scoring
+      PG_USER: aurelius
+      PG_PASSWORD: ${POSTGRES_PASSWORD:-aurelius_local_demo_only}
+    depends_on:
+      db:
+        condition: service_healthy
+  app:
+    build: .
+    command: ["python", "-m", "personalCab.frontend.server", "--host", "0.0.0.0", "--port", "${APP_PORT:-5173}"]
+    ports:
+      - "127.0.0.1:${APP_PORT:-5173}:${APP_PORT:-5173}"
+    environment:
+      <<: *database_environment
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      AURELIUS_DEMO_COMPANY_ID: ${AURELIUS_DEMO_COMPANY_ID:-40}
+      AURELIUS_DEMO_ALLOWED_COMPANY_IDS: ${AURELIUS_DEMO_ALLOWED_COMPANY_IDS:-40}
+      AURELIUS_DEMO_EVIDENCE_CONSENT: ${AURELIUS_DEMO_EVIDENCE_CONSENT:-false}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+volumes:
+  postgres_data:

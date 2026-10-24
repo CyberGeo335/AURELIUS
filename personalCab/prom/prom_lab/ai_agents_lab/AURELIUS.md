@@ -1,5 +1,7 @@
 # AURELIUS: паттерн агентного приложения
 
+> Обновление 24.10.2026: runtime использует PostgreSQL и модули 1–5 DEMO; SQLite ниже описывает прежний/явный legacy режим. Актуальный запуск Docker, snapshot-контракт и ограничения: [интеграция PostgreSQL](../../../../docs/POSTGRES_INTEGRATION.md). М4 использует настоящий CatBoost на явных проверенных входах, М5 — ручное решение и симуляцию. Актуальные контракты: [модули 1–5](../../../../docs/DEMO_MODULES_1_5.md). Последующие разделы сохраняют историческую декомпозицию первого этапа.
+
 Дата: 21.10.2026. Исходный пример: `personalCab/prom/lab/ai_agents_lab`.
 Реализация кредитного диалога: `personalCab/prom/prom_lab/ai_agents_lab`.
 Спецификация: `DataAndArcBuild/architecture/01_dialogue_and_workflow.md`.

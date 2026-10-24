@@ -20,6 +20,8 @@ class ConflictError(RuntimeError):
 def check_access(case: Case, actor: ActorContext) -> None:
     if actor.actor_id != case.owner_id:
         raise AccessDenied("Кейс принадлежит другому пользователю")
+    if case.company_id is not None and case.company_id != actor.company_id:
+        raise AccessDenied("Нет полномочий на PostgreSQL-компанию кейса")
     subject = case.request.borrower_id
     if subject and subject not in actor.allowed_borrower_ids:
         raise AccessDenied("Нет полномочий на выбранный субъект")
@@ -102,7 +104,8 @@ class CaseRepository:
             existing = self.find_existing(actor, actor.active_borrower_id) if actor.active_borrower_id else []
             if len(existing) > 1:
                 raise ConflictError("Найдено несколько заявок: требуется выбор существующего кейса")
-            case = existing[0] if existing else Case(owner_id=actor.actor_id)
+            case = existing[0] if existing else Case(owner_id=actor.actor_id, company_id=actor.company_id)
+            check_access(case, actor)
             if not existing:
                 case.request.borrower_id = actor.active_borrower_id
                 db.execute("INSERT INTO credit_cases VALUES(?,?,?,?,?,?)", (case.case_id, case.owner_id, case.request.borrower_id, case.status, case.storage_version, case.model_dump_json()))

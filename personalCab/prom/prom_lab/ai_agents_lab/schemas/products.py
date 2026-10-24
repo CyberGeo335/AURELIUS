@@ -1,5 +1,6 @@
 """Typed module 2 boundary. Product suitability is not a credit decision."""
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -12,8 +13,8 @@ class ProductRule(ProductModel):
     code: str
     label: str
     field: str
-    minimum: int | None = None
-    maximum: int | None = None
+    minimum: Decimal | None = None
+    maximum: Decimal | None = None
     allowed: list[str] | None = None
     expected_bool: bool | None = None
     verified_only: bool = False
@@ -55,6 +56,9 @@ class ProductCard(ProductModel):
     tranche_term_days: dict[str, int | None] = Field(default_factory=dict)
     drawdown_period_days: dict[str, int | None] = Field(default_factory=dict)
     published_min_rate: float | None = None
+    database_product_code: str | None = None
+    database_supported: bool | None = None
+    source_conditions: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProductCatalog(ProductModel):
@@ -96,6 +100,9 @@ class ProductCandidate(ProductModel):
     source_url: str
     source_version: str
     rule_version: str
+    database_product_code: str | None = None
+    database_supported: bool | None = None
+    source_conditions: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProductSelection(ProductModel):
@@ -121,4 +128,4 @@ class DataRequirements(ProductModel):
     status: Literal['REQUIREMENTS_READY'] = 'REQUIREMENTS_READY'
     routes: list[dict[str, Any]]
     documents: list[Requirement]
-    note: str = 'Предварительный адресный перечень проекта. Утверждённый перечень кредитора неизвестен; сбор документов ещё не запускался.'
+    note: str = 'Предварительный адресный перечень проекта. Утверждённый перечень кредитора неизвестен. Фактический статус сбора — в результате модуля 3.'

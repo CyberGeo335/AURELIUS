@@ -8,3 +8,33 @@
 #assistant-connection[data-state=ready] i{background:#91be9a}#assistant-connection[data-state=ollama_unavailable] i,#assistant-connection[data-state=model_missing] i{background:#ef776b}.message.assistant-message{padding:8px 0;color:#d6d6dc}.workflow-log{margin:15px 0 24px;border:1px solid #6f514566;border-radius:12px;background:#2e2929;overflow:hidden}.workflow-log>summary{padding:13px 12px;font-size:10px;line-height:1.6;color:#e8c2aa;cursor:pointer;overflow-wrap:anywhere}.workflow-log-body{padding:0 12px 14px}.revision-note{font-size:9px;color:#ad9891;line-height:1.7;margin:0 0 14px}.workflow-log dl{margin:0}.workflow-log dl>div{padding:9px 0;border-top:1px solid #ffffff08}.workflow-log dt{font-size:8px;color:#969096;margin-bottom:5px}.workflow-log dd{font-size:10px;color:#d4cdd1;margin:0;line-height:1.6;overflow-wrap:anywhere;white-space:pre-wrap}.raw-log{margin-top:13px}.raw-log summary{font-size:9px;color:#c0a49a;cursor:pointer}.raw-log pre{font-size:9px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;color:#b9b0b0;margin:13px 0 0;max-height:400px;overflow:auto}.retry-turn{margin-top:12px;font-size:10px;padding:10px}.chat-toolbar button:disabled{opacity:.4;cursor:wait}#chat-request-status{font-size:10px;line-height:1.6;color:#c9a98e;margin:0 3px 10px;max-height:70px;overflow:auto}.chat-messages{position:relative}.chat-composer textarea:read-only{opacity:.6}.chat-composer .icon-button:disabled{opacity:.3;cursor:wait}
 .product-log-title{font-size:13px;font-weight:500;margin:22px 0 12px}.product-result{padding:12px;margin:10px 0;border-radius:11px;background:#ffffff04;border:1px solid #ffffff0b}.product-result-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.product-result-heading strong{font-size:12px;font-weight:500;line-height:1.6}.eligibility{font-size:9px;padding:3px 6px;border-radius:5px;white-space:nowrap}.eligibility.match{background:#87b89b16;color:#b8d4bf}.eligibility.no_match{background:#f37a6716;color:#f19d90}.eligibility.unknown{background:#d7b47616;color:#d5bd96}.product-result>p,.candidate-details p{font-size:10px;line-height:1.7;color:#bbb2b7;overflow-wrap:anywhere}.candidate-details{margin:13px 0}.candidate-details>summary{font-size:10px;line-height:1.7;cursor:pointer;color:#d0b4a7}.condition-check{padding:11px 0;border-bottom:1px solid #ffffff09}.condition-check>strong{font-size:10px;font-weight:400;display:inline-block;margin:0 6px 6px 0}.condition-check p{margin:3px 0}.product-result .product-source{font-size:8px;color:#91878b}.workflow-log dd{font-size:11px}.workflow-log>summary{font-size:11px}
 .process-next-step{font-size:11px;line-height:1.7;color:#e4c7b4;padding:10px;border-radius:9px;background:#ffffff04}
+
+.evidence-log { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+
+/* Server-backed case controls and DEMO review. */
+.case-controls { padding: 10px 18px; border-bottom: 1px solid var(--line); flex-shrink: 0; max-height: 40vh; overflow: auto; }
+.case-controls[open] { max-height: 52vh; }
+.case-controls summary { cursor: pointer; font-size: 13px; font-weight: 600; }
+.consent-steps { padding: 12px; border: 1px solid #bc8b68; border-radius: 10px; background: #c08b5c12; display: grid; gap: 10px; }
+.consent-steps > strong { font-size: 13px; }
+.consent-steps > p { margin: 0; font-size: 12px; line-height: 1.5; }
+.consent-steps > small { font-size: 11px; line-height: 1.5; color: #c8bbc0; }
+.consent-steps .button { width: 100%; }
+.consent-steps .button:disabled { opacity: .45; cursor: not-allowed; }
+#case-controls-body > details { display: grid; gap: 10px; }
+#case-controls-body { display: grid; gap: 10px; padding-top: 12px; }
+#case-controls-body label, .questionnaire label { display: block; font-size: 12px; line-height: 1.5; }
+#case-controls-body select, .questionnaire input, .questionnaire select { max-width: 100%; padding: 8px; border: 1px solid #ffffff24; border-radius: 6px; background: #29292c; color: #f4f4f5; }
+#case-controls-body label > select, .questionnaire label > input, .questionnaire label > select { display: block; width: 100%; margin-top: 4px; }
+#case-controls-body input[type=checkbox], .lender-panel input[type=checkbox] { width: auto; accent-color: #e52322; }
+.questionnaire form { display: grid; gap: 12px; max-height: 50vh; overflow: auto; padding: 8px 0; }
+.lender-panel { padding: 12px; border: 1px solid #ffffff24; border-radius: 8px; margin-top: 12px; }
+.lender-panel details { overflow-x: auto; }
+.lender-panel table { font-size: 11px; border-collapse: collapse; width: 100%; }
+.lender-panel th, .lender-panel td { padding: 6px; text-align: right; border-bottom: 1px solid #ffffff18; }
+.lender-panel label { display: block; margin: 12px 0; font-size: 12px; }
+/* Authentication and client-reported data awaiting registry review. */
+#login-dialog::backdrop{background:rgba(20,20,20,.78);backdrop-filter:blur(8px)}
+#login-dialog{width:min(440px,calc(100vw - 32px))}
+#login-error{color:#c92828;min-height:1.4em}
+.review-required{display:block;color:#9a5600;background:#fff1cc;padding:8px;border-radius:8px;margin:6px 0}

@@ -111,7 +111,7 @@ def test_term_clocks_are_not_conflated():
     card = load_catalog().products[2]
     assert card.contract_term_months != {} and card.tranche_term_days != {} and card.drawdown_period_days != {}
     check = next(item for item in card.rules if item.code == 'TRANCHE_TERM')
-    assert check.field == 'operating_cycle_days' and check.maximum is None
+    assert check.field == 'tranche_term_days' and check.maximum is None
 
 
 def context():

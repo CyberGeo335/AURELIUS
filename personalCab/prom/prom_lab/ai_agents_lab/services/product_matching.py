@@ -27,8 +27,15 @@ def confirmed_profile(facts: list[dict], borrower_id: str, now: datetime) -> dic
             if field not in PROFILE_FIELDS or fact.get('borrower_id') != borrower_id or fact.get('scope') != 'PRODUCT_MATCHING' or fact.get('confirmed') is not True or not fact.get('source_ref'):
                 continue
             verified = datetime.fromisoformat(fact['verified_at'])
-            until = datetime.fromisoformat(fact['valid_until'])
-            if verified.tzinfo is None or until.tzinfo is None or not verified <= now < until:
+            if fact.get('validity') == 'AS_OF_SNAPSHOT':
+                available = datetime.fromisoformat(fact['available_at'])
+                at = datetime.fromisoformat(fact['snapshot_as_of'])
+                if at.tzinfo is None or available.tzinfo is None or at != now or available > now or verified.tzinfo is None or verified > now:
+                    continue
+                until = now
+            else:
+                until = datetime.fromisoformat(fact['valid_until'])
+            if verified.tzinfo is None or until.tzinfo is None or not verified <= now or (fact.get('validity') != 'AS_OF_SNAPSHOT' and now >= until):
                 continue
             value = fact['value']
             if field == 'has_collateral' and type(value) is not bool:
@@ -65,6 +72,32 @@ def structural_needs(request: LoanRequest) -> dict[str, tuple[str, int, str]]:
     if request.purpose in mapping:
         return {mapping[request.purpose]: ('MATCH', 0, 'Семейство соответствует заявленной цели')}
     return {}
+
+
+def database_rule_check(rule, mapping, request, profile, current):
+    status,actual='UNKNOWN',None
+    reason='Не утверждены актуальность условия и отображение required_data_field в подтверждённый профиль'
+    if current and mapping:
+        field=mapping['field']
+        actual=profile.get(field) if mapping.get('verified_only',True) else getattr(request,field,None)
+        expected=rule.get('threshold_value')
+        op=rule.get('comparison_operator')
+        if actual is not None and expected is not None:
+            try:
+                if type(actual) is not type(expected) and not (type(actual) in (int,float) and type(expected) in (int,float)) and op!='IN':
+                    raise ValueError('No implicit unit/type conversion')
+                passed={'EQ':lambda:actual==expected,'NE':lambda:actual!=expected,'GT':lambda:actual>expected,
+                        'GTE':lambda:actual>=expected,'LT':lambda:actual<expected,'LTE':lambda:actual<=expected,
+                        'IN':lambda:isinstance(expected,list) and actual in expected}[op]()
+                status='MATCH' if passed else 'NO_MATCH'
+                reason='Утверждённое формальное условие выполнено' if passed else 'Утверждённое формальное условие не выполнено'
+                if not passed and rule.get('severity','BLOCK')!='BLOCK':
+                    status='UNKNOWN'
+                    reason='Условие требует ручной проверки; оно не является блокирующим ограничением продукта'
+            except (TypeError,ValueError,KeyError):
+                reason='Нужна явная согласованная единица/семантика условия'
+    return ConditionCheck(code='PG:'+rule['rule_code'],label=rule['rule_description'],status=status,reason=reason,
+                          actual=actual,expected=rule.get('threshold_value'),provenance='POSTGRES_APPROVED' if current and mapping else 'POSTGRES_UNVERIFIED')
 
 
 class ProductMatcher:
@@ -111,12 +144,15 @@ class ProductMatcher:
                             status = 'NO_MATCH' if not passed else 'MATCH' if complete else 'UNKNOWN'
                             explanation = 'Известное условие выполнено' if status == 'MATCH' else 'Неизвестна одна из границ условия' if status == 'UNKNOWN' else 'Известное формальное ограничение не выполнено; это не банковский отказ'
                 checks.append(ConditionCheck(code=rule.code, label=rule.label, status=status, reason=explanation, actual=value, expected=bounds, provenance='VERIFIED' if verified else 'REPORTED' if value is not None else 'UNKNOWN'))
+            for database_rule in card.source_conditions.get('eligibility_rules', []):
+                checks.append(database_rule_check(database_rule,card.source_conditions.get('rule_mappings',{}).get(database_rule['rule_code']),request,profile,current))
             eligibility = 'NO_MATCH' if any(check.status == 'NO_MATCH' for check in checks) else 'UNKNOWN' if any(check.status == 'UNKNOWN' for check in checks) else 'MATCH'
             candidates.append(ProductCandidate(product_id=card.product_id, product_family=card.product_family, name=card.name,
                 process=card.process, eligibility=eligibility, priority=priority, reasons=[reason], checks=checks,
                 missing_checks=[check.code for check in checks if check.status == 'UNKNOWN'], limitations=card.limitations,
                 requirements=card.requirements, requirements_ref=f'REQ:{card.product_id}:{card.rule_version}',
-                source_url=card.source_url, source_version=card.source_version, rule_version=card.rule_version))
+                source_url=card.source_url, source_version=card.source_version, rule_version=card.rule_version,
+                database_product_code=card.database_product_code, database_supported=card.database_supported, source_conditions=card.source_conditions))
         candidates.sort(key=lambda item: (item.eligibility == 'NO_MATCH', item.priority, item.product_id))
         viable = any(item.eligibility != 'NO_MATCH' for item in candidates)
         return ProductSelection(case_id=case_id, revision=revision, borrower_id=request.borrower_id, evaluated_at=now,
