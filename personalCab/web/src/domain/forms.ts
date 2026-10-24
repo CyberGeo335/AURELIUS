@@ -1,5 +1,6 @@
 import { fields, type FieldDefinition } from './fields';
 import type { Application, Company, Product } from './types';
+import { validInn, syntheticInns } from './identifiers';
 export function applicableFields(product: Product, entity: Company['entity']) {
   return fields.filter(
     (f) => f.product === product && (entity === 'IP' ? f.requiredIP : f.requiredOOO),
@@ -51,7 +52,9 @@ export function validateField(
   f: FieldDefinition,
   value: string,
   entity: Company['entity'],
+  allowSynthetic = false,
 ): string | undefined {
+  if (f.number === 31 && value !== 'Подтверждаю') return 'Подтвердите корректность анкеты';
   if (!value.trim()) return 'Заполните поле';
   const length =
     f.number === 3
@@ -70,6 +73,8 @@ export function validateField(
                 ? 9
                 : 0;
   if (length && !new RegExp(`^\\d{${length}}$`).test(value)) return `Введите ${length} цифр`;
+  if (f.number === 3 && !validInn(value) && !(allowSynthetic && syntheticInns.has(value)))
+    return 'Контрольные цифры ИНН не совпадают. Проверьте номер.';
   if ([5, 6].includes(f.number) || (f.product === 'R02' && [32, 33].includes(f.number))) {
     const n = Number(value);
     if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n))
@@ -78,7 +83,7 @@ export function validateField(
       return 'Демо-диапазон: от 100 000 до 5 000 000 ₽';
     if (f.number === 6 && (n < 3 || n > 24)) return 'Выберите от 3 до 24 месяцев';
   }
-  if (f.number === 26 && !/^\+?[\d\s()-]{10,20}$/.test(value))
+  if (f.number === 26 && !/^\+\d{1,3}[\d\s()-]{9,17}$/.test(value))
     return 'Введите телефон с кодом страны';
   if ([15, 23].includes(f.number) && !/^\d{4}-\d{2}-\d{2}$/.test(value))
     return 'Введите дату ГГГГ-ММ-ДД';
@@ -93,11 +98,20 @@ export function validateApplication(a: Application, company: Company) {
   if (a.fields[`${a.product}_02`] !== (company.entity === 'IP' ? 'ИП' : 'ООО'))
     errors[`${a.product}_02`] = 'Тип заявителя определяется выбранным профилем';
   for (const f of applicableFields(a.product, company.entity)) {
-    const e = validateField(f, a.fields[f.code] ?? '', company.entity);
+    const e = validateField(
+      f,
+      a.fields[f.code] ?? '',
+      company.entity,
+      a.fields[f.code] === company.inn,
+    );
     if (e) errors[f.code] = e;
   }
   if (!a.businessConfirmed) errors.business = 'Подтвердите сведения о бизнесе';
   if (!a.statement) errors.statement = 'Добавьте выписку или внесите обороты';
+  if (a.monthly && (a.monthly.length !== 12 || a.monthly.some((v) => !Number.isFinite(v) || v < 0)))
+    errors.statement = 'Заполните обороты за все 12 месяцев';
+  if (a.statementMonths && a.statementMonths.length < 12)
+    errors.statement = `Не хватает ${12 - a.statementMonths.length} месяцев выписки. Дозагрузите данные.`;
   if (a.leasing === null) errors.leasing = 'Уточните регулярный платёж';
   if (!a.consentBki) errors.consentBki = 'Дайте отдельное согласие на запрос в БКИ';
   if (!a.consentData) errors.consentData = 'Подтвердите обработку данных';

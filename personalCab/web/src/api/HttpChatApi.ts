@@ -1,12 +1,25 @@
 export interface ChatResult {
   result: {
+    case_id?: string;
+    revision?: number;
     reply?: string;
     message?: string;
     assistant_message?: string;
     error_code?: string;
     request?: Record<string, unknown>;
+    product_selection?: { clarification?: string | null; candidates: ChatCandidate[] } | null;
   };
   workflow_log?: Record<string, unknown>;
+}
+export interface ChatCandidate {
+  product_id: string;
+  product_family: string;
+  name: string;
+  eligibility: 'MATCH' | 'NO_MATCH' | 'UNKNOWN';
+  priority: number;
+  reasons: string[];
+  missing_checks: string[];
+  requirements: { label: string; purpose: string }[];
 }
 export interface ChatState {
   history: { role: string; content?: string; text?: string }[];

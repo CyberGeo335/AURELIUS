@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { payment, coverage, schedule } from '../domain/finance';
 import { fields } from '../domain/fields';
 import { applicableFields, validateField } from '../domain/forms';
+import { parseStatement } from '../domain/statement';
 import { assertTransition } from '../domain/status';
 describe('Credit calculations', () => {
   it('matches V2 examples without hardcoded payments', () => {
@@ -62,5 +63,31 @@ describe('Domain boundaries', () => {
     expect(() => assertTransition('OFFERED', 'SIGNED_DEMO')).toThrow();
     expect(() => assertTransition('NEEDS_INFO', 'CHECKING')).not.toThrow();
     expect(() => assertTransition('MANUAL_REVIEW', 'NEEDS_INFO')).not.toThrow();
+  });
+});
+
+describe('INN and statement input', () => {
+  it('checks both INN lengths and permits only the exact labelled demo fixture', () => {
+    const field = fields.find((f) => f.code === 'R01_03')!;
+    expect(validateField(field, '7707083893', 'OOO')).toBeUndefined();
+    expect(validateField(field, '500100732259', 'IP')).toBeUndefined();
+    expect(validateField(field, '7707083894', 'OOO')).toContain('Контрольные');
+    expect(validateField(field, '500100732258', 'IP')).toContain('Контрольные');
+    expect(validateField(field, '771234567890', 'IP')).toContain('Контрольные');
+    expect(validateField(field, '771234567890', 'IP', true)).toBeUndefined();
+    expect(validateField(field, '771234567891', 'IP', true)).toContain('Контрольные');
+  });
+  it('parses monthly totals and rejects ambiguous or malformed rows', () => {
+    expect(parseStatement('month,incoming_rub\n2025-10,1210000\n2026-09,1330000')).toEqual({
+      '2025-10': 1210000,
+      '2026-09': 1330000,
+    });
+    for (const text of [
+      'month,incoming_rub\n2026-09,',
+      'month,incoming_rub\n2026-09,-10',
+      'month,incoming_rub\n2026-09,1\n2026-09,2',
+      'month,incoming_rub\n2024-01,2',
+    ])
+      expect(() => parseStatement(text)).toThrow();
   });
 });

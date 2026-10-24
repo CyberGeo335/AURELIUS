@@ -46,6 +46,8 @@ export interface DataRequest {
   state: 'OPEN' | 'CLOSED';
   answer?: string;
   file?: string;
+  reason?: string;
+  dueAt?: number;
 }
 export interface Revision {
   revision: number;
@@ -89,8 +91,29 @@ export interface Application {
   reason: string;
   reasonCode: string;
   step: number;
+  furthestStep?: number;
   owner?: string;
   files: string[];
+  monthly?: number[];
+  statementMonths?: string[];
+  originalFields?: Record<string, string>;
+  fieldStatuses?: Record<string, 'CONFIRMED' | 'UNVERIFIED' | 'CONFLICT' | 'STALE'>;
+  sourceDate?: number;
+  checks?: { authority: boolean; revenue: boolean; comment: string };
+  assistantCaseId?: string;
+  assistantMessageIds?: string[];
+}
+export interface AssistantFacts {
+  amount?: number;
+  term?: number;
+  purpose?: string;
+  caseId?: string;
+  messageId: string;
+  applicationId?: string;
+}
+export interface RequestOptions {
+  field: string;
+  dueAt: number;
 }
 export interface CreditState {
   version: 1;

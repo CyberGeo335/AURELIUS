@@ -86,6 +86,11 @@ describe('Mock credit lifecycle', () => {
     await process(a);
     expect(find(a, id).status).toBe('MANUAL_REVIEW');
     await expect(a.bankDecision(id, 1, 'A', 'коротко')).rejects.toThrow();
+    await expect(
+      a.bankDecision(id, 1, 'BOTH', 'Проверки ещё не завершены сотрудником'),
+    ).rejects.toThrow('обязательные проверки');
+    await a.resolveData(id, 'authority', 'Полномочия подтверждены по документу');
+    await a.resolveData(id, 'revenue', 'Расхождение подтверждено по источнику');
     await a.bankDecision(
       id,
       1,
@@ -140,6 +145,62 @@ describe('Mock credit lifecycle', () => {
     expect(b.getSnapshot().applications).toHaveLength(7);
     await a.reset();
     window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
-    expect(b.getSnapshot().applications).toHaveLength(6);
+    expect(b.getSnapshot().applications).toHaveLength(7);
+  });
+  it('keeps confirmed assistant facts in the same draft and preserves explicit consent', async () => {
+    const a = api();
+    const existing = await a.createDraft('karpov', 'R02');
+    const facts = {
+      messageId: 'reply-1',
+      caseId: 'case-1',
+      amount: 2200000,
+      term: 18,
+      purpose: 'Закупки каждый месяц',
+    };
+    const id = await a.applyAssistant('karpov', 'R02', facts);
+    expect(id).toBe(existing);
+    expect(find(a, id).consentBki).toBe(false);
+    expect(find(a, id).amount).toBe(2200000);
+    await a.applyAssistant('karpov', 'R02', facts);
+    expect(find(a, id).revision).toBe(1);
+    await a.applyAssistant('karpov', 'R02', {
+      ...facts,
+      messageId: 'reply-1-edited',
+      applicationId: id,
+      amount: 1800000,
+    });
+    expect(find(a, id).revision).toBe(2);
+    expect(find(a, id).revisions[0].amount).toBe(2200000);
+    expect(a.getSnapshot().applications.filter((app) => app.id === id)).toHaveLength(1);
+    await expect(a.applyAssistant('zerno', 'R02', { ...facts, applicationId: id })).rejects.toThrow(
+      'Нет доступа',
+    );
+    expect(find(api(), id).amount).toBe(1800000);
+  });
+  it('blocks incomplete CSV coverage and remembers the furthest visited step', async () => {
+    const a = api();
+    const id = await completeDraft(a);
+    await a.saveDraft(id, { step: 3, statementMonths: ['2025-10'], monthly: Array(12).fill(1) });
+    await a.saveDraft(id, { step: 0 });
+    expect(find(a, id).furthestStep).toBe(3);
+    await expect(a.submit(id)).rejects.toThrow('Не хватает 11 месяцев');
+  });
+  it('validates request deadlines and preserves field, reason and answer revision', async () => {
+    const a = api();
+    const id = 'R01-2026-00151';
+    const revision = find(a, id).revision;
+    await expect(
+      a.bankDecision(id, revision, 'INFO', 'Добавьте доверенность подписанта'),
+    ).rejects.toThrow('срок');
+    await a.bankDecision(id, revision, 'INFO', 'Добавьте доверенность подписанта', {
+      field: 'authority',
+      dueAt: now + 86400000,
+    });
+    const request = find(a, id).requests.at(-1)!;
+    expect(request.field).toBe('authority');
+    expect(request.dueAt).toBe(now + 86400000);
+    await a.answerRequest(id, request.id, 'Доверенность приложена', 'authority.pdf');
+    expect(find(a, id).revision).toBe(revision + 1);
+    expect(find(a, id).status).toBe('CHECKING');
   });
 });

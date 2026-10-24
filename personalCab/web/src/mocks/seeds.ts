@@ -199,5 +199,9 @@ export function seedState(now = Date.now()): CreditState {
     ];
     return a;
   });
+  const draft = makeDraft(companies[0], 'R01', 'R01-2026-00140', Date.UTC(2026, 9, 18, 9));
+  draft.step = 1;
+  draft.furthestStep = 1;
+  applications.push(draft);
   return { version: 1, companies, applications };
 }
