@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 
 from ..schemas.models import Case, Extraction, LoanRequest, MessageInput, explicit_control_intent
+from ..services.extraction_validation import validate_extraction, merge_repair, InvalidExtraction
 
 
 class Extractor(Protocol):
@@ -18,6 +19,8 @@ class Extractor(Protocol):
 
 
 SYSTEM_PROMPT = """Ты диалоговый агент AURELIUS по потребностям малого бизнеса.
+inn — ИНН, строка: только 12 цифр для ИП или 10 для юридического лица.
+Не исправляй и не обрезай неверный ИНН; сохрани исходную запись в patch для проверки.
 Извлеки только изменения, прямо сообщённые в ТЕКУЩЕМ сообщении пользователя.
 История и текущий запрос нужны для понимания коротких ответов, но не для
 повторного заполнения patch. Для каждого изменяемого поля укажи в evidence
@@ -37,6 +40,9 @@ financing_need задаёт явно названный характер пот�
 recurring=true/false только при явном указании повторяемости/разовости.
 business_age_months, monthly_revenue_rub, operating_cycle_days, has_collateral —
 только прямо сообщённые значения. Это сведения клиента, а не подтверждённые факты.
+tranche_term_days и tranche_term_months — явно названный срок отдельного транша
+в днях или месяцах. drawdown_period_months — явно названный период выборки.
+Не подменяй ими общий срок договора term_months и не переводи дни в месяцы.
 Не извлекай подтверждённость фактов и продуктовые условия из текста.
 Неуказанные поля оставь null. null не очищает старое значение: для явного
 отказа от ранее указанного значения используй clear_fields с цитатой.
@@ -66,6 +72,8 @@ term_months и т.д. Для неизвестных полей patch явно у
 def extraction_schema() -> dict:
     """Require explicit nullable fields at the model boundary, not silent defaults."""
     schema = Extraction.model_json_schema()
+    schema["properties"].pop("diagnostics", None)
+    schema.get("$defs", {}).pop("FieldProblem", None)
     def visit(node):
         if isinstance(node, dict):
             node.pop("default", None)
@@ -94,37 +102,26 @@ class OllamaExtractor:
         context = {"today_moscow": datetime.now(ZoneInfo("Europe/Moscow")).date().isoformat(),
                    "current_request": case.request.model_dump(mode="json"), "history": history, "current_message": message.text}
         messages = [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=json.dumps(context, ensure_ascii=False))]
-        normalize = lambda value: " ".join(value.casefold().split())
+        partial = None
         for attempt in range(2):
             response = None
             try:
                 response = self.chain.invoke(messages)
-                if set(Extraction.model_fields) - response.keys() or set(LoanRequest.model_fields) - response.get("patch", {}).keys():
-                    raise ValueError("Return all schema fields explicitly, including patch")
-                result = Extraction.model_validate(response)
-                # Some local models restate current values despite patch instructions.
-                # They are not changes or new assertions; do not demand a new quote.
-                for field in LoanRequest.model_fields:
-                    value = getattr(result.patch, field)
-                    if value is not None and value == getattr(case.request, field):
-                        setattr(result.patch, field, None)
-                if result.intent in {"CANCEL", "MANUAL_REVIEW"} and not explicit_control_intent(result.intent, message.text):
-                    if result.patch.model_dump(exclude_none=True):
-                        result.intent = "PROVIDE_DETAILS"
-                    else:
-                        raise ValueError("No explicit request for cancellation or human handoff in current_message")
-                fields = set(result.patch.model_dump(exclude_none=True)) | set(result.clear_fields)
-                if result.clear_fields and not re.search(r"(?:убер[иь]|очист|удал|сброс|забуд|не\s+зна[юе]|неизвест|не\s+определ|отказываюсь\s+указывать)", message.text.casefold()):
-                    raise ValueError("clear_fields requires explicit removal or unknown-value wording; a change must replace the value in patch")
-                if result.intent in {"CANCEL", "MANUAL_REVIEW"}:
-                    fields.add("intent")
-                bad_quotes = [field for field in fields if not normalize(result.evidence.get(field, "")) or normalize(result.evidence[field]) not in normalize(message.text)]
-                if bad_quotes:
-                    raise ValueError("Quotes must be verbatim substrings of current_message: " + ", ".join(bad_quotes))
-                return result
-            except (ValueError, TypeError, AttributeError) as exc:
-                if attempt:
-                    raise ValueError("Invalid or ungrounded structured extraction") from exc
-                messages.extend([AIMessage(content=json.dumps(response, ensure_ascii=False)),
-                                 HumanMessage(content=f"Исправь JSON: {exc}. Цитаты evidence копируй дословно из current_message исходного JSON, можно целиком. Сохрани схему и не добавляй неизвестные сведения.")])
+                result = validate_extraction(response, message.text, case)
+                if partial is not None:
+                    result = merge_repair(partial, result)
+                if not result.diagnostics:
+                    return result
+                partial = result
+                feedback = ', '.join(f'{issue.field}: {issue.code}' for issue in result.diagnostics)
+            except Exception:
+                if partial is not None:
+                    return partial
+                feedback = 'Неверная структура результата. Нужен объект patch и поля заданной схемы.'
+            if attempt:
+                if partial is not None:
+                    return partial
+                raise InvalidExtraction('No valid extraction after repair')
+            messages.extend([AIMessage(content=json.dumps(response, ensure_ascii=False)),
+                             HumanMessage(content=f"Исправь JSON: {feedback}. Значения проверяются Pydantic. Цитаты evidence копируй дословно из current_message. Неизвестные или неподтверждённые поля оставь null. Сохрани достоверные поля.")])
         raise AssertionError("Unreachable")

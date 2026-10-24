@@ -1,0 +1,53 @@
+{
+  "version": "DEMO-REGISTRY-1",
+  "models": [
+    {
+      "model_id": "catboost-v2-baseline-demo",
+      "kind": "baseline",
+      "path": "scoring/models/experiments/survival_v2_baseline/catboost_hazard.cbm",
+      "sha256": "20bfee49bb3e379e345a77c510d9b216c76ceddb3d8e9335099909cfeb99ee86",
+      "schema_version": "CATBOOST-V2-16",
+      "target": "synthetic_default_event",
+      "population": "synthetic_sme",
+      "currency": "RUB",
+      "approved_for_real_lending": false,
+      "calibrator": null,
+      "supported_products": [
+        "R01"
+      ],
+      "prediction_time": "origination",
+      "supported_term_months": [
+        12,
+        18,
+        24,
+        36,
+        48,
+        60
+      ]
+    },
+    {
+      "model_id": "catboost-v2-dynamic-demo",
+      "kind": "dynamic",
+      "path": "scoring/models/experiments/survival_v2_dynamic/catboost_dynamic_hazard.cbm",
+      "sha256": "de1764fbd5a584a129a9ca62253dd8bd551d2a159e02fc23de52a8381e6938d8",
+      "schema_version": "CATBOOST-V2-23",
+      "target": "synthetic_default_event",
+      "population": "synthetic_sme",
+      "currency": "RUB",
+      "approved_for_real_lending": false,
+      "calibrator": null,
+      "supported_products": [
+        "R01"
+      ],
+      "prediction_time": "start_of_month",
+      "supported_term_months": [
+        12,
+        18,
+        24,
+        36,
+        48,
+        60
+      ]
+    }
+  ]
+}

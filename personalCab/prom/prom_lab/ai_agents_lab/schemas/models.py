@@ -7,7 +7,9 @@ from typing import Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from personalCab.prom.rag.models import KnowledgeAnswer
 from .products import DataRequirements, ProductSelection
+from .resolution import DataResolutionPlan, FieldProblem
 
 
 def utcnow() -> datetime:
@@ -46,6 +48,8 @@ class Scope(StrEnum):
     EVIDENCE_COLLECTION = "EVIDENCE_COLLECTION"
     CREDIT_ASSESSMENT = "CREDIT_ASSESSMENT"
     BANK_STATUS = "BANK_STATUS"
+    APPLICATION_SUBMISSION = "APPLICATION_SUBMISSION"
+    DEMO_EXECUTION = "DEMO_EXECUTION"
 
 
 class Consent(Model):
@@ -72,6 +76,7 @@ class ActorContext(Model):
     active_borrower_id: str | None = None
     consents: list[Consent] = Field(default_factory=list)
     denied_scopes: list[Scope] = Field(default_factory=list)
+    company_id: int | None = Field(default=None, gt=0)
 
     def has_consent(self, scope: Scope, borrower_id: str) -> bool:
         now = utcnow()
@@ -82,11 +87,13 @@ class ActorContext(Model):
 
 
 class LoanRequest(Model):
+    inn: str | None = Field(default=None, pattern=r'^(?:[0-9]{10}|[0-9]{12})$')
+    project_name: str | None = Field(default=None,min_length=1,max_length=100)
     borrower_id: str | None = Field(default=None, min_length=1, max_length=120)
     legal_form: Literal["IP", "OOO", "AO", "OTHER"] | None = None
     purpose: Literal["INVENTORY", "WORKING_CAPITAL", "INVESTMENT", "REAL_ESTATE", "VEHICLE", "REFINANCING", "GUARANTEE", "OTHER"] | None = None
-    amount_rub: int | None = Field(default=None, gt=0, le=1_000_000_000_000)
-    term_months: int | None = Field(default=None, gt=0, le=600)
+    amount_rub: int | None = Field(default=None, strict=True, gt=0, le=1_000_000_000_000)
+    term_months: int | None = Field(default=None, strict=True, gt=0, le=600)
     needed_by: date | None = None
     repayment_source: str | None = Field(default=None, max_length=2000)
     recurring: bool | None = None
@@ -98,10 +105,14 @@ class LoanRequest(Model):
     monthly_revenue_rub: int | None = Field(default=None, ge=0)
     operating_cycle_days: int | None = Field(default=None, gt=0, le=3650)
     has_collateral: bool | None = None
+    tranche_term_days: int | None = Field(default=None, strict=True, gt=0, le=3650)
+    tranche_term_months: int | None = Field(default=None, strict=True, gt=0, le=600)
+    drawdown_period_months: int | None = Field(default=None, strict=True, gt=0, le=600)
 
 
 REQUIRED_FIELDS = ("borrower_id", "legal_form", "purpose", "amount_rub", "term_months")
 FIELD_LABELS = {
+    "inn": "укажите ИНН: только цифры, 12 для ИП или 10 для юридического лица",
     "borrower_id": "выберите ИП или компанию", "legal_form": "укажите форму бизнеса: ИП, ООО или другую",
     "purpose": "на что нужны деньги", "amount_rub": "какая сумма нужна в рублях",
     "term_months": "на сколько месяцев нужны деньги", "needed_by": "когда понадобятся деньги",
@@ -117,6 +128,8 @@ class Extraction(Model):
     ambiguous_subjects: list[str] = Field(default_factory=list)
     multiple_purposes: list[str] = Field(default_factory=list)
 
+    diagnostics: list[FieldProblem] = Field(default_factory=list)
+
     @field_validator("clear_fields")
     @classmethod
     def known_fields(cls, value: list[str]) -> list[str]:
@@ -130,6 +143,8 @@ class MessageInput(Model):
     message_id: str = Field(min_length=1, max_length=120)
     text: str = Field(min_length=1, max_length=12000)
     document_refs: list[str] = Field(default_factory=list, max_length=20)
+    command: Literal['CHAT', 'UPDATE_REQUEST', 'REFRESH_EVIDENCE', 'ASSESS', 'SUBMIT', 'ACCEPT_OFFER', 'EXECUTE_DEMO', 'POLL_STATUS'] = 'CHAT'
+    arguments: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("document_refs")
     @classmethod
@@ -140,6 +155,7 @@ class MessageInput(Model):
 
 
 class Case(Model):
+    client_changes: list[dict[str, Any]] = Field(default_factory=list)
     case_id: str = Field(default_factory=lambda: "CASE-" + uuid4().hex)
     owner_id: str
     revision: int = 1
@@ -157,6 +173,16 @@ class Case(Model):
     last_error: str | None = None
     product_selection: ProductSelection | None = None
     product_requirements: DataRequirements | None = None
+    company_id: int | None = None
+    data_cutoff_at: datetime = Field(default_factory=utcnow)
+    data_context: dict[str, Any] | None = None
+    data_resolution: DataResolutionPlan | None = None
+    evidence_recheck: dict[str, Any] | None = None
+    assessment: dict[str, Any] | None = None
+    bank_application: dict[str, Any] | None = None
+
+    pending_clarifications: list[FieldProblem] = Field(default_factory=list)
+    profile_lookup_status: str = "NOT_NEEDED"
 
     @property
     def unknown_fields(self) -> list[str]:
@@ -189,6 +215,8 @@ class ToolTrace(Model):
 
 
 class DialogueResult(Model):
+    client_changes: list[dict[str, Any]] = Field(default_factory=list)
+    knowledge_answer: KnowledgeAnswer | None = None
     case_id: str
     revision: int
     mode: Literal["DEMO"]
@@ -204,3 +232,8 @@ class DialogueResult(Model):
     error_code: str | None = None
     product_selection: ProductSelection | None = None
     product_requirements: DataRequirements | None = None
+    data_context: dict[str, Any] | None = None
+    data_resolution: DataResolutionPlan | None = None
+    evidence_recheck: dict[str, Any] | None = None
+    assessment: dict[str, Any] | None = None
+    bank_application: dict[str, Any] | None = None
