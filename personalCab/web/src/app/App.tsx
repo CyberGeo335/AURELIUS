@@ -217,9 +217,26 @@ function Layout({ role, onAssistant }: { role: 'bank' | 'client'; onAssistant: (
   const state = useCredit();
   const location = useLocation();
   useEffect(() => {
+    if (location.hash) {
+      const reveal = () => {
+        const target = document.getElementById(location.hash.slice(1));
+        if (!target) return false;
+        target.scrollIntoView({ block: 'start' });
+        return true;
+      };
+      if (reveal()) return;
+      const observer = new MutationObserver(() => {
+        if (reveal()) observer.disconnect();
+      });
+      observer.observe(document.getElementById('main') ?? document.body, {
+        childList: true,
+        subtree: true,
+      });
+      return () => observer.disconnect();
+    }
     window.scrollTo(0, 0);
-    document.getElementById('main')?.focus();
-  }, [location.pathname]);
+    document.getElementById('main')?.focus({ preventScroll: true });
+  }, [location.pathname, location.hash]);
   if (!session || session.role !== role) return <Navigate to="/" replace />;
   const clientLinks = [
     ['/client', 'Главная'],

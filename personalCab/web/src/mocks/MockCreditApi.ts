@@ -36,7 +36,8 @@ export class MockCreditApi implements CreditApi {
     }
     return {
       ...seedState(this.now()),
-      storageError: 'Не удалось прочитать сохранённое демо. Разрешите локальное хранилище или сбросьте демо-данные на экране входа.',
+      storageError:
+        'Не удалось прочитать сохранённое демо. Разрешите локальное хранилище или сбросьте демо-данные на экране входа.',
     };
   }
   private onStorage = (event: StorageEvent) => {

@@ -76,19 +76,35 @@ export function StageTrack({
           layout={!reduced}
           initial={reduced || mini ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ type: 'spring', bounce: 0, duration: 0.35, opacity: { delay: mini ? 0 : i * 0.04 } }}
+          transition={{
+            type: 'spring',
+            bounce: 0,
+            duration: 0.35,
+            opacity: { delay: mini ? 0 : i * 0.04 },
+          }}
           key={label}
           aria-current={i === current ? 'step' : undefined}
           className={`chevron ${i < current ? 'done' : i === current ? 'current' : 'future'}`}
         >
-          {i === current && !mini && <motion.span aria-hidden className="stage-marker" layoutId={reduced ? undefined : `${trackId}-current`} transition={{ type:'spring', bounce:0, duration:.35 }}/>} 
+          {i === current && !mini && (
+            <motion.span
+              aria-hidden
+              className="stage-marker"
+              layoutId={reduced ? undefined : `${trackId}-current`}
+              transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+            />
+          )}
           <span className={mini ? 'sr-only' : 'stage-label'}>
             {label}
             {i === current && app.status === 'MANUAL_REVIEW' ? ' · стоп' : ''}
           </span>
         </motion.li>
       ))}
-      {!mini && <li className="sr-only" aria-live="polite" aria-atomic="true">Текущий этап: {labels[current]}. {statusLabels[app.status]}.</li>}
+      {!mini && (
+        <li className="sr-only" aria-live="polite" aria-atomic="true">
+          Текущий этап: {labels[current]}. {statusLabels[app.status]}.
+        </li>
+      )}
     </ol>
   );
 }

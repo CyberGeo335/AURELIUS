@@ -604,10 +604,21 @@ nav a:hover:not(.active) {
   background: var(--color-surface);
   color: var(--color-text-muted);
 }
-.stage-marker { position:absolute; inset:0; background:var(--color-brand-text); }
-.stage-label { position:relative; z-index:1; }
-.stage-track .chevron.current { color:var(--color-surface); }
-.hero .stage-marker { background:var(--color-ink); }
+.stage-marker {
+  position: absolute;
+  inset: 0;
+  background: var(--color-brand-text);
+}
+.stage-label {
+  position: relative;
+  z-index: 1;
+}
+.stage-track .chevron.current {
+  color: var(--color-surface);
+}
+.hero .stage-marker {
+  background: var(--color-ink);
+}
 .chevron:first-child {
   clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 50%, calc(100% - 24px) 100%, 0 100%);
   border-radius: 16px 0 0 16px;

@@ -22,9 +22,7 @@ export class HttpChatApi {
         signal: AbortSignal.timeout(90000),
       });
     } catch {
-      throw new Error(
-        'Помощник недоступен. Проверьте Python-сервер и Ollama. Заявку можно заполнить через форму.',
-      );
+      throw new Error('Помощник временно недоступен. Заявку можно заполнить через форму.');
     }
     if (response.status === 428 && init?.method === 'POST') return this.retrySession<T>(path, init);
     return this.parse<T>(response);

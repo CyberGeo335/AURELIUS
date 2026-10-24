@@ -31,7 +31,7 @@ export function AssistantPanel({
         setStatus(
           health.status === 'ready'
             ? 'Помощник подключён'
-            : 'Ollama или модель недоступны. Основная анкета работает.',
+            : 'Помощник временно недоступен. Основная анкета работает.',
         );
         setMessages(state.history.map((m) => ({ role: m.role, text: m.content ?? m.text ?? '' })));
         setFacts(state.latest?.result.request ?? {});
