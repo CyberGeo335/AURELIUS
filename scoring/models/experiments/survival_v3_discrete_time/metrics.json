@@ -1,0 +1,31 @@
+{
+  "best_iteration": 835,
+  "best_score": {
+    "learn": {
+      "Logloss": 0.06913555533548216
+    },
+    "validation": {
+      "Logloss": 0.06883518761225212
+    }
+  },
+  "train_episodes": 140000,
+  "validation_episodes": 30000,
+  "train_monthly_rows": 2913959,
+  "validation_monthly_rows": 628153,
+  "monthly_metrics": {
+    "roc_auc": 0.6664383851506476,
+    "pr_auc": 0.036135946994724125,
+    "logloss": 0.06883518761225205,
+    "brier": 0.013260969300348228,
+    "event_rate": 0.013569942354808462,
+    "mean_predicted_hazard": 0.013832823795024976
+  },
+  "validation_36m": {
+    "n": 7185,
+    "ipcw_brier_12m": 0.1244577489069027,
+    "ipcw_brier_24m": 0.1834399521765892,
+    "pd36_min": 0.18056681079444242,
+    "pd36_median": 0.34071123314711765,
+    "pd36_max": 0.9999952348562048
+  }
+}

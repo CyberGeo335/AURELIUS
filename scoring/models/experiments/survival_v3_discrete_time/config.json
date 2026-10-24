@@ -1,0 +1,45 @@
+{
+  "experiment": "survival_v3_discrete_time",
+  "model_type": "CatBoostClassifier",
+  "approach": "Discrete-Time Survival",
+  "prediction_time": "loan_origination",
+  "future_realized_covariates": false,
+  "target": "conditional_monthly_default_hazard",
+  "features": [
+    "age_months",
+    "industry",
+    "entity_type",
+    "monthly_revenue",
+    "revenue_trend_12m",
+    "revenue_volatility",
+    "operating_margin",
+    "cash_buffer_months",
+    "dscr",
+    "debt_to_revenue",
+    "prior_overdue_30d",
+    "requested_amount",
+    "annual_rate",
+    "macro_stress",
+    "month_on_book"
+  ],
+  "categorical_features": [
+    "industry",
+    "entity_type"
+  ],
+  "excluded_feature": "term_months (used only as prediction horizon)",
+  "model_params": {
+    "iterations": 1000,
+    "learning_rate": 0.03,
+    "depth": 6,
+    "l2_leaf_reg": 3,
+    "loss_function": "Logloss",
+    "random_seed": 42,
+    "verbose": 100,
+    "eval_metric": "Logloss",
+    "allow_writing_files": false,
+    "early_stopping_rounds": 100
+  },
+  "seed": 42,
+  "dataset": "C:\\Users\\Ева\\Desktop\\Хакатон Альфа\\AURELIUS\\scoring\\data\\processed\\ml_survival_dataset.parquet",
+  "split_source": "C:\\Users\\Ева\\Desktop\\Хакатон Альфа\\AURELIUS\\scoring\\models\\experiments\\survival_v3_baseline\\splits.npz"
+}

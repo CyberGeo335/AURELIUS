@@ -1,0 +1,71 @@
+{
+  "winner": "optuna",
+  "optuna_best_trial": 9,
+  "optuna_best_value": 0.1258712086656087,
+  "baseline_weighted_ipcw_brier": 0.12619560595815615,
+  "selected_metrics": {
+    "weighted_ipcw_brier": 0.1258712086656087
+  },
+  "selected_params": {
+    "depth": 4,
+    "learning_rate": 0.08212355222166307,
+    "l2_leaf_reg": 13.666943328202278,
+    "random_strength": 1.5635108708133456
+  },
+  "selected_best_iteration": 1062,
+  "selection": "validation; all contractual terms; episode-count weighted mean IPCW Brier across term/horizon pairs",
+  "horizons_by_term": {
+    "12": [
+      6
+    ],
+    "18": [
+      6,
+      12
+    ],
+    "24": [
+      6,
+      12,
+      18
+    ],
+    "36": [
+      6,
+      12,
+      24
+    ],
+    "48": [
+      6,
+      12,
+      24,
+      36
+    ],
+    "60": [
+      6,
+      12,
+      24,
+      36,
+      48
+    ]
+  },
+  "test_used": false,
+  "features": [
+    "age_months",
+    "industry",
+    "entity_type",
+    "monthly_revenue",
+    "revenue_trend_12m",
+    "revenue_volatility",
+    "operating_margin",
+    "cash_buffer_months",
+    "dscr",
+    "debt_to_revenue",
+    "prior_overdue_30d",
+    "requested_amount",
+    "annual_rate",
+    "macro_stress",
+    "month_on_book"
+  ],
+  "categorical_features": [
+    "industry",
+    "entity_type"
+  ]
+}

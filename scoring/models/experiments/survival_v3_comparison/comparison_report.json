@@ -1,0 +1,52 @@
+{
+  "dataset": "validation",
+  "loan_term_months": 36,
+  "horizons_months": [
+    12,
+    24,
+    36
+  ],
+  "n_episodes": 7185,
+  "aft_loss_function": "SurvivalAft:dist=Normal;scale=1.0",
+  "metrics": [
+    {
+      "model": "SurvivalAft",
+      "n_val_36": 7185,
+      "c_index_36m": 0.6352772289970344,
+      "ipcw_brier_12m": 0.12742412544504866,
+      "ipcw_brier_24m": 0.2056126682410903,
+      "mean_brier_12_24": 0.1665183968430695,
+      "pd36_min": 0.4755243835287605,
+      "pd36_p05": 0.4925658569901971,
+      "pd36_median": 0.5371439878077406,
+      "pd36_p95": 0.8336169964272196,
+      "pd36_max": 0.9571340473294555
+    },
+    {
+      "model": "Discrete-Time",
+      "n_val_36": 7185,
+      "c_index_36m": 0.6449783678213031,
+      "ipcw_brier_12m": 0.1244577489069027,
+      "ipcw_brier_24m": 0.1834399521765892,
+      "mean_brier_12_24": 0.15394885054174595,
+      "pd36_min": 0.18056681079444242,
+      "pd36_p05": 0.23718992754859344,
+      "pd36_median": 0.34071123314711765,
+      "pd36_p95": 0.7877717664536759,
+      "pd36_max": 0.9999952348562048
+    }
+  ],
+  "calibration_summary": [
+    {
+      "model": "Discrete-Time",
+      "weighted_abs_calibration_error": 0.012067567446388495,
+      "weighted_bias_observed_minus_predicted": 0.007682600582146735
+    },
+    {
+      "model": "SurvivalAft",
+      "weighted_abs_calibration_error": 0.03382166317068647,
+      "weighted_bias_observed_minus_predicted": -0.03382166317068647
+    }
+  ],
+  "test_used": false
+}

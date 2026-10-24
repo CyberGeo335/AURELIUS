@@ -1,0 +1,24 @@
+{
+    "best_iteration": 89,
+    "best_score": {
+        "learn": {
+            "SurvivalAft:dist=Normal;scale=1.0": 5.871619525400731
+        },
+        "validation": {
+            "SurvivalAft:dist=Normal;scale=1.0": 5.904925206583479
+        }
+    },
+    "train_size": 140000,
+    "validation_size": 30000,
+    "test_size": 30000,
+    "test_metrics": {
+        "c_index": 0.6340733240770174,
+        "mean_pd_t": 0.491970503382376,
+        "brier_36m": {
+            "6": 0.07516800182699128,
+            "12": 0.12521668624909063,
+            "18": 0.16738708063569,
+            "24": 0.2035397055912032
+        }
+    }
+}
