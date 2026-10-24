@@ -27,18 +27,25 @@ export function SourceBadge({ children }: { children: ReactNode }) {
 }
 export function StatusBadge({ app }: { app: Application }) {
   return (
-    <span className={`status status-${app.status}`}>
+    <span
+      className={`status status-${app.status === 'OFFERED' && app.offers[0]?.kind === 'COUNTEROFFER' ? 'NEEDS_INFO' : app.status}`}
+    >
       {app.status === 'OFFERED' && app.offers[0]?.kind === 'COUNTEROFFER'
         ? 'Одобрено на других условиях'
         : statusLabels[app.status]}
     </span>
   );
 }
-export function ErrorState({ message }: { message: string }) {
+export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return message ? (
     <div className="error-box" role="alert">
       <AlertCircle aria-hidden size={20} />
       <span>{message}</span>
+      {onRetry && (
+        <button className="quiet-button" onClick={onRetry}>
+          Повторить
+        </button>
+      )}
     </div>
   ) : null;
 }
@@ -96,7 +103,7 @@ export function StageTrack({
           )}
           <span className={mini ? 'sr-only' : 'stage-label'}>
             {label}
-            {i === current && app.status === 'MANUAL_REVIEW' ? ' · стоп' : ''}
+            {bank && i === current && app.status === 'MANUAL_REVIEW' ? ' · стоп' : ''}
           </span>
         </motion.li>
       ))}
@@ -182,8 +189,8 @@ export function MonthlyBars({ values }: { values: number[] }) {
         {values.map((v, i) => (
           <div className="month" key={i}>
             <div
-              className={`bar ${i === 4 ? 'negative' : ''}`}
-              style={{ height: `${(v / Math.max(...values)) * 120}px` }}
+              className={`bar ${i === values.indexOf(Math.min(...values)) ? 'negative' : ''}`}
+              style={{ height: `${(v / Math.max(...values, 0.01)) * 120}px` }}
             />
             <span>{months[i]}</span>
           </div>
@@ -199,7 +206,13 @@ export function MonthlyBars({ values }: { values: number[] }) {
     </figure>
   );
 }
-export function FactorBars({ bank = false }: { bank?: boolean }) {
+export function FactorBars({
+  bank = false,
+  showValues = false,
+}: {
+  bank?: boolean;
+  showValues?: boolean;
+}) {
   const rows = bank
     ? [
         ['Без просрочек 24 мес.', 'Кредитная история', 88, false],
@@ -217,7 +230,7 @@ export function FactorBars({ bank = false }: { bank?: boolean }) {
   return (
     <>
       <div className="factors">
-        {rows.map(([label, desc, width, negative]) => (
+        {rows.map(([label, desc, width, negative], index) => (
           <div className="factor" key={String(label)}>
             <div>
               <strong>{label}</strong>
@@ -228,6 +241,9 @@ export function FactorBars({ bank = false }: { bank?: boolean }) {
               className="factor-rail"
             >
               <span className={negative ? 'negative' : ''} style={{ width: `${width}%` }} />
+              {showValues && (
+                <span className="factor-value">{['−1,1', '−0,7', '+0,6', '+0,5'][index]}</span>
+              )}
             </div>
           </div>
         ))}
@@ -310,6 +326,13 @@ export function AssistantTeaser({ onOpen }: { onOpen: () => void }) {
 export function ProvenanceTable({ app, company }: { app: Application; company: Company }) {
   const registrationCode = `${app.product}_${company.entity === 'IP' ? '10' : '09'}`;
   const corrected = !!app.sources[registrationCode];
+  const dataStatus = app.fieldStatuses?.[registrationCode];
+  const statusLabels = {
+    CONFIRMED: 'Подтверждено',
+    UNVERIFIED: 'Не проверено',
+    CONFLICT: 'Конфликт',
+    STALE: 'Устарело',
+  };
   return (
     <div className="table-scroll">
       <table>
@@ -339,8 +362,14 @@ export function ProvenanceTable({ app, company }: { app: Application; company: C
               </SourceBadge>
             </td>
             <td>
-              <span className={`status ${corrected ? 'status-NEEDS_INFO' : 'status-OFFERED'}`}>
-                {corrected ? 'Исправлено клиентом' : 'Подтверждено'}
+              <span
+                className={`status ${corrected || (dataStatus && dataStatus !== 'CONFIRMED') ? 'status-NEEDS_INFO' : 'status-OFFERED'}`}
+              >
+                {dataStatus
+                  ? statusLabels[dataStatus]
+                  : corrected
+                    ? 'Исправлено клиентом'
+                    : 'Подтверждено'}
               </span>
             </td>
           </tr>
@@ -353,14 +382,18 @@ export function ProvenanceTable({ app, company }: { app: Application; company: C
             <td>Демо-снимок</td>
           </tr>
           {company.id === 'zerno' && (
-            <tr className="conflict">
+            <tr className={app.checks?.revenue ? '' : 'conflict'}>
               <td>Выручка 2025</td>
               <td>38,4 млн ₽ / 33,9 млн ₽</td>
               <td>
                 <SourceBadge>ГИР БО, выписка</SourceBadge>
               </td>
               <td>
-                <span className="status status-NEEDS_INFO">Конфликт</span>
+                <span
+                  className={`status ${app.checks?.revenue ? 'status-OFFERED' : 'status-NEEDS_INFO'}`}
+                >
+                  {app.checks?.revenue ? 'Подтверждено' : 'Конфликт'}
+                </span>
               </td>
             </tr>
           )}
@@ -386,14 +419,22 @@ export function ProvenanceTable({ app, company }: { app: Application; company: C
             <td>
               <SourceBadge>Клиент</SourceBadge>
             </td>
-            <td>Не проверено</td>
+            <td>{app.checks?.authority ? 'Полномочия подтверждены' : 'Не проверено'}</td>
           </tr>
         </tbody>
       </table>
     </div>
   );
 }
-export function ApplicationFields({ app, company }: { app: Application; company: Company }) {
+export function ApplicationFields({
+  app,
+  company,
+  showCodes = true,
+}: {
+  app: Application;
+  company: Company;
+  showCodes?: boolean;
+}) {
   return (
     <div className="table-scroll">
       <table>
@@ -406,14 +447,34 @@ export function ApplicationFields({ app, company }: { app: Application; company:
         </thead>
         <tbody>
           {applicableFields(app.product, company.entity).map((field) => (
-            <tr key={field.code}>
+            <tr
+              key={field.code}
+              className={app.originalFields?.[field.code] ? 'conflict' : undefined}
+            >
               <td>
                 {field.label}
-                <span className="small muted block">{field.code}</span>
+                {showCodes && <span className="small muted block">{field.code}</span>}
               </td>
-              <td>{app.fields[field.code] || 'Не заполнено'}</td>
+              <td>
+                {app.fields[field.code] || 'Не заполнено'}
+                {app.originalFields?.[field.code] && (
+                  <span className="small muted block">
+                    Исходно: {app.originalFields[field.code]}
+                  </span>
+                )}
+              </td>
               <td>
                 <SourceBadge>{app.sources[field.code] || field.source}</SourceBadge>
+                {showCodes && app.fieldStatuses?.[field.code] === 'STALE' && (
+                  <span className="block small attention-text">
+                    Устарело — нужен актуальный источник
+                  </span>
+                )}
+                {showCodes && app.originalFields?.[field.code] && (
+                  <span className="block small attention-text">
+                    Конфликт: исправлено со слов клиента
+                  </span>
+                )}
               </td>
             </tr>
           ))}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, Navigate, useParams } from 'react-router';
 import { Check, FileText, ArrowRight } from 'lucide-react';
 import { useApi, useCredit, useSession, useAction } from '../../app/context';
 import {
@@ -8,8 +8,6 @@ import {
   StageTrack,
   HeroPanel,
   StatusBadge,
-  AuditLog,
-  ProvenanceTable,
   ApplicationFields,
   ErrorState,
   EmptyState,
@@ -19,6 +17,9 @@ import {
 } from '../../components/v2/primitives';
 import { Input } from '../../components/ui/input';
 import { AnimatedMoney } from '../../components/v2/AnimatedMoney';
+import { ApplicationDocuments } from './Documents';
+import { ClientJourney } from '../../components/v2/ClientJourney';
+import { Disclosure } from '../../components/v2/Disclosure';
 import { Textarea } from '../../components/ui/textarea';
 import {
   Dialog,
@@ -29,6 +30,7 @@ import {
   DialogTrigger,
 } from '../../components/ui/dialog';
 import { coverage, date, money, payment, schedule } from '../../domain/finance';
+import { counted } from '../../domain/text';
 import { products, type Application, type DataRequest } from '../../domain/types';
 function RequestAnswer({ app, request }: { app: Application; request: DataRequest }) {
   const api = useApi();
@@ -39,8 +41,12 @@ function RequestAnswer({ app, request }: { app: Application; request: DataReques
     <Card className="dark">
       <p className="attention-text">Нужен ваш ответ</p>
       <h2>{request.text}</h2>
+      <p className="small muted">
+        {request.reason ?? 'Нужно для продолжения проверки'} · до{' '}
+        {date(request.dueAt ?? app.created + 3 * 86400000)}
+      </p>
       <p className="muted">После ответа проверка продолжится в этой же заявке.</p>
-      <ErrorState message={action.error} />
+      <ErrorState message={action.error} onRetry={action.retry} />
       {request.field === 'leasing' ? (
         <div className="actions">
           <Action
@@ -110,14 +116,17 @@ function Decision({ app }: { app: Application }) {
   const [selected, setSelected] = useState(app.offers[0]?.id ?? '');
   const [newAmount, setNewAmount] = useState(String(app.amount));
   const [changeOpen, setChangeOpen] = useState(false);
+  const [previewTerm, setPreviewTerm] = useState<number>();
   const offer = app.offers.find((o) => o.id === selected) ?? app.offers[0];
   if (!offer) return <EmptyState title="Предложение готовится" />;
-  const monthly = payment(offer.amount, offer.term);
-  const ratio = coverage(app.flow, app.existing, offer.amount, offer.term);
+  const term = previewTerm ?? offer.term;
+  const changedTerm = term !== offer.term;
+  const monthly = payment(offer.amount, term);
+  const ratio = coverage(app.flow, app.existing, offer.amount, term);
   const expired = offer.expires <= Date.now();
   return (
     <>
-      <ErrorState message={action.error} />
+      <ErrorState message={action.error} onRetry={action.retry} />
       <div className="decision-grid">
         <HeroPanel>
           <div className="spread">
@@ -127,14 +136,14 @@ function Decision({ app }: { app: Application }) {
             </span>
             <span className="hero-eyebrow">Демо-условия, до {date(offer.expires)}</span>
           </div>
-          <h2 className="decision-intro">Банк готов выдать</h2>
+          <h1 className="decision-intro">Банк готов выдать</h1>
           <div className="decision-amount">
             <AnimatedMoney value={offer.amount} />
           </div>
           <p>
             {offer.kind === 'COUNTEROFFER'
               ? 'На условиях, которые подходят вашему бизнесу.'
-              : 'Всю запрошенную сумму, на ' + app.purpose.toLowerCase()}
+              : 'Всю запрошенную сумму. Цель: ' + app.purpose.toLowerCase()}
           </p>
           {app.offers.length > 1 && (
             <fieldset className="offer-options">
@@ -145,29 +154,32 @@ function Decision({ app }: { app: Application }) {
                     type="radio"
                     name="offer"
                     checked={offer.id === o.id}
-                    onChange={() => setSelected(o.id)}
+                    onChange={() => {
+                      setSelected(o.id);
+                      setPreviewTerm(undefined);
+                    }}
                   />
                   <span>
                     {o.label}: {money(o.amount)} · {o.term} мес.
+                    <span className="block small">{money(payment(o.amount, o.term))} в месяц</span>
                   </span>
                 </label>
               ))}
             </fieldset>
           )}
           <fieldset className="term-selector">
-            <legend>Срок · изменение запускает перепроверку</legend>
-            {[12, 18, 24].map((term) => (
+            <legend>Срок · предварительный расчёт</legend>
+            {[12, 18, 24].map((candidateTerm) => (
               <button
                 disabled={action.busy}
                 type="button"
-                aria-pressed={offer.term === term}
-                key={term}
+                aria-pressed={term === candidateTerm}
+                key={candidateTerm}
                 onClick={() => {
-                  if (term !== offer.term)
-                    void action.run(() => api.revise(app.id, offer.amount, term));
+                  setPreviewTerm(candidateTerm);
                 }}
               >
-                {term} мес.
+                {candidateTerm} мес.
               </button>
             ))}
           </fieldset>
@@ -179,7 +191,7 @@ function Decision({ app }: { app: Application }) {
               value={money(monthly)}
             />
             <KeyValue label="Демо-ставка" value="24,9%" />
-            <KeyValue label="Переплата" value={money(monthly * offer.term - offer.amount)} />
+            <KeyValue label="Переплата" value={money(monthly * term - offer.amount)} />
           </div>
           {app.product !== 'R01' && (
             <p className="product-disclaimer">
@@ -193,10 +205,16 @@ function Decision({ app }: { app: Application }) {
           <div className="actions">
             <Action
               tone="ink"
-              disabled={action.busy || expired}
-              onClick={() => action.run(() => api.accept(app.id, offer.id))}
+              disabled={action.busy || (expired && !changedTerm)}
+              onClick={() =>
+                action.run(() =>
+                  changedTerm
+                    ? api.revise(app.id, offer.amount, term)
+                    : api.accept(app.id, offer.id),
+                )
+              }
             >
-              Принять предложение
+              {changedTerm ? `Перепроверить на ${term} мес.` : 'Принять предложение'}
             </Action>
             <Dialog open={changeOpen} onOpenChange={setChangeOpen}>
               <DialogTrigger asChild>
@@ -219,7 +237,7 @@ function Decision({ app }: { app: Application }) {
                     onChange={(e) => setNewAmount(e.target.value)}
                   />
                 </label>
-                <ErrorState message={action.error} />
+                <ErrorState message={action.error} onRetry={action.retry} />
                 <Action
                   disabled={action.busy}
                   onClick={() =>
@@ -230,6 +248,22 @@ function Decision({ app }: { app: Application }) {
                   }
                 >
                   Отправить на перепроверку
+                </Action>
+              </DialogContent>
+            </Dialog>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Action tone="outline">Отклонить предложение</Action>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Отклонить предложение?</DialogTitle>
+                  <DialogDescription>
+                    Заявка будет отменена. При необходимости можно начать новую.
+                  </DialogDescription>
+                </DialogHeader>
+                <Action disabled={action.busy} onClick={() => action.run(() => api.cancel(app.id))}>
+                  Отклонить и отменить заявку
                 </Action>
               </DialogContent>
             </Dialog>
@@ -249,15 +283,29 @@ function Decision({ app }: { app: Application }) {
         <div className="stack">
           <Card>
             <h2>{offer.kind === 'COUNTEROFFER' ? 'Почему другие условия' : 'Почему одобрили'}</h2>
+            {offer.kind === 'COUNTEROFFER' && (
+              <p>
+                На запрошенные {money(app.amount)} на {app.term} мес. платёж слишком велик для
+                текущего свободного потока. Подобрали варианты с меньшей нагрузкой.
+              </p>
+            )}
             {app.reason && <p>{app.reason}</p>}
             <p className="muted small">Демо-факторы. Чем длиннее полоса, тем сильнее влияние.</p>
-            <FactorBars bank={app.companyId !== 'karpov'} />
+            {['karpov', 'zerno'].includes(app.companyId) ? (
+              <FactorBars bank={app.companyId === 'zerno'} />
+            ) : (
+              <p className="small muted">
+                Индивидуальные факторы в этом демо-сценарии не рассчитаны.
+              </p>
+            )}
             <CoverageMeter value={ratio} />
           </Card>
           <Card className="dark">
-            <p className="muted">Первые платежи</p>
+            <p className="muted">
+              {changedTerm ? 'Предварительный расчёт первых платежей' : 'Первые платежи'}
+            </p>
             <div className="metrics">
-              {schedule(offer.amount, offer.term, app.updated)
+              {schedule(offer.amount, term, app.updated)
                 .slice(0, 3)
                 .map((row) => (
                   <KeyValue key={row.date} label={date(row.date)} value={money(row.payment)} />
@@ -280,15 +328,17 @@ function Decision({ app }: { app: Application }) {
                       <tr>
                         <th>Дата</th>
                         <th>Платёж</th>
+                        <th>Основной долг</th>
                         <th>Проценты</th>
                         <th>Остаток</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {schedule(offer.amount, offer.term, app.updated).map((row) => (
+                      {schedule(offer.amount, term, app.updated).map((row) => (
                         <tr key={row.date}>
                           <td>{date(row.date)}</td>
                           <td>{money(row.payment)}</td>
+                          <td>{money(row.principal)}</td>
                           <td>{money(row.interest)}</td>
                           <td>{money(row.balance)}</td>
                         </tr>
@@ -337,7 +387,7 @@ function Signing({ app }: { app: Application }) {
           />
         </div>
       )}
-      <ErrorState message={action.error} />
+      <ErrorState message={action.error} onRetry={action.retry} />
       {app.status === 'ACCEPTED' && (
         <>
           <label className="check-row">
@@ -378,20 +428,21 @@ export function ApplicationDetail() {
   const app = state.applications.find((a) => a.id === id && a.companyId === session!.profile);
   if (!app)
     return (
-      <EmptyState title="Заявка не найдена">
+      <EmptyState
+        title={state.applications.some((a) => a.id === id) ? 'Нет доступа' : 'Заявка не найдена'}
+      >
         <Link to="/client/applications">Все заявки</Link>
       </EmptyState>
     );
   const company = state.companies.find((c) => c.id === app.companyId)!;
+  if (app.status === 'DRAFT') return <Navigate to={`/client/new/${app.id}`} replace />;
   return (
     <>
       <div className="spread">
         <Link className="back-link" to="/client/applications">
           ← Все заявки
         </Link>
-        <span className="muted small">
-          {app.id} · ревизия {app.revision}
-        </span>
+        <span className="muted small">{app.id}</span>
       </div>
       {app.status === 'OFFERED' ? (
         <Decision key={app.revision} app={app} />
@@ -427,7 +478,7 @@ export function ApplicationDetail() {
             <StageTrack app={app} />
           </HeroPanel>
           {app.requests
-            .filter((r) => r.state === 'OPEN')
+            .filter((r) => r.state === 'OPEN' && app.status === 'NEEDS_INFO')
             .map((r) => (
               <RequestAnswer key={r.id} app={app} request={r} />
             ))}
@@ -435,38 +486,26 @@ export function ApplicationDetail() {
       )}
       <div className="two-columns">
         <Card>
-          <h2>Досье заявки</h2>
-          <ProvenanceTable app={app} company={company} />
-          <p className="small muted">Источники — синтетические снимки для демонстрации.</p>
-          <details>
-            <summary>Анкета и источники данных</summary>
-            <ApplicationFields app={app} company={company} />
-          </details>
-          <details>
-            <summary>
-              <FileText aria-hidden size={16} /> Документы и согласия
-            </summary>
-            <p>{app.files.length ? app.files.join(', ') : 'Пользовательские файлы не добавлены'}</p>
-            <p>БКИ: {app.consentVersion ?? 'Согласие ещё не дано'}</p>
-            {app.consentedAt && <p>Зафиксировано {date(app.consentedAt)}</p>}
-          </details>
+          <h2>Данные и документы</h2>
+          <p className="muted">Проверьте сведения, которые вы передали по заявке.</p>
+          <Disclosure
+            title="Ваша анкета"
+            description={`${company.name} · ${money(app.amount)}`}
+            icon={<FileText aria-hidden size={21} />}
+          >
+            <ApplicationFields app={app} company={company} showCodes={false} />
+          </Disclosure>
+          <Disclosure
+            title="Документы и согласия"
+            description={`${counted(app.files.length, ['файл', 'файла', 'файлов'])} · разрешения на обработку данных`}
+            icon={<FileText aria-hidden size={21} />}
+          >
+            <ApplicationDocuments app={app} compact />
+          </Disclosure>
         </Card>
-        <Card id="history">
-          <h2>Что сделал банк</h2>
-          <AuditLog app={app} />
-          {app.revisions.length > 0 && (
-            <details>
-              <summary>Предыдущие ревизии ({app.revisions.length})</summary>
-              {app.revisions.map((r) => (
-                <p key={r.revision}>
-                  Ревизия {r.revision} · {money(r.amount)} · {r.term} мес. — {r.reason}
-                </p>
-              ))}
-            </details>
-          )}
-        </Card>
+        <ClientJourney app={app} />
       </div>
-      <ErrorState message={action.error} />
+      <ErrorState message={action.error} onRetry={action.retry} />
       {['DRAFT', 'SUBMITTED', 'CHECKING', 'NEEDS_INFO', 'MANUAL_REVIEW', 'OFFERED'].includes(
         app.status,
       ) && (
@@ -482,7 +521,7 @@ export function ApplicationDetail() {
                 нельзя.
               </DialogDescription>
             </DialogHeader>
-            <ErrorState message={action.error} />
+            <ErrorState message={action.error} onRetry={action.retry} />
             <Action disabled={action.busy} onClick={() => action.run(() => api.cancel(app.id))}>
               Подтвердить отмену
             </Action>

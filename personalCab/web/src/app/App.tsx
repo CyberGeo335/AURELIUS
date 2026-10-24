@@ -36,8 +36,11 @@ import {
   DialogTrigger,
   DialogClose,
 } from '../components/ui/dialog';
+import { AssistantSessionStore } from '../api/AssistantSession';
 import { AssistantPanel } from '../components/v2/AssistantPanel';
-import { Home, Applications, ProductList } from '../pages/client/Home';
+import { Home, Applications } from '../pages/client/Home';
+import { Products } from '../pages/client/Products';
+import { Documents } from '../pages/client/Documents';
 const ApplicationForm = lazy(() =>
   import('../pages/client/ApplicationForm').then((m) => ({ default: m.ApplicationForm })),
 );
@@ -196,6 +199,7 @@ function Login() {
                 onClick={() =>
                   action.run(async () => {
                     await api.reset();
+                    new AssistantSessionStore().clear();
                     setResetOpen(false);
                   })
                 }
@@ -252,6 +256,9 @@ function Layout({ role, onAssistant }: { role: 'bank' | 'client'; onAssistant: (
     ['/bank/policies', 'Политики и модели'],
     ['/bank/journal', 'Журнал'],
   ];
+  const openRequests = state.applications
+    .filter((a) => a.companyId === session.profile && a.status === 'NEEDS_INFO')
+    .reduce((n, a) => n + a.requests.filter((r) => r.state === 'OPEN').length, 0);
   return (
     <>
       <a href="#main" className="skip-link">
@@ -262,14 +269,31 @@ function Layout({ role, onAssistant }: { role: 'bank' | 'client'; onAssistant: (
           <div className="brand-group">
             <Logo />
             {role === 'bank' && <span className="bank-chip">Банк</span>}
+            {role === 'client' &&
+              location.pathname.startsWith('/client/new/') &&
+              !state.storageError && <span className="header-draft">Черновик сохранён</span>}
           </div>
           <nav aria-label="Основная навигация">
             {(role === 'bank' ? bankLinks : clientLinks).map(([path, label]) => (
               <NavLink key={path} to={path} end={path === '/client' || path === '/bank'}>
                 {label}
+                {role === 'client' && path === '/client/applications' && openRequests > 0 && (
+                  <span
+                    className="nav-count"
+                    aria-label={`Запросы, требующие ответа: ${openRequests}`}
+                  >
+                    {openRequests}
+                  </span>
+                )}
               </NavLink>
             ))}
           </nav>
+          {role === 'client' && (
+            <button className="header-assistant" onClick={onAssistant}>
+              <MessageCircle aria-hidden size={17} />
+              <span>Помощник</span>
+            </button>
+          )}
           <Link className="profile-button" to="/" onClick={() => login(null)} title="Сменить роль">
             <span className="avatar">
               {role === 'bank' ? 'АС' : session.profile === 'karpov' ? 'ИК' : 'ЗО'}
@@ -301,7 +325,7 @@ function Layout({ role, onAssistant }: { role: 'bank' | 'client'; onAssistant: (
     </>
   );
 }
-function Auxiliary({ kind }: { kind: 'company' | 'documents' | 'clients' | 'policies' }) {
+function Auxiliary({ kind }: { kind: 'company' | 'clients' | 'policies' }) {
   const state = useCredit();
   const { session } = useSession();
   if (kind === 'company')
@@ -353,45 +377,29 @@ function Auxiliary({ kind }: { kind: 'company' | 'documents' | 'clients' | 'poli
         </Card>
       </>
     );
-  const apps = state.applications.filter((a) => a.companyId === session!.profile);
-  return (
-    <>
-      <h1>Документы</h1>
-      <Card>
-        <h2>Файлы и согласия по заявкам</h2>
-        {apps.length ? (
-          apps.map((a) => (
-            <div className="document-row" key={a.id}>
-              <Link to={`/client/applications/${a.id}`}>{a.id}</Link>
-              <p>{a.files.length ? a.files.join(', ') : 'Файлы не добавлены'}</p>
-              <p className="small muted">
-                БКИ: {a.consentBki ? 'согласие получено отдельно' : 'согласие не дано'} ·{' '}
-                {a.consentVersion ?? 'черновик'}
-              </p>
-            </div>
-          ))
-        ) : (
-          <p>Здесь появятся документы ваших заявок.</p>
-        )}
-        <p className="small muted">
-          В демо сохраняются только имена файлов. Подписанные договоры и реальные документы не
-          создаются.
-        </p>
-      </Card>
-    </>
-  );
+  return null;
 }
 export function App() {
+  const { session } = useSession();
   const [assistant, setAssistant] = useState(false);
+  const [assistantSeed, setAssistantSeed] = useState<string>();
+  useEffect(() => {
+    setAssistant(false);
+    setAssistantSeed(undefined);
+  }, [session?.role, session?.profile]);
+  const openAssistant = (seed?: string) => {
+    setAssistantSeed(seed);
+    setAssistant(true);
+  };
   return (
     <ErrorBoundary>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route
           path="/client"
-          element={<Layout role="client" onAssistant={() => setAssistant(true)} />}
+          element={<Layout role="client" onAssistant={() => openAssistant()} />}
         >
-          <Route index element={<Home onAssistant={() => setAssistant(true)} />} />
+          <Route index element={<Home onAssistant={() => openAssistant()} />} />
           <Route path="applications" element={<Applications />} />
           <Route
             path="applications/:id"
@@ -409,16 +417,8 @@ export function App() {
               </Page>
             }
           />
-          <Route
-            path="products"
-            element={
-              <>
-                <h1>Продукты для бизнеса</h1>
-                <ProductList />
-              </>
-            }
-          />
-          <Route path="documents" element={<Auxiliary kind="documents" />} />
+          <Route path="products" element={<Products onAssistant={openAssistant} />} />
+          <Route path="documents" element={<Documents />} />
           <Route path="company" element={<Auxiliary kind="company" />} />
         </Route>
         <Route path="/bank" element={<Layout role="bank" onAssistant={() => {}} />}>
@@ -468,7 +468,12 @@ export function App() {
           }
         />
       </Routes>
-      <AssistantPanel open={assistant} onOpenChange={setAssistant} />
+      <AssistantPanel
+        key={`${session?.role}-${session?.profile}`}
+        open={assistant && session?.role === 'client'}
+        onOpenChange={setAssistant}
+        seed={assistantSeed}
+      />
     </ErrorBoundary>
   );
 }

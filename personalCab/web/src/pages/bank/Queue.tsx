@@ -42,13 +42,30 @@ export function Queue({ mine = false }: { mine?: boolean }) {
           : ['OFFERED', 'ACCEPTED', 'SIGNED_DEMO', 'FUNDED_DEMO', 'DECLINED', 'CANCELLED'].includes(
               status,
             ));
-  const visible = apps.filter(
-    (a) =>
-      match(a.status, filter) &&
-      `${a.id} ${state.companies.find((c) => c.id === a.companyId)?.name}`
-        .toLowerCase()
-        .includes(query.toLowerCase()),
-  );
+  const visible = apps
+    .filter(
+      (a) =>
+        match(a.status, filter) &&
+        `${a.id} ${state.companies.find((c) => c.id === a.companyId)?.name}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+    )
+    .sort((a, b) => a.updated - b.updated);
+  const automatic = apps.filter((a) =>
+    a.history.some((e) => e.text.startsWith('Подготовили предложение')),
+  ).length;
+  const durations = apps.flatMap((a) => {
+    const event = a.history.find(
+      (e) =>
+        e.text.startsWith('Подготовили предложение') ||
+        e.text.startsWith('Встречное предложение') ||
+        e.text.startsWith('Отказ'),
+    );
+    return event ? [Math.max(1, Math.round((event.at - a.created) / 60000))] : [];
+  });
+  const average = durations.length
+    ? Math.round(durations.reduce((n, v) => n + v, 0) / durations.length)
+    : 0;
   return (
     <>
       <div className="queue-hero">
@@ -80,12 +97,18 @@ export function Queue({ mine = false }: { mine?: boolean }) {
           <p className="muted">Сегодня, {date(Date.now())} · демо-сводка</p>
           <div className="daily-stats">
             <KeyValue label="заявок в демо-очереди" value={apps.length} />
-            <KeyValue label="решены" value={apps.filter((a) => match(a.status, 'done')).length} />
+            <KeyValue
+              label={`решено автоматически, ${apps.length ? Math.round((automatic / apps.length) * 100) : 0}%`}
+              value={automatic}
+            />
             <KeyValue
               label="ждут ответа клиента"
               value={apps.filter((a) => a.status === 'NEEDS_INFO').length}
             />
-            <KeyValue label="на ручном разборе" value={manual.length} />
+            <KeyValue
+              label="в среднем до решения"
+              value={durations.length ? `${average} мин` : 'Пока нет решений'}
+            />
           </div>
         </Card>
       </div>

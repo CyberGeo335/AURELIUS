@@ -16,14 +16,18 @@ import {
   KeyValue,
 } from '../../components/v2/primitives';
 import { Textarea } from '../../components/ui/textarea';
+import { Input } from '../../components/ui/input';
 import { coverage, decimal, money, payment } from '../../domain/finance';
 import { products, type Application, type BankAction } from '../../domain/types';
+import { requiredChecks } from '../../domain/review';
 import { demoRisk } from '../../domain/risk';
 function DecisionPanel({ app }: { app: Application }) {
   const api = useApi();
   const action = useAction();
   const [choice, setChoice] = useState<BankAction>('A');
   const [reason, setReason] = useState('');
+  const [requestField, setRequestField] = useState('statement');
+  const [due, setDue] = useState(new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10));
   const amountA = Math.round((app.amount * 2200000) / 3000000);
   const options: [BankAction, string, string][] = [
     [
@@ -40,6 +44,17 @@ function DecisionPanel({ app }: { app: Application }) {
     ['INFO', 'Запросить данные', 'Укажите, чего не хватает для решения'],
     ['DECLINE', 'Отказать', 'Код причины: MANUAL_POLICY_DECLINE'],
   ];
+  const checksReady = requiredChecks(app).ready;
+  const allowed = (key: BankAction) =>
+    key === 'INFO' ||
+    key === 'DECLINE' ||
+    (checksReady &&
+      (key === 'A'
+        ? coverage(app.flow, app.existing, amountA, app.term) >= 1.3
+        : key === 'B'
+          ? coverage(app.flow, app.existing, app.amount, 24) >= 1.3
+          : coverage(app.flow, app.existing, amountA, app.term) >= 1.3 &&
+            coverage(app.flow, app.existing, app.amount, 24) >= 1.3));
   const preview =
     choice === 'INFO'
       ? 'Банк просит уточнить данные: ' + reason
@@ -61,15 +76,45 @@ function DecisionPanel({ app }: { app: Application }) {
                   type="radio"
                   name="bankDecision"
                   checked={choice === key}
+                  disabled={!allowed(key)}
                   onChange={() => setChoice(key)}
                 />
                 <span>
                   <strong>{title}</strong>
                   <span className="small muted block">{desc}</span>
+                  {!allowed(key) && (
+                    <span className="small attention-text block">
+                      {checksReady
+                        ? 'Покрытие ниже допустимого порога'
+                        : 'Сначала завершите проверки досье'}
+                    </span>
+                  )}
                 </span>
               </label>
             ))}
           </fieldset>
+          {choice === 'INFO' && (
+            <div className="form-fields">
+              <label className="form-field">
+                Что запросить
+                <select value={requestField} onChange={(e) => setRequestField(e.target.value)}>
+                  <option value="statement">Выписка по счёту</option>
+                  <option value="authority">Доверенность подписанта</option>
+                  <option value="revenue">Пояснение по выручке</option>
+                  <option value="clarification">Уточнение поля анкеты</option>
+                </select>
+              </label>
+              <label className="form-field">
+                Срок ответа
+                <Input
+                  type="date"
+                  value={due}
+                  min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
+                  onChange={(e) => setDue(e.target.value)}
+                />
+              </label>
+            </div>
+          )}
           <label className="form-field">
             Обоснование — обязательно
             <Textarea
@@ -85,11 +130,28 @@ function DecisionPanel({ app }: { app: Application }) {
             />
           </label>
           <p className="small muted">Текст получит клиент. Не включайте внутренние сведения.</p>
-          <ErrorState message={action.error} />
+          <ErrorState message={action.error} onRetry={action.retry} />
           <Action
             className="full-width"
-            disabled={action.busy || reason.trim().length < 15}
-            onClick={() => action.run(() => api.bankDecision(app.id, app.revision, choice, reason))}
+            disabled={
+              action.busy ||
+              reason.trim().length < 15 ||
+              !allowed(choice) ||
+              (choice === 'INFO' && (!due || new Date(due).getTime() <= Date.now()))
+            }
+            onClick={() =>
+              action.run(() =>
+                api.bankDecision(
+                  app.id,
+                  app.revision,
+                  choice,
+                  reason,
+                  choice === 'INFO'
+                    ? { field: requestField, dueAt: new Date(due + 'T20:59:00Z').getTime() }
+                    : undefined,
+                ),
+              )
+            }
           >
             {action.busy ? 'Сохраняем…' : 'Сохранить решение'}
           </Action>
@@ -109,6 +171,78 @@ function DecisionPanel({ app }: { app: Application }) {
       <p className="muted">Журнал</p>
       <AuditLog app={app} />
     </aside>
+  );
+}
+function DataChecks({ app }: { app: Application }) {
+  const api = useApi();
+  const action = useAction();
+  const [comment, setComment] = useState('');
+  const [source, setSource] = useState(
+    app.companyId === 'zerno' ? 'ГИР БО: 38,4 млн ₽' : 'Уточнённые сведения клиента',
+  );
+  return (
+    <Card>
+      <h3>Обязательные проверки досье</h3>
+      <p className="muted small">
+        Чтобы предложить условия, подтвердите полномочия и разрешите расхождения. Комментарий
+        сохранится в журнале.
+      </p>
+      <label className="form-field">
+        Комментарий к проверке
+        <Textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Документ, источник и основание проверки"
+        />
+      </label>
+      <ErrorState message={action.error} onRetry={action.retry} />
+      {requiredChecks(app).authority && (
+        <div className="data-check-row">
+          <div>
+            <strong>Полномочия подписанта</strong>
+            <p className="small muted">
+              {app.checks?.authority ? 'Подтверждены' : 'Доверенность № 14 требует проверки'}
+            </p>
+          </div>
+          <Action
+            tone="soft"
+            disabled={action.busy || comment.trim().length < 10 || app.checks?.authority}
+            onClick={() => action.run(() => api.resolveData(app.id, 'authority', comment))}
+          >
+            Подтвердить полномочия
+          </Action>
+        </div>
+      )}
+      {requiredChecks(app).revenue && (
+        <div className="data-check-row">
+          <label className="form-field">
+            Основное значение выручки
+            <select value={source} onChange={(e) => setSource(e.target.value)}>
+              {app.companyId === 'zerno' ? (
+                <>
+                  <option>ГИР БО: 38,4 млн ₽</option>
+                  <option>Выписка: 33,9 млн ₽</option>
+                </>
+              ) : (
+                <>
+                  <option>Уточнённые сведения клиента</option>
+                  <option>Подтверждённый первичный источник</option>
+                </>
+              )}
+            </select>
+          </label>
+          <Action
+            tone="soft"
+            disabled={action.busy || comment.trim().length < 10 || app.checks?.revenue}
+            onClick={() =>
+              action.run(() => api.resolveData(app.id, 'revenue', `${source}. ${comment}`))
+            }
+          >
+            {app.checks?.revenue ? 'Конфликт разрешён' : 'Подтвердить источник'}
+          </Action>
+        </div>
+      )}
+    </Card>
   );
 }
 export function Review() {
@@ -177,25 +311,40 @@ export function Review() {
                 {company.id === 'zerno' && (
                   <div className="inset">
                     <p className="attention-text small">DATA_CONFLICT</p>
-                    <h3>Выручка за 2025 в источниках расходится на 12%</h3>
+                    <h3>
+                      {app.checks?.revenue
+                        ? 'Конфликт выручки разобран'
+                        : 'Выручка за 2025 в источниках расходится на 12%'}
+                    </h3>
                     <p className="muted small">ГИР БО 38,4 млн ₽, выписка 33,9 млн ₽.</p>
                   </div>
                 )}
               </div>
             </Card>
           )}
+          {app.status === 'MANUAL_REVIEW' &&
+            (requiredChecks(app).authority || requiredChecks(app).revenue) && (
+              <DataChecks app={app} />
+            )}
           <div className="two-columns">
             <Card>
               <div className="spread">
                 <h3>Оценка модели</h3>
                 <span className="small muted">score-model v0.3</span>
               </div>
+              <p className="small muted">
+                Снимок от{' '}
+                {new Date(app.sourceDate ?? app.created).toLocaleString('ru-RU', {
+                  timeZone: 'Europe/Moscow',
+                })}{' '}
+                · ревизия {app.revision}
+              </p>
               <div className="metrics">
                 <KeyValue label="Уровень риска" value={demoRisk(app).label} />
                 <KeyValue label="PD, 12 мес." value={demoRisk(app).pd} />
               </div>
-              {company.id === 'zerno' ? (
-                <FactorBars bank />
+              {['zerno', 'karpov'].includes(company.id) ? (
+                <FactorBars bank={company.id === 'zerno'} showValues={company.id === 'zerno'} />
               ) : (
                 <p className="muted small">Вклад факторов для этой заявки в демо не рассчитан.</p>
               )}

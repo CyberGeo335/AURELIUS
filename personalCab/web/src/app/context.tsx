@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
@@ -64,23 +65,29 @@ export const useSession = () => useContext(SessionContext);
 export function useAction() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const lastAction = useRef<(() => Promise<unknown>) | null>(null);
+  const run = async (action: () => Promise<unknown>) => {
+    if (busy) return;
+    lastAction.current = action;
+    setBusy(true);
+    setError('');
+    try {
+      await action();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : 'Не удалось выполнить действие. Повторите попытку.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
   return {
     busy,
     error,
     setError,
-    run: async (action: () => Promise<unknown>) => {
-      if (busy) return;
-      setBusy(true);
-      setError('');
-      try {
-        await action();
-      } catch (e) {
-        setError(
-          e instanceof Error ? e.message : 'Не удалось выполнить действие. Повторите попытку.',
-        );
-      } finally {
-        setBusy(false);
-      }
+    run,
+    retry: () => {
+      if (lastAction.current) void run(lastAction.current);
     },
   };
 }

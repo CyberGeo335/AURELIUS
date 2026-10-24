@@ -15,6 +15,10 @@ import {
 import { applicableFields, validateApplication, validateField } from '../../domain/forms';
 import { money, payment, decimal } from '../../domain/finance';
 import { products, type Scenario } from '../../domain/types';
+import { purposeOptions } from '../../domain/products';
+import { Disclosure } from '../../components/v2/Disclosure';
+import { ApplicationFields } from '../../components/v2/primitives';
+import { parseStatement, statementPeriods } from '../../domain/statement';
 import type { DraftPatch } from '../../api/CreditApi';
 export function ApplicationForm() {
   const { id } = useParams();
@@ -26,10 +30,15 @@ export function ApplicationForm() {
   const action = useAction();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<string[]>([]);
+  const [manualMonths, setManualMonths] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
   if (!a)
     return (
-      <EmptyState title="Заявка не найдена">
+      <EmptyState
+        title={
+          state.applications.some((app) => app.id === id) ? 'Нет доступа' : 'Заявка не найдена'
+        }
+      >
         <Link to="/client/applications">К списку заявок</Link>
       </EmptyState>
     );
@@ -42,8 +51,16 @@ export function ApplicationForm() {
   const company = state.companies.find((c) => c.id === a.companyId)!;
   const definitions = applicableFields(a.product, company.entity);
   const steps = ['Цель и сумма', 'Бизнес и обороты', 'Согласия', 'Отправка'];
+  const allErrors = validateApplication(a, company);
+  const missing = Object.entries(allErrors).map(([key, message]) => ({
+    key,
+    message,
+    label: definitions.find((f) => f.code === key)?.label ?? message,
+  }));
+  const completeness = Math.round((1 - missing.length / (definitions.length + 6)) * 100);
+  const monthly = a.monthly ?? company.monthly;
   const save = (patch: DraftPatch) => {
-    void api.saveDraft(a.id, patch).catch((e) => action.setError(e.message));
+    void action.run(() => api.saveDraft(a.id, patch));
   };
   const setField = (code: string, value: string) => {
     const n = Number(code.split('_')[1]);
@@ -52,7 +69,13 @@ export function ApplicationForm() {
     if (n === 6) patch.term = Number(value);
     if (n === 4) patch.purpose = value;
     save(patch);
-    setErrors((old) => ({ ...old, [code]: '' }));
+    const definition = definitions.find((f) => f.code === code);
+    setErrors((old) => ({
+      ...old,
+      [code]: definition
+        ? (validateField(definition, value, company.entity, value === company.inn) ?? '')
+        : '',
+    }));
   };
   const showErrors = (errs: Record<string, string>) => {
     setErrors(errs);
@@ -68,7 +91,7 @@ export function ApplicationForm() {
           : a.step === 1
             ? (n >= 9 && n <= 30) ||
               ['business', 'statement', 'leasing', 'flow', 'existing'].includes(key)
-            : ['consentBki', 'consentData', `${a.product}_31`].includes(key);
+            : ['consentBki', 'consentData'].includes(key);
       }),
     );
     if (Object.keys(current).length) showErrors(current);
@@ -95,14 +118,34 @@ export function ApplicationForm() {
                 *
               </span>
             </label>
-            {editable ? (
+            {f.number === 4 ? (
+              <>
+                <select
+                  id={f.code}
+                  value={value}
+                  onChange={(e) => setField(f.code, e.target.value)}
+                >
+                  {!purposeOptions.includes(value) && <option>{value}</option>}
+                  {purposeOptions.map((p) => (
+                    <option key={p}>{p}</option>
+                  ))}
+                </select>
+                <label className="small muted">
+                  Уточнение цели, если нужно
+                  <Input
+                    value={a.fields[`${a.product}_purpose_note`] ?? ''}
+                    onChange={(e) => setField(`${a.product}_purpose_note`, e.target.value)}
+                  />
+                </label>
+              </>
+            ) : editable ? (
               <Input
                 id={f.code}
                 value={value}
                 aria-invalid={!!errors[f.code]}
                 aria-describedby={errors[f.code] ? `${f.code}-error` : undefined}
                 onBlur={() => {
-                  const e = validateField(f, value, company.entity);
+                  const e = validateField(f, value, company.entity, value === company.inn);
                   if (e) setErrors((v) => ({ ...v, [f.code]: e }));
                 }}
                 onChange={(e) => setField(f.code, e.target.value)}
@@ -133,7 +176,16 @@ export function ApplicationForm() {
             )}
             <div className="field-hint">
               <SourceBadge>{a.sources[f.code] ?? f.source}</SourceBadge>
-              {auto && <span className="small muted">Демо-данные</span>}
+              {auto && (
+                <span className="small muted">
+                  Снимок от {new Date(a.sourceDate ?? a.created).toLocaleDateString('ru-RU')}
+                </span>
+              )}
+              {f.number === 3 && value === company.inn && (
+                <span className="small muted">
+                  Синтетический ИНН из демо-данных. Не используется для реальных запросов.
+                </span>
+              )}
             </div>
             {errors[f.code] && (
               <p className="field-error" id={`${f.code}-error`}>
@@ -146,10 +198,14 @@ export function ApplicationForm() {
   return (
     <div className="form-layout">
       <aside className="vertical-steps" aria-label="Шаги анкеты">
+        <span className="draft-saved">
+          <Check aria-hidden size={14} />
+          Черновик сохранён
+        </span>
         {steps.map((name, i) => (
           <button
             key={name}
-            disabled={i > a.step}
+            disabled={i > (a.furthestStep ?? a.step)}
             aria-current={a.step === i ? 'step' : undefined}
             onClick={() => save({ step: i })}
           >
@@ -182,7 +238,7 @@ export function ApplicationForm() {
             </div>
           )}
         </div>
-        <ErrorState message={action.error} />
+        <ErrorState message={action.error} onRetry={action.retry} />
         {a.step === 0 && (
           <Card>
             <p className="eyebrow">Новая заявка · {a.product}</p>
@@ -252,23 +308,56 @@ export function ApplicationForm() {
                 <Action
                   id="statement"
                   tone={a.statement ? 'ink' : 'soft'}
-                  onClick={() => save({ statement: true })}
+                  onClick={() => {
+                    setManualMonths(false);
+                    save({
+                      statement: true,
+                      monthly: company.monthly,
+                      statementMonths: statementPeriods,
+                    });
+                  }}
                 >
                   {a.statement && <Check aria-hidden size={18} />} Взять демо-выписку
+                </Action>
+                <Action
+                  tone={manualMonths ? 'ink' : 'soft'}
+                  onClick={() => setManualMonths(!manualMonths)}
+                >
+                  Ввести вручную
                 </Action>
                 <label className="file-button">
                   Загрузить PDF / CSV
                   <input
                     type="file"
                     accept=".pdf,.csv"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const f = e.target.files?.[0];
                       if (f) {
                         if (!/\.(pdf|csv)$/i.test(f.name) || f.size > 10 * 1024 * 1024) {
                           action.setError('Нужен PDF или CSV до 10 МБ.');
                           return;
                         }
-                        save({ statement: true, files: [...a.files, f.name] });
+                        if (f.name.toLowerCase().endsWith('.csv')) {
+                          try {
+                            const data = parseStatement(await f.text());
+                            const updated = [...(a.monthly ?? Array(12).fill(0))];
+                            for (const [period, amount] of Object.entries(data))
+                              updated[statementPeriods.indexOf(period)] = amount / 1000000;
+                            save({
+                              statement: true,
+                              monthly: updated,
+                              statementMonths: [
+                                ...new Set([...(a.statementMonths ?? []), ...Object.keys(data)]),
+                              ],
+                              files: [...a.files, f.name],
+                            });
+                            action.setError('');
+                          } catch (error) {
+                            action.setError(
+                              error instanceof Error ? error.message : 'Не удалось прочитать CSV.',
+                            );
+                          }
+                        } else save({ statement: true, files: [...a.files, f.name] });
                       }
                     }}
                   />
@@ -279,17 +368,72 @@ export function ApplicationForm() {
                 нет.
               </p>
               {a.files.length > 0 && <p className="small">{a.files.join(', ')}</p>}
+              {a.statementMonths && a.statementMonths.length < 12 && (
+                <div role="alert" className="error-box">
+                  Не хватает {12 - a.statementMonths.length} месяцев. Дозагрузите CSV с недостающими
+                  периодами.
+                </div>
+              )}
+              {a.statementMonths && (
+                <div className="coverage-months" aria-label="Покрытие выписки">
+                  {statementPeriods.map((period) => (
+                    <span
+                      key={period}
+                      className={a.statementMonths!.includes(period) ? 'complete' : 'missing'}
+                      title={period}
+                    >
+                      {period.slice(5)}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {manualMonths && (
+                <div className="manual-months">
+                  <p className="small muted">
+                    Демонстрационные поступления, ₽. Проверьте каждый месяц.
+                  </p>
+                  <div className="month-inputs">
+                    {statementPeriods.map((period, i) => (
+                      <label className="form-field" key={period}>
+                        {period}
+                        <Input
+                          type="number"
+                          min={0}
+                          value={Math.round(monthly[i] * 1000000)}
+                          onChange={(e) => {
+                            const values = [...monthly];
+                            values[i] = Number(e.target.value) / 1000000;
+                            save({
+                              monthly: values,
+                              statement: true,
+                              statementMonths: statementPeriods,
+                            });
+                          }}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <Action
+                    tone="soft"
+                    onClick={() =>
+                      save({ monthly, statement: true, statementMonths: statementPeriods })
+                    }
+                  >
+                    Подтвердить обороты
+                  </Action>
+                </div>
+              )}
               <div className="metrics">
                 <KeyValue
                   label="За 12 месяцев"
-                  value={money(company.monthly.reduce((s, v) => s + v, 0) * 1000000)}
+                  value={money(monthly.reduce((s, v) => s + v, 0) * 1000000)}
                 />
                 <KeyValue
                   label="В среднем в месяц"
-                  value={`${decimal(company.monthly.reduce((s, v) => s + v, 0) / 12)} млн ₽`}
+                  value={`${decimal(monthly.reduce((s, v) => s + v, 0) / 12)} млн ₽`}
                 />
               </div>
-              <MonthlyBars values={company.monthly} />
+              <MonthlyBars values={monthly} />
               <div className="form-fields two-columns">
                 <label className="form-field" htmlFor="flow">
                   Свободный поток в месяц, ₽
@@ -366,14 +510,6 @@ export function ApplicationForm() {
                 Согласен на обработку данных заявки на демо-стенде. Версия data-demo-2026.10-v1.
               </span>
             </label>
-            <label className="check-row" id={`${a.product}_31`}>
-              <input
-                type="checkbox"
-                checked={a.fields[`${a.product}_31`] === 'Подтверждаю'}
-                onChange={(e) => setField(`${a.product}_31`, e.target.checked ? 'Подтверждаю' : '')}
-              />
-              <span>Подтверждаю корректность анкеты и полномочия на подачу заявки.</span>
-            </label>
           </Card>
         )}
         {a.step === 3 && (
@@ -386,10 +522,29 @@ export function ApplicationForm() {
               <KeyValue label="Сумма" value={money(a.amount)} />
               <KeyValue label="Срок" value={`${a.term} месяцев`} />
               <KeyValue label="Цель" value={a.purpose} />
-              <KeyValue label="Согласие БКИ" value="Подтверждено отдельно" />
+              <KeyValue
+                label="Согласие БКИ"
+                value={a.consentBki ? 'Подтверждено отдельно' : 'Не получено'}
+              />
+              <KeyValue label="Подписант" value={a.fields[`${a.product}_29`]} />
+              <KeyValue label="Основание полномочий" value={a.fields[`${a.product}_30`]} />
             </div>
+            <Disclosure
+              title="Проверить все данные анкеты"
+              description="Реквизиты, деятельность, контакты и полномочия"
+            >
+              <ApplicationFields app={a} company={company} showCodes={false} />
+            </Disclosure>
+            <label className="check-row" id={`${a.product}_31`}>
+              <input
+                type="checkbox"
+                checked={a.fields[`${a.product}_31`] === 'Подтверждаю'}
+                onChange={(e) => setField(`${a.product}_31`, e.target.checked ? 'Подтверждаю' : '')}
+              />
+              <span>Подтверждаю корректность анкеты и полномочия на подачу заявки.</span>
+            </label>
             <Action
-              disabled={action.busy}
+              disabled={action.busy || missing.length > 0}
               onClick={() => {
                 const errs = validateApplication(a, company);
                 if (Object.keys(errs).length) {
@@ -404,6 +559,11 @@ export function ApplicationForm() {
             >
               {action.busy ? 'Отправляем…' : 'Отправить заявку'}
             </Action>
+            {missing.length > 0 && (
+              <p className="small field-error">
+                Перед отправкой: {missing.map((m) => m.message).join('; ')}
+              </p>
+            )}
           </Card>
         )}
         <div className="spread">
@@ -426,14 +586,25 @@ export function ApplicationForm() {
         </div>
         <hr />
         <p className="muted">Примерный платёж</p>
-        <h2>{a.amount > 0 && a.term > 0 ? money(payment(a.amount, a.term)) : '—'}</h2>
+        <h2>
+          {Number.isFinite(a.amount) && a.amount > 0 && Number.isInteger(a.term) && a.term > 0
+            ? money(payment(a.amount, a.term))
+            : '—'}
+        </h2>
         <p className="small muted">В месяц по демо-ставке 24,9%. Точные условия будут в решении.</p>
         <hr />
         <div className="spread">
           <span>Заявка готова</span>
-          <strong>{Math.round(((a.step + 1) / 4) * 100)}%</strong>
+          <strong>{completeness}%</strong>
         </div>
-        <progress value={a.step + 1} max={4} />
+        <progress value={completeness} max={100} aria-label="Готовность заявки" />
+        {missing.length > 0 && (
+          <ul className="readiness-list">
+            {missing.slice(0, 4).map((item) => (
+              <li key={item.key}>{item.label}</li>
+            ))}
+          </ul>
+        )}
         <p className="small muted">
           <Check aria-hidden size={14} /> Черновик сохраняется автоматически
         </p>
