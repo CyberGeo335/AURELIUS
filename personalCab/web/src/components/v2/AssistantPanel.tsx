@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import {
   MessageCircle,
@@ -8,6 +8,7 @@ import {
   Send,
   WifiOff,
   ShieldCheck,
+  LoaderCircle,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
@@ -43,6 +44,11 @@ export function AssistantPanel({
   const [health, setHealth] = useState<'loading' | 'ready' | 'offline'>('loading');
   const [editing, setEditing] = useState(false);
   const [contextAnswer, setContextAnswer] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [open, conversation.messages.length, action.busy]);
   const pathId = location.pathname.match(/\/(?:applications|new)\/([^/]+)/)?.[1];
   const app =
     state.applications.find(
@@ -192,15 +198,27 @@ export function AssistantPanel({
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
-      <DialogContent className="assistant-drawer">
+      <DialogContent
+        id="assistant-chat"
+        className="assistant-chat"
+        onInteractOutside={(event) => event.preventDefault()}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          inputRef.current?.focus();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          document.getElementById('assistant-launcher')?.focus();
+        }}
+      >
         <DialogHeader>
           <span className="assistant-label">
             <MessageCircle aria-hidden size={17} />
             Помощник для бизнеса
           </span>
-          <DialogTitle>Начнём с вашей задачи</DialogTitle>
+          <DialogTitle>Обсудим вашу задачу</DialogTitle>
           <DialogDescription>
-            Подберём продукт и подготовим заявку. Решение и условия предложит банк после проверки.
+            Подберём продукт и поможем с заявкой. Решение принимает банк.
           </DialogDescription>
         </DialogHeader>
         <div className={`assistant-health ${health}`} role="status">
@@ -212,7 +230,7 @@ export function AssistantPanel({
               : 'ИИ-ассистент временно недоступен'}
           {health === 'offline' && <WifiOff aria-hidden size={15} />}
         </div>
-        <div className="assistant-scroll">
+        <div className="assistant-scroll" ref={scrollRef}>
           <div className="assistant-prompts">
             {app && (
               <>
@@ -436,40 +454,74 @@ export function AssistantPanel({
           {amount && term && !purpose && <p className="small muted">На что нужны деньги?</p>}
         </div>
         <ErrorState message={action.error} onRetry={action.retry} />
-        <label className="form-field">
-          Ваше сообщение
-          <Textarea
-            maxLength={12000}
-            value={conversation.pending?.text ?? text}
-            disabled={action.busy || !!conversation.pending}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="На что нужны деньги?"
-          />
-        </label>
         {consentMessage && (
           <p className="small muted">
             Сообщение не считается согласием на запрос в БКИ. Подтвердите его отдельным чекбоксом на
             шаге «Согласия» в анкете.
           </p>
         )}
-        <Action
-          className="assistant-action"
-          disabled={
-            action.busy ||
-            (!text.trim() && !conversation.pending) ||
-            (health !== 'ready' && !conversation.pending && !consentMessage)
-          }
-          onClick={consentMessage ? toForm : send}
-        >
-          <Send aria-hidden size={17} />
-          {action.busy
-            ? 'Помощник отвечает…'
-            : conversation.pending
-              ? 'Повторить запрос'
-              : consentMessage
-                ? 'К согласиям в анкете'
-                : 'Отправить'}
-        </Action>
+        {action.busy && (
+          <p className="assistant-typing" role="status">
+            Помощник отвечает…
+          </p>
+        )}
+        <div className="assistant-composer">
+          <label className="form-field">
+            Ваше сообщение
+            <Textarea
+              ref={inputRef}
+              rows={2}
+              maxLength={12000}
+              value={conversation.pending?.text ?? text}
+              disabled={action.busy || !!conversation.pending}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (
+                  e.key === 'Enter' &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing &&
+                  !action.busy &&
+                  ((health === 'ready' && text.trim()) || consentMessage)
+                ) {
+                  e.preventDefault();
+                  void (consentMessage ? toForm() : send());
+                }
+              }}
+              placeholder="Задайте вопрос…"
+            />
+          </label>
+          <Action
+            className="assistant-action assistant-send"
+            aria-label={
+              action.busy
+                ? 'Помощник отвечает…'
+                : conversation.pending
+                  ? 'Повторить запрос'
+                  : consentMessage
+                    ? 'К согласиям в анкете'
+                    : 'Отправить'
+            }
+            title={
+              conversation.pending
+                ? 'Повторить запрос'
+                : consentMessage
+                  ? 'К согласиям в анкете'
+                  : 'Отправить · Enter'
+            }
+            disabled={
+              action.busy ||
+              (!text.trim() && !conversation.pending) ||
+              (health !== 'ready' && !conversation.pending && !consentMessage)
+            }
+            onClick={consentMessage ? toForm : send}
+          >
+            {action.busy ? (
+              <LoaderCircle aria-hidden className="assistant-spinner" size={20} />
+            ) : (
+              <Send aria-hidden size={20} />
+            )}
+          </Action>
+        </div>
         {conversation.pending && !action.busy && (
           <button className="quiet-button" onClick={() => update({ pending: undefined })}>
             Написать другое сообщение

@@ -17,26 +17,11 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router';
-import { ArrowUpRight, Building2, UserRound, RotateCcw, MessageCircle } from 'lucide-react';
-import { useAction, useApi, useCredit, useSession } from './context';
-import {
-  Action,
-  Card,
-  CompanyCard,
-  EmptyState,
-  ErrorState,
-  HeroPanel,
-} from '../components/v2/primitives';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-  DialogClose,
-} from '../components/ui/dialog';
-import { AssistantSessionStore } from '../api/AssistantSession';
+import { LogOut, MessageCircle, ChevronDown } from 'lucide-react';
+import { useAction, useCredit, useSession } from './context';
+import { Action, Card, CompanyCard, EmptyState, ErrorState } from '../components/v2/primitives';
+import { Brand } from '../components/v2/Brand';
+import { Login } from '../pages/auth/Login';
 import { AssistantPanel } from '../components/v2/AssistantPanel';
 import { Home, Applications } from '../pages/client/Home';
 import { Products } from '../pages/client/Products';
@@ -86,138 +71,10 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: b
     );
   }
 }
-function Logo() {
-  return (
-    <Link to="/" className="logo">
-      <span aria-hidden />
-      кредитный кабинет
-    </Link>
-  );
-}
-function Login() {
-  const { login } = useSession();
-  const nav = useNavigate();
-  const api = useApi();
+function Layout({ role }: { role: 'bank' | 'client' }) {
+  const { session, loading, signOut } = useSession();
   const action = useAction();
-  const [resetOpen, setResetOpen] = useState(false);
-  return (
-    <>
-      <header className="header">
-        <div className="header-inner">
-          <Logo />
-          <span className="header-note">AURELIUS · демо-стенд</span>
-        </div>
-      </header>
-      <main className="shell login">
-        <div className="login-intro">
-          <p className="eyebrow">Альфа Будущее · 2026</p>
-          <h1>
-            Решения для бизнеса.
-            <br />
-            Понятно на каждом шаге.
-          </h1>
-          <p className="muted">
-            От первой заявки до решения банка — один кабинет.
-            <br />
-            Выберите роль, чтобы пройти демонстрационный сценарий.
-          </p>
-        </div>
-        <div className="login-grid">
-          <HeroPanel>
-            <UserRound aria-hidden size={32} />
-            <h2>Я предприниматель</h2>
-            <p>Подать заявку, уточнить данные и выбрать условия.</p>
-            <div className="stack">
-              <Action
-                tone="white"
-                onClick={() => {
-                  login({ role: 'client', profile: 'karpov' });
-                  nav('/client');
-                }}
-              >
-                ИП Карпов <ArrowUpRight aria-hidden size={18} />
-              </Action>
-              <Action
-                tone="outline"
-                onClick={() => {
-                  login({ role: 'client', profile: 'zerno' });
-                  nav('/client');
-                }}
-              >
-                ООО «Зерно Опт» <ArrowUpRight aria-hidden size={18} />
-              </Action>
-            </div>
-          </HeroPanel>
-          <Card className="dark">
-            <Building2 aria-hidden size={32} />
-            <h2>Я сотрудник банка</h2>
-            <p className="muted">
-              Разобрать заявку, оценить причины остановки и предложить решение.
-            </p>
-            <div className="analyst">
-              <span className="avatar">АС</span>
-              <span>
-                <strong>Анна Смирнова</strong>
-                <span className="block muted small">Кредитный аналитик</span>
-              </span>
-            </div>
-            <Action
-              tone="white"
-              onClick={() => {
-                login({ role: 'bank', profile: 'karpov' });
-                nav('/bank');
-              }}
-            >
-              Открыть очередь <ArrowUpRight aria-hidden size={18} />
-            </Action>
-          </Card>
-        </div>
-        <div className="spread">
-          <p className="small muted">
-            Все сведения синтетические. Решения, подпись и выдача — имитация.
-            <br />
-            Действия ролей синхронизируются в этом браузере, в том числе между вкладками.
-          </p>
-          <Dialog open={resetOpen} onOpenChange={setResetOpen}>
-            <DialogTrigger asChild>
-              <Action tone="ghost">
-                <RotateCcw aria-hidden size={16} />
-                Сбросить демо-данные
-              </Action>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Начать демонстрацию заново?</DialogTitle>
-                <DialogDescription>
-                  Созданные заявки и история демо будут заменены исходными примерами для всех
-                  вкладок этого браузера.
-                </DialogDescription>
-              </DialogHeader>
-              <ErrorState message={action.error} />
-              <Action
-                disabled={action.busy}
-                onClick={() =>
-                  action.run(async () => {
-                    await api.reset();
-                    new AssistantSessionStore().clear();
-                    setResetOpen(false);
-                  })
-                }
-              >
-                Сбросить демо-данные
-              </Action>
-              <DialogClose asChild>
-                <Action tone="soft">Сохранить текущие данные</Action>
-              </DialogClose>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </main>
-    </>
-  );
-}
-function Layout({ role, onAssistant }: { role: 'bank' | 'client'; onAssistant: () => void }) {
-  const { session, login } = useSession();
+  const nav = useNavigate();
   const state = useCredit();
   const location = useLocation();
   useEffect(() => {
@@ -241,7 +98,24 @@ function Layout({ role, onAssistant }: { role: 'bank' | 'client'; onAssistant: (
     window.scrollTo(0, 0);
     document.getElementById('main')?.focus({ preventScroll: true });
   }, [location.pathname, location.hash]);
-  if (!session || session.role !== role) return <Navigate to="/" replace />;
+  if (loading)
+    return (
+      <main className="shell">
+        <Card>
+          <p role="status">Восстанавливаем вход…</p>
+        </Card>
+      </main>
+    );
+  if (!session)
+    return (
+      <Navigate
+        to="/"
+        replace
+        state={{ returnTo: location.pathname + location.search + location.hash }}
+      />
+    );
+  if (session.role !== role)
+    return <Navigate to={session.role === 'bank' ? '/bank' : '/client'} replace />;
   const clientLinks = [
     ['/client', 'Главная'],
     ['/client/applications', 'Заявки'],
@@ -267,7 +141,7 @@ function Layout({ role, onAssistant }: { role: 'bank' | 'client'; onAssistant: (
       <header className="header">
         <div className="header-inner">
           <div className="brand-group">
-            <Logo />
+            <Brand />
             {role === 'bank' && <span className="bank-chip">Банк</span>}
             {role === 'client' &&
               location.pathname.startsWith('/client/new/') &&
@@ -288,39 +162,46 @@ function Layout({ role, onAssistant }: { role: 'bank' | 'client'; onAssistant: (
               </NavLink>
             ))}
           </nav>
-          {role === 'client' && (
-            <button className="header-assistant" onClick={onAssistant}>
-              <MessageCircle aria-hidden size={17} />
-              <span>Помощник</span>
-            </button>
-          )}
-          <Link className="profile-button" to="/" onClick={() => login(null)} title="Сменить роль">
+          <button
+            className="profile-button"
+            type="button"
+            disabled={action.busy}
+            onClick={() =>
+              action.run(async () => {
+                await signOut();
+                nav('/', { replace: true });
+              })
+            }
+            aria-label="Выйти из кабинета"
+            title="Выйти из кабинета"
+          >
             <span className="avatar">
-              {role === 'bank' ? 'АС' : session.profile === 'karpov' ? 'ИК' : 'ЗО'}
+              {session.firstName[0]}
+              {session.lastName[0]}
             </span>
             <span>
-              {role === 'bank'
-                ? 'Анна Смирнова'
-                : session.profile === 'karpov'
-                  ? 'ИП Карпов И. С.'
-                  : 'ООО «Зерно Опт»'}
-              <span className="block small">Сменить роль</span>
+              <strong>
+                {session.firstName} {session.lastName}
+              </strong>
+              <span className="block small">
+                {role === 'bank'
+                  ? 'Сотрудник банка'
+                  : session.profile === 'karpov'
+                    ? 'ИП Карпов'
+                    : 'ООО «Зерно Опт»'}
+              </span>
             </span>
-          </Link>
+            <LogOut aria-hidden size={17} />
+          </button>
         </div>
       </header>
       <main id="main" tabIndex={-1} className="shell">
         <ErrorState message={state.storageError ?? ''} />
+        <ErrorState message={action.error} onRetry={action.retry} />
         <Outlet />
       </main>
       <footer className="shell footer">
         AURELIUS · Демо-условия. Подпись и выдача имитируются на демо-стенде.
-        {role === 'client' && (
-          <Action tone="white" onClick={onAssistant}>
-            <MessageCircle aria-hidden size={18} />
-            Помощник
-          </Action>
-        )}
       </footer>
     </>
   );
@@ -381,6 +262,7 @@ function Auxiliary({ kind }: { kind: 'company' | 'clients' | 'policies' }) {
 }
 export function App() {
   const { session } = useSession();
+  const location = useLocation();
   const [assistant, setAssistant] = useState(false);
   const [assistantSeed, setAssistantSeed] = useState<string>();
   useEffect(() => {
@@ -395,10 +277,7 @@ export function App() {
     <ErrorBoundary>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route
-          path="/client"
-          element={<Layout role="client" onAssistant={() => openAssistant()} />}
-        >
+        <Route path="/client" element={<Layout role="client" />}>
           <Route index element={<Home onAssistant={() => openAssistant()} />} />
           <Route path="applications" element={<Applications />} />
           <Route
@@ -421,7 +300,7 @@ export function App() {
           <Route path="documents" element={<Documents />} />
           <Route path="company" element={<Auxiliary kind="company" />} />
         </Route>
-        <Route path="/bank" element={<Layout role="bank" onAssistant={() => {}} />}>
+        <Route path="/bank" element={<Layout role="bank" />}>
           <Route
             index
             element={
@@ -468,9 +347,27 @@ export function App() {
           }
         />
       </Routes>
+      {session?.role === 'client' && location.pathname.startsWith('/client') && (
+        <button
+          type="button"
+          id="assistant-launcher"
+          className="assistant-launcher"
+          aria-label={assistant ? 'Свернуть чат с помощником' : 'Открыть чат с помощником'}
+          aria-expanded={assistant}
+          aria-controls={assistant ? 'assistant-chat' : undefined}
+          onClick={() => setAssistant((old) => !old)}
+        >
+          {assistant ? (
+            <ChevronDown aria-hidden size={21} />
+          ) : (
+            <MessageCircle aria-hidden size={21} />
+          )}
+          <span>{assistant ? 'Свернуть' : 'Помощник'}</span>
+        </button>
+      )}
       <AssistantPanel
         key={`${session?.role}-${session?.profile}`}
-        open={assistant && session?.role === 'client'}
+        open={assistant && session?.role === 'client' && location.pathname.startsWith('/client')}
         onOpenChange={setAssistant}
         seed={assistantSeed}
       />

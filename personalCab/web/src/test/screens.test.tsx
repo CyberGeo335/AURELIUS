@@ -4,14 +4,16 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { Providers } from '../app/context';
 import { App } from '../app/App';
 import { MockCreditApi, STORAGE_KEY } from '../mocks/MockCreditApi';
+import { MockAuthApi, demoAccounts } from '../mocks/MockAuthApi';
 import { seedState } from '../mocks/seeds';
 const apis: MockCreditApi[] = [];
 afterEach(() => {
   apis.forEach((api) => api.destroy());
   vi.unstubAllGlobals();
 });
-function open(path: string, role: 'client' | 'bank' = 'client') {
-  sessionStorage.setItem('aurelius-session', JSON.stringify({ role, profile: 'karpov' }));
+async function open(path: string, role: 'client' | 'bank' = 'client') {
+  const account = demoAccounts.find((a) => a.role === role && a.profile === 'karpov')!;
+  await new MockAuthApi().signIn(account);
   const api = new MockCreditApi();
   apis.push(api);
   render(
@@ -21,6 +23,7 @@ function open(path: string, role: 'client' | 'bank' = 'client') {
       </Providers>
     </MemoryRouter>,
   );
+  await waitFor(() => expect(screen.queryByText('Восстанавливаем вход…')).not.toBeInTheDocument());
   return api;
 }
 describe('Key screens', () => {
@@ -31,7 +34,7 @@ describe('Key screens', () => {
     newer.companyId = 'karpov';
     state.applications.unshift(newer);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    open('/client');
+    await open('/client');
     expect(screen.getByRole('heading', { name: /Ваше предложение готово/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Ответить банку' }));
     expect(
@@ -39,20 +42,20 @@ describe('Key screens', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('R01-2026-00142')).toBeInTheDocument();
   });
-  it('renders the client home with active request and products', () => {
-    open('/client');
+  it('renders the client home with active request and products', async () => {
+    await open('/client');
     expect(screen.getByRole('heading', { name: /Проверяем заявку/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ответить банку' })).toBeEnabled();
     expect(screen.getAllByRole('button', { name: 'Новая заявка' })).toHaveLength(3);
   });
   it('filters the bank queue without losing the application link', async () => {
-    open('/bank', 'bank');
+    await open('/bank', 'bank');
     fireEvent.click(await screen.findByRole('button', { name: /Ждут клиента/ }));
     expect(screen.getByText('R03-2026-00007')).toBeInTheDocument();
     expect(screen.queryByText('R01-2026-00151')).not.toBeInTheDocument();
   });
   it('requires a justification and writes a counteroffer visible to the client', async () => {
-    const api = open('/bank/applications/R01-2026-00151', 'bank');
+    const api = await open('/bank/applications/R01-2026-00151', 'bank');
     const button = await screen.findByRole('button', { name: 'Сохранить решение' });
     expect(button).toBeDisabled();
     fireEvent.change(screen.getByRole('textbox', { name: 'Обоснование — обязательно' }), {
@@ -82,24 +85,24 @@ describe('Key screens', () => {
     ).toBeInTheDocument();
   });
   it('keeps assistant failure separate from the main form', async () => {
-    open('/client');
+    await open('/client');
     fireEvent.click(screen.getByRole('button', { name: 'Спросить о заявке' }));
     await screen.findByRole('heading', { name: 'Продолжим через форму' });
     expect(screen.getAllByRole('button', { name: 'Новая заявка' })).toHaveLength(3);
   });
   it('guards another borrower’s deep link', async () => {
-    open('/client/applications/R01-2026-00151');
+    await open('/client/applications/R01-2026-00151');
     expect(await screen.findByRole('heading', { name: 'Нет доступа' })).toBeInTheDocument();
   });
   it('shows consent details in a dedicated document layout', async () => {
-    open('/client/documents');
+    await open('/client/documents');
     expect(screen.getByRole('heading', { name: 'Документы и согласия' })).toBeInTheDocument();
     expect(screen.getAllByText('Файлов пока нет')).toHaveLength(2);
     fireEvent.click(screen.getAllByRole('button', { name: 'Подробнее: кредитная история' })[0]);
     expect(await screen.findByRole('dialog')).toHaveTextContent('bki-demo-2026.10-v1');
   });
   it('keeps internal bank audit out of the client application', async () => {
-    open('/client/applications/R01-2026-00142');
+    await open('/client/applications/R01-2026-00142');
     await screen.findByRole('heading', { name: 'Нужно ваше уточнение' });
     expect(
       screen.queryByText(/score-model|policy-2026|FS-R01|Журнал действий банка/),
@@ -111,7 +114,7 @@ describe('Key screens', () => {
     expect(screen.getByRole('heading', { name: 'Согласия' })).toBeVisible();
   });
   it('selects a product by need and calculates before creating the draft', async () => {
-    const api = open('/client/products');
+    const api = await open('/client/products');
     expect(screen.getByText(/≈ 142/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Закупки каждый месяц' }));
     fireEvent.click(screen.getByRole('button', { name: 'Оформить заявку' }));
@@ -127,7 +130,7 @@ describe('Key screens', () => {
     offer.offers[0].amount = 1500000;
     offer.offers[0].term = 12;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    const api = open('/client/applications/' + offer.id);
+    const api = await open('/client/applications/' + offer.id);
     fireEvent.click(await screen.findByRole('button', { name: '18 мес.' }));
     expect(api.getSnapshot().applications.find((a) => a.id === offer.id)?.revision).toBe(1);
     expect(screen.getByRole('button', { name: 'Перепроверить на 18 мес.' })).toBeEnabled();
@@ -177,7 +180,7 @@ describe('Key screens', () => {
           ),
       ),
     );
-    const api = open('/client/products');
+    const api = await open('/client/products');
     fireEvent.click(screen.getByRole('button', { name: 'Подобрать с помощником' }));
     await screen.findByText('Ассистент доступен');
     fireEvent.change(screen.getByRole('textbox', { name: 'Ваше сообщение' }), {
@@ -208,8 +211,8 @@ describe('Key screens', () => {
       api.getSnapshot().applications.filter((a) => a.status === 'DRAFT' && a.product === 'R02'),
     ).toHaveLength(1);
   });
-  it('shows the initial October 18 draft with a resume action', () => {
-    open('/client/applications');
+  it('shows the initial October 18 draft with a resume action', async () => {
+    await open('/client/applications');
     expect(screen.getByText(/R01-2026-00140.*18.10/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Продолжить' })).toHaveAttribute(
       'href',
@@ -221,7 +224,7 @@ describe('Key screens', () => {
     const app = state.applications.find((a) => a.id === 'R01-2026-00151')!;
     app.fieldStatuses = { R01_09: 'STALE' };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    open('/bank/applications/' + app.id, 'bank');
+    await open('/bank/applications/' + app.id, 'bank');
     expect(await screen.findByText('Устарело')).toBeInTheDocument();
   });
 
@@ -239,7 +242,7 @@ describe('Key screens', () => {
           : new Response(JSON.stringify({ result: { message: 'Уточните срок.' } }));
       }),
     );
-    open('/client/products');
+    await open('/client/products');
     fireEvent.click(screen.getByRole('button', { name: 'Подобрать с помощником' }));
     await screen.findByText('Ассистент доступен');
     fireEvent.change(screen.getByRole('textbox', { name: 'Ваше сообщение' }), {

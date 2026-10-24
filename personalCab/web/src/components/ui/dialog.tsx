@@ -47,10 +47,10 @@ function DialogContent({
   showCloseButton?: boolean;
 }) {
   const reduced = useReducedMotion();
-  const drawer = className?.includes('assistant-drawer');
+  const chat = className?.includes('assistant-chat');
   return (
     <DialogPortal data-slot="dialog-portal">
-      <DialogOverlay />
+      {!chat && <DialogOverlay />}
       <DialogPrimitive.Content {...props} asChild>
         <motion.div
           data-slot="dialog-content"
@@ -58,9 +58,11 @@ function DialogContent({
             'fixed top-[50%] left-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] outline-none',
             className,
           )}
-          initial={reduced ? false : drawer ? { x: 36, opacity: 0 } : { y: 8, opacity: 0 }}
-          animate={{ x: 0, y: 0, opacity: 1 }}
-          transition={{ type: 'spring', bounce: 0, duration: drawer ? 0.35 : 0.22 }}
+          initial={
+            reduced ? false : chat ? { y: 16, scale: 0.98, opacity: 0 } : { y: 8, opacity: 0 }
+          }
+          animate={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', bounce: 0, duration: chat ? 0.28 : 0.22 }}
         >
           {children}
           {showCloseButton && (
