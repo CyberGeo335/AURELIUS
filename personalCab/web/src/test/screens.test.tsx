@@ -3,7 +3,8 @@ import { MemoryRouter } from 'react-router';
 import { describe, it, expect, afterEach } from 'vitest';
 import { Providers } from '../app/context';
 import { App } from '../app/App';
-import { MockCreditApi } from '../mocks/MockCreditApi';
+import { MockCreditApi, STORAGE_KEY } from '../mocks/MockCreditApi';
+import { seedState } from '../mocks/seeds';
 const apis: MockCreditApi[] = [];
 afterEach(() => apis.forEach((api) => api.destroy()));
 function open(path: string, role: 'client' | 'bank' = 'client') {
@@ -20,6 +21,21 @@ function open(path: string, role: 'client' | 'bank' = 'client') {
   return api;
 }
 describe('Key screens', () => {
+  it('shows an older open request when the hero displays a newer offer', async () => {
+    const state = seedState();
+    const newer = structuredClone(state.applications.find((a) => a.companyId === 'potok')!);
+    newer.id = 'R01-2026-00999';
+    newer.companyId = 'karpov';
+    state.applications.unshift(newer);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    open('/client');
+    expect(screen.getByRole('heading', { name: /Ваше предложение готово/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ответить банку' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Нужно ваше уточнение' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('R01-2026-00142 · ревизия 1')).toBeInTheDocument();
+  });
   it('renders the client home with active request and products', () => {
     open('/client');
     expect(screen.getByRole('heading', { name: /Проверяем заявку/ })).toBeInTheDocument();

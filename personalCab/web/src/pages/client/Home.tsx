@@ -59,6 +59,9 @@ export function Home({ onAssistant }: { onAssistant: () => void }) {
     apps.find((a) => !['CANCELLED', 'DECLINED', 'FUNDED_DEMO', 'DRAFT'].includes(a.status)) ??
     apps[0];
   const nav = useNavigate();
+  const responseApp = apps.find(
+    (a) => a.status === 'NEEDS_INFO' && a.requests.some((r) => r.state === 'OPEN'),
+  );
   const titles: Record<string, string> = {
     NEEDS_INFO: 'Проверяем заявку на',
     MANUAL_REVIEW: 'Специалист проверяет',
@@ -114,14 +117,15 @@ export function Home({ onAssistant }: { onAssistant: () => void }) {
         </EmptyState>
       )}
       <div className="home-grid">
-        {app?.requests.some((r) => r.state === 'OPEN') ? (
+        {responseApp ? (
           <Card className="dark action-card">
             <p className="attention-text">● Нужен ваш ответ</p>
-            <h2>{app.requests.find((r) => r.state === 'OPEN')!.text}</h2>
+            <h2>{responseApp.requests.find((r) => r.state === 'OPEN')!.text}</h2>
+            <p className="small muted">Заявка {responseApp.id}</p>
             <p className="muted">
               Уточните данные, и банк продолжит проверку этой заявки. История сохранится.
             </p>
-            <Action onClick={() => nav(`/client/applications/${app.id}`)}>
+            <Action onClick={() => nav(`/client/applications/${responseApp.id}`)}>
               Ответить банку <ArrowUpRight aria-hidden size={18} />
             </Action>
           </Card>
