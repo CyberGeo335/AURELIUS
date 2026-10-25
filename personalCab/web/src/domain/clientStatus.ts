@@ -1,6 +1,7 @@
+import { displayStatus } from '../domain/status';
 import type { Application } from './types';
 export function clientStatus(app: Application) {
-  const copy: Record<Application['status'], [string, string]> = {
+  const copy: Record<ReturnType<typeof displayStatus>, [string, string]> = {
     DRAFT: [
       'Вы заполняете заявку. Введённые данные сохраняются.',
       'Продолжите заполнение и подтвердите сведения.',
@@ -42,5 +43,5 @@ export function clientStatus(app: Application) {
     ],
     CANCELLED: ['Рассмотрение заявки прекращено.', 'При необходимости начните новую заявку.'],
   };
-  return { happening: copy[app.status][0], next: copy[app.status][1] };
+  return { happening: copy[displayStatus(app)][0], next: copy[displayStatus(app)][1] };
 }

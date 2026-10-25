@@ -1,3 +1,4 @@
+import { BusinessProducts } from '../../business/BusinessPages';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
@@ -15,7 +16,7 @@ import { Input } from '../../components/ui/input';
 import { productInfo, recommendedProduct, type Need } from '../../domain/products';
 import { products, type Product } from '../../domain/types';
 import { payment, money } from '../../domain/finance';
-export function Products({ onAssistant }: { onAssistant: (seed?: string) => void }) {
+function MockProducts({ onAssistant }: { onAssistant: (seed?: string) => void }) {
   const [need, setNeed] = useState<Need>('once');
   const [chosen, setChosen] = useState<Product>('R01');
   const [amount, setAmount] = useState(1500000);
@@ -188,5 +189,13 @@ export function Products({ onAssistant }: { onAssistant: (seed?: string) => void
         </div>
       </Card>
     </>
+  );
+}
+
+export function Products(props: { onAssistant: (seed?: string) => void }) {
+  return import.meta.env.VITE_API_MODE === 'http' ? (
+    <BusinessProducts />
+  ) : (
+    <MockProducts {...props} />
   );
 }

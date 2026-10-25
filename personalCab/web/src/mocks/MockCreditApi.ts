@@ -1,3 +1,4 @@
+import { displayStatus } from '../domain/status';
 import type { CreditApi, DraftPatch } from '../api/CreditApi';
 import type {
   Application,
@@ -9,8 +10,8 @@ import type {
   AssistantFacts,
   RequestOptions,
 } from '../domain/types';
-import type { Status } from '../domain/status';
-import { assertTransition } from '../domain/status';
+import type { UiStatus as Status } from '../domain/status';
+import { assertTransition, backendStatus, setMockStatus, type UiStatus } from '../domain/status';
 import { coverage, MIN_COVERAGE } from '../domain/finance';
 import { validateApplication, defaultFields } from '../domain/forms';
 import { requiredChecks } from '../domain/review';
@@ -33,7 +34,16 @@ export class MockCreditApi implements CreditApi {
       const raw = this.storage.getItem(STORAGE_KEY);
       if (!raw) return;
       const s = JSON.parse(raw);
-      if (s.version === 1 && Array.isArray(s.applications) && Array.isArray(s.companies)) return s;
+      if (s.version === 1 && Array.isArray(s.applications) && Array.isArray(s.companies)) {
+        for (const app of s.applications) {
+          if (
+            app.status in backendStatus &&
+            !['DRAFT', 'SUBMITTED', 'CANCELLED'].includes(app.status)
+          )
+            setMockStatus(app, app.status as UiStatus);
+        }
+        return s;
+      }
     } catch {
       /* Preserve unreadable data; surface recovery through reset. */
     }
@@ -94,8 +104,8 @@ export class MockCreditApi implements CreditApi {
     });
   }
   private move(a: Application, to: Status, text: string, actor?: string) {
-    assertTransition(a.status, to);
-    a.status = to;
+    assertTransition(displayStatus(a), to);
+    setMockStatus(a, to);
     this.log(a, text, actor);
   }
   private snapshot(a: Application, reason: string) {
@@ -132,7 +142,7 @@ export class MockCreditApi implements CreditApi {
     let id = '';
     await this.transaction((s) => {
       const existing = s.applications.find(
-        (a) => a.companyId === profile && a.product === product && a.status === 'DRAFT',
+        (a) => a.companyId === profile && a.product === product && displayStatus(a) === 'DRAFT',
       );
       if (existing) {
         id = existing.id;
@@ -149,7 +159,7 @@ export class MockCreditApi implements CreditApi {
   saveDraft = async (id: string, patch: DraftPatch) =>
     this.transaction((s) => {
       const a = this.app(s, id);
-      if (a.status !== 'DRAFT') throw new Error('Редактировать можно только черновик.');
+      if (displayStatus(a) !== 'DRAFT') throw new Error('Редактировать можно только черновик.');
       if (patch.fields) {
         for (const [key, value] of Object.entries(patch.fields)) {
           if (value !== a.fields[key] && a.sources[key]?.includes('Клиент')) {
@@ -168,7 +178,7 @@ export class MockCreditApi implements CreditApi {
   submit = async (id: string) =>
     this.transaction((s) => {
       const a = this.app(s, id);
-      if (a.status !== 'DRAFT') return;
+      if (displayStatus(a) !== 'DRAFT') return;
       const errors = validateApplication(
         a,
         s.companies.find((c) => c.id === a.companyId)!,
@@ -187,7 +197,7 @@ export class MockCreditApi implements CreditApi {
   revise = async (id: string, amount: number, term: number) =>
     this.transaction((s) => {
       const a = this.app(s, id);
-      if (a.status !== 'OFFERED')
+      if (displayStatus(a) !== 'OFFERED')
         throw new Error('Изменить условия можно после получения предложения.');
       if (
         !Number.isFinite(amount) ||
@@ -219,7 +229,7 @@ export class MockCreditApi implements CreditApi {
       const request = a.requests.find((r) => r.id === requestId);
       if (!request) throw new Error('Дозапрос не найден.');
       if (request.state === 'CLOSED') return;
-      if (a.status !== 'NEEDS_INFO') throw new Error('Заявка уже не ожидает данных.');
+      if (displayStatus(a) !== 'NEEDS_INFO') throw new Error('Заявка уже не ожидает данных.');
       if (!answer.trim() && !file) throw new Error('Добавьте ответ или документ.');
       if (request.field === 'statement' && !file)
         throw new Error('Добавьте выписку в PDF или CSV.');
@@ -254,7 +264,7 @@ export class MockCreditApi implements CreditApi {
   ) =>
     this.transaction((s) => {
       const a = this.app(s, id);
-      if (a.status !== 'MANUAL_REVIEW' || a.revision !== revision)
+      if (displayStatus(a) !== 'MANUAL_REVIEW' || a.revision !== revision)
         throw new Error('Заявка уже изменилась. Проверьте актуальное состояние.');
       if (reason.trim().length < 15) throw new Error('Объясните решение: не менее 15 символов.');
       a.owner = 'Анна Смирнова';
@@ -291,7 +301,8 @@ export class MockCreditApi implements CreditApi {
   resolveData = async (id: string, kind: 'authority' | 'revenue', comment: string) =>
     this.transaction((s) => {
       const a = this.app(s, id);
-      if (a.status !== 'MANUAL_REVIEW') throw new Error('Заявка уже вышла из ручного разбора.');
+      if (displayStatus(a) !== 'MANUAL_REVIEW')
+        throw new Error('Заявка уже вышла из ручного разбора.');
       if (comment.trim().length < 10)
         throw new Error('Добавьте комментарий к проверке от 10 символов.');
       a.checks = {
@@ -312,7 +323,7 @@ export class MockCreditApi implements CreditApi {
       let a = facts.applicationId
         ? s.applications.find((a) => a.id === facts.applicationId && a.companyId === profile)
         : s.applications.find(
-            (a) => a.companyId === profile && a.product === product && a.status === 'DRAFT',
+            (a) => a.companyId === profile && a.product === product && displayStatus(a) === 'DRAFT',
           );
       if (facts.applicationId && !a) throw new Error('Нет доступа к указанной заявке.');
       if (!a) {
@@ -327,10 +338,11 @@ export class MockCreditApi implements CreditApi {
       }
       id = a.id;
       if (a.assistantMessageIds?.includes(facts.messageId) && a.product === product) return;
-      if (!['DRAFT', 'OFFERED'].includes(a.status))
+      if (!['DRAFT', 'OFFERED'].includes(displayStatus(a)))
         throw new Error('Заявка уже проверяется. Дождитесь предложения перед изменением условий.');
       if (a.product !== product) {
-        if (a.status !== 'DRAFT') throw new Error('Для другого продукта начните отдельную заявку.');
+        if (displayStatus(a) !== 'DRAFT')
+          throw new Error('Для другого продукта начните отдельную заявку.');
         const company = s.companies.find((c) => c.id === profile)!;
         const previous = a.fields;
         const changed = defaultFields(company, product);
@@ -353,7 +365,7 @@ export class MockCreditApi implements CreditApi {
         term > 24
       )
         throw new Error('Проверьте сумму (100 000–5 000 000 ₽) и срок (3–24 мес.).');
-      const offered = a.status === 'OFFERED';
+      const offered = displayStatus(a) === 'OFFERED';
       if (
         (a.assistantMessageIds?.length || offered) &&
         (amount !== a.amount || term !== a.term || (facts.purpose && facts.purpose !== a.purpose))
@@ -392,7 +404,7 @@ export class MockCreditApi implements CreditApi {
     this.transaction((s) => {
       const a = this.app(s, id);
       if (
-        ['ACCEPTED', 'SIGNED_DEMO', 'FUNDED_DEMO'].includes(a.status) &&
+        ['ACCEPTED', 'SIGNED_DEMO', 'FUNDED_DEMO'].includes(displayStatus(a)) &&
         a.acceptedOffer?.id === offerId
       )
         return;
@@ -405,20 +417,20 @@ export class MockCreditApi implements CreditApi {
   sign = async (id: string) =>
     this.transaction((s) => {
       const a = this.app(s, id);
-      if (['SIGNED_DEMO', 'FUNDED_DEMO'].includes(a.status)) return;
+      if (['SIGNED_DEMO', 'FUNDED_DEMO'].includes(displayStatus(a))) return;
       if (!a.acceptedOffer) throw new Error('Сначала примите предложение.');
       this.move(a, 'SIGNED_DEMO', 'Договор подписан · имитация DEMO', 'Клиент');
     });
   fund = async (id: string) =>
     this.transaction((s) => {
       const a = this.app(s, id);
-      if (a.status === 'FUNDED_DEMO') return;
+      if (displayStatus(a) === 'FUNDED_DEMO') return;
       this.move(a, 'FUNDED_DEMO', 'Деньги на счёте · имитация DEMO');
     });
   cancel = async (id: string) =>
     this.transaction((s) => {
       const a = this.app(s, id);
-      if (a.status === 'CANCELLED') return;
+      if (displayStatus(a) === 'CANCELLED') return;
       this.move(a, 'CANCELLED', 'Заявка отменена', 'Клиент');
       a.nextAt = undefined;
       a.offers = [];
@@ -434,13 +446,13 @@ export class MockCreditApi implements CreditApi {
     await this.transaction((s) => {
       for (const a of s.applications) {
         if (!a.nextAt || a.nextAt > this.now()) continue;
-        if (a.status === 'SUBMITTED') {
+        if (displayStatus(a) === 'SUBMITTED') {
           this.move(a, 'CHECKING', 'Проверяем реквизиты и источники данных');
           a.stage = 1;
           a.nextAt = this.now() + 1600;
           continue;
         }
-        if (a.status !== 'CHECKING') {
+        if (displayStatus(a) !== 'CHECKING') {
           a.nextAt = undefined;
           continue;
         }

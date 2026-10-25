@@ -44,7 +44,12 @@ export interface CreditApi {
     reason: string,
     request?: RequestOptions,
   ) => Promise<void>;
-  resolveData: (id: string, kind: 'authority' | 'revenue', comment: string) => Promise<void>;
+  resolveData: (
+    id: string,
+    kind: 'authority' | 'revenue',
+    comment: string,
+    sourceRef?: string,
+  ) => Promise<void>;
   applyAssistant: (profile: Profile, product: Product, facts: AssistantFacts) => Promise<string>;
   accept: (id: string, offerId: string) => Promise<void>;
   sign: (id: string) => Promise<void>;

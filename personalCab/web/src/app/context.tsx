@@ -1,3 +1,5 @@
+import { HttpCreditApi } from '../api/HttpCreditApi';
+import { HttpAuthApi } from '../api/HttpAuthApi';
 import {
   createContext,
   useContext,
@@ -31,8 +33,16 @@ export function Providers({
   api?: CreditApi;
   authApi?: AuthApi;
 }) {
-  const [api] = useState(() => providedApi ?? new MockCreditApi());
-  const [authApi] = useState(() => providedAuthApi ?? new MockAuthApi());
+  const [api] = useState(
+    () =>
+      providedApi ??
+      (import.meta.env.VITE_API_MODE === 'http' ? new HttpCreditApi() : new MockCreditApi()),
+  );
+  const [authApi] = useState(
+    () =>
+      providedAuthApi ??
+      (import.meta.env.VITE_API_MODE === 'http' ? new HttpAuthApi() : new MockAuthApi()),
+  );
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,7 +50,12 @@ export function Providers({
     setLoading(true);
     setError('');
     try {
-      setSession(await authApi.restore());
+      const restored = await authApi.restore();
+      if (api instanceof HttpCreditApi) {
+        if (restored) await api.refresh();
+        else api.clear();
+      }
+      setSession(restored);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось восстановить вход.');
     } finally {
@@ -51,7 +66,11 @@ export function Providers({
     let active = true;
     void authApi
       .restore()
-      .then((value) => {
+      .then(async (value) => {
+        if (api instanceof HttpCreditApi) {
+          if (value) await api.refresh();
+          else api.clear();
+        }
         if (active) setSession(value);
       })
       .catch((e) => {
@@ -63,7 +82,7 @@ export function Providers({
     return () => {
       active = false;
     };
-  }, [authApi]);
+  }, [authApi, api]);
   useEffect(() => {
     const timer = setInterval(() => {
       void api.tick().catch(() => {
@@ -75,11 +94,13 @@ export function Providers({
   const signIn = async (input: SignInInput) => {
     const value = await authApi.signIn(input);
     setError('');
+    if (api instanceof HttpCreditApi) await api.refresh();
     setSession(value);
     return value;
   };
   const signOut = async () => {
     await authApi.signOut();
+    if (api instanceof HttpCreditApi) api.clear();
     setSession(null);
   };
   return (

@@ -1,3 +1,5 @@
+import { BusinessForm } from '../../business/BusinessPages';
+import { displayStatus } from '../../domain/status';
 import { useState, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Check, ArrowLeft } from 'lucide-react';
@@ -20,7 +22,7 @@ import { Disclosure } from '../../components/v2/Disclosure';
 import { ApplicationFields } from '../../components/v2/primitives';
 import { parseStatement, statementPeriods } from '../../domain/statement';
 import type { DraftPatch } from '../../api/CreditApi';
-export function ApplicationForm() {
+function MockApplicationForm() {
   const { id } = useParams();
   const api = useApi();
   const state = useCredit();
@@ -42,7 +44,7 @@ export function ApplicationForm() {
         <Link to="/client/applications">К списку заявок</Link>
       </EmptyState>
     );
-  if (a.status !== 'DRAFT')
+  if (displayStatus(a) !== 'DRAFT')
     return (
       <EmptyState title="Заявка уже отправлена">
         <Link to={`/client/applications/${a.id}`}>Перейти к проверке</Link>
@@ -614,4 +616,8 @@ export function ApplicationForm() {
       </aside>
     </div>
   );
+}
+
+export function ApplicationForm() {
+  return import.meta.env.VITE_API_MODE === 'http' ? <BusinessForm /> : <MockApplicationForm />;
 }

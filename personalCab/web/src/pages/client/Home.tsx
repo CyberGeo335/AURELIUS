@@ -1,3 +1,5 @@
+import { BusinessHome } from '../../business/BusinessPages';
+import { displayStatus } from '../../domain/status';
 import { Link, useNavigate } from 'react-router';
 import { Plus, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { useApi, useCredit, useSession, useAction } from '../../app/context';
@@ -52,7 +54,7 @@ export function ProductList() {
     </Card>
   );
 }
-export function Home({ onAssistant }: { onAssistant: () => void }) {
+function MockHome({ onAssistant }: { onAssistant: () => void }) {
   const api = useApi();
   const responseAction = useAction();
   const { session } = useSession();
@@ -60,11 +62,12 @@ export function Home({ onAssistant }: { onAssistant: () => void }) {
   const company = state.companies.find((c) => c.id === session!.profile)!;
   const apps = state.applications.filter((a) => a.companyId === company.id);
   const app =
-    apps.find((a) => !['CANCELLED', 'DECLINED', 'FUNDED_DEMO', 'DRAFT'].includes(a.status)) ??
-    apps[0];
+    apps.find(
+      (a) => !['CANCELLED', 'DECLINED', 'FUNDED_DEMO', 'DRAFT'].includes(displayStatus(a)),
+    ) ?? apps[0];
   const nav = useNavigate();
   const responseApp = apps.find(
-    (a) => a.status === 'NEEDS_INFO' && a.requests.some((r) => r.state === 'OPEN'),
+    (a) => displayStatus(a) === 'NEEDS_INFO' && a.requests.some((r) => r.state === 'OPEN'),
   );
   const titles: Record<string, string> = {
     NEEDS_INFO: 'Проверяем заявку на',
@@ -83,7 +86,7 @@ export function Home({ onAssistant }: { onAssistant: () => void }) {
         <HeroPanel>
           <p className="hero-eyebrow">Заявка {app.id} · демо-кабинет</p>
           <h1>
-            {titles[app.status] ?? 'Проверяем заявку на'}
+            {titles[displayStatus(app)] ?? 'Проверяем заявку на'}
             <br />
             {money(app.amount)}
           </h1>
@@ -91,9 +94,9 @@ export function Home({ onAssistant }: { onAssistant: () => void }) {
             <p>
               {products[app.product]} на {app.term} месяцев. Цель: {app.purpose.toLowerCase()}.
               <br />
-              {app.status === 'NEEDS_INFO'
+              {displayStatus(app) === 'NEEDS_INFO'
                 ? 'Нужно уточнение, чтобы продолжить проверку.'
-                : app.externalWait && app.status === 'CHECKING'
+                : app.externalWait && displayStatus(app) === 'CHECKING'
                   ? 'Ожидаем внешний источник. Сбой не означает отказ.'
                   : 'Все этапы и условия — в карточке заявки.'}
             </p>
@@ -101,7 +104,7 @@ export function Home({ onAssistant }: { onAssistant: () => void }) {
               <Action tone="white" asChild>
                 <Link
                   to={
-                    app.status === 'DRAFT'
+                    displayStatus(app) === 'DRAFT'
                       ? `/client/new/${app.id}`
                       : `/client/applications/${app.id}`
                   }
@@ -226,9 +229,13 @@ export function Applications() {
             </div>
             <Action tone="ink" asChild>
               <Link
-                to={a.status === 'DRAFT' ? `/client/new/${a.id}` : `/client/applications/${a.id}`}
+                to={
+                  displayStatus(a) === 'DRAFT'
+                    ? `/client/new/${a.id}`
+                    : `/client/applications/${a.id}`
+                }
               >
-                {a.status === 'DRAFT' ? 'Продолжить' : 'Открыть'}
+                {displayStatus(a) === 'DRAFT' ? 'Продолжить' : 'Открыть'}
               </Link>
             </Action>
           </Card>
@@ -240,4 +247,8 @@ export function Applications() {
       )}
     </>
   );
+}
+
+export function Home(props: { onAssistant: () => void }) {
+  return import.meta.env.VITE_API_MODE === 'http' ? <BusinessHome /> : <MockHome {...props} />;
 }

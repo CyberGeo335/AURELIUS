@@ -1,3 +1,5 @@
+import { BusinessQueue } from '../../business/BusinessPages';
+import { displayStatus } from '../../domain/status';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Search } from 'lucide-react';
@@ -15,15 +17,15 @@ import { Input } from '../../components/ui/input';
 import { coverage, decimal, money, date } from '../../domain/finance';
 import { products } from '../../domain/types';
 import { demoRisk } from '../../domain/risk';
-export function Queue({ mine = false }: { mine?: boolean }) {
+function MockQueue({ mine = false }: { mine?: boolean }) {
   const state = useCredit();
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
   const nav = useNavigate();
   const apps = state.applications.filter(
-    (a) => a.status !== 'DRAFT' && (!mine || a.owner === 'Анна Смирнова'),
+    (a) => displayStatus(a) !== 'DRAFT' && (!mine || a.owner === 'Анна Смирнова'),
   );
-  const manual = apps.filter((a) => a.status === 'MANUAL_REVIEW');
+  const manual = apps.filter((a) => displayStatus(a) === 'MANUAL_REVIEW');
   const groups = [
     ['all', 'Все'],
     ['manual', 'Ручной разбор'],
@@ -45,7 +47,7 @@ export function Queue({ mine = false }: { mine?: boolean }) {
   const visible = apps
     .filter(
       (a) =>
-        match(a.status, filter) &&
+        match(displayStatus(a), filter) &&
         `${a.id} ${state.companies.find((c) => c.id === a.companyId)?.name}`
           .toLowerCase()
           .includes(query.toLowerCase()),
@@ -103,7 +105,7 @@ export function Queue({ mine = false }: { mine?: boolean }) {
             />
             <KeyValue
               label="ждут ответа клиента"
-              value={apps.filter((a) => a.status === 'NEEDS_INFO').length}
+              value={apps.filter((a) => displayStatus(a) === 'NEEDS_INFO').length}
             />
             <KeyValue
               label="в среднем до решения"
@@ -118,7 +120,7 @@ export function Queue({ mine = false }: { mine?: boolean }) {
           <div className="filters" aria-label="Фильтр статуса">
             {groups.map(([key, label]) => (
               <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>
-                {label} <span>{apps.filter((a) => match(a.status, key)).length}</span>
+                {label} <span>{apps.filter((a) => match(displayStatus(a), key)).length}</span>
               </button>
             ))}
           </div>
@@ -158,10 +160,13 @@ export function Queue({ mine = false }: { mine?: boolean }) {
                     'ACCEPTED',
                     'SIGNED_DEMO',
                     'FUNDED_DEMO',
-                  ].includes(a.status);
+                  ].includes(displayStatus(a));
                   const ratio = coverage(a.flow, a.existing, a.amount, a.term);
                   return (
-                    <tr className={a.status === 'MANUAL_REVIEW' ? 'attention-row' : ''} key={a.id}>
+                    <tr
+                      className={displayStatus(a) === 'MANUAL_REVIEW' ? 'attention-row' : ''}
+                      key={a.id}
+                    >
                       <td>
                         <strong>{c.name}</strong>
                         <span className="small muted block">{a.id}</span>
@@ -175,11 +180,11 @@ export function Queue({ mine = false }: { mine?: boolean }) {
                       <td>
                         <StageTrack app={a} bank mini />
                         <span className="small muted">
-                          {a.status === 'MANUAL_REVIEW'
+                          {displayStatus(a) === 'MANUAL_REVIEW'
                             ? 'Политика'
-                            : a.status === 'NEEDS_INFO'
+                            : displayStatus(a) === 'NEEDS_INFO'
                               ? 'Дозапрос'
-                              : a.status === 'CHECKING'
+                              : displayStatus(a) === 'CHECKING'
                                 ? 'Проверка'
                                 : 'Решение'}
                         </span>
@@ -205,9 +210,12 @@ export function Queue({ mine = false }: { mine?: boolean }) {
                         {Math.max(1, Math.floor((Date.now() - a.updated) / 60000))} мин
                       </td>
                       <td>
-                        <Action tone={a.status === 'MANUAL_REVIEW' ? 'red' : 'soft'} asChild>
+                        <Action
+                          tone={displayStatus(a) === 'MANUAL_REVIEW' ? 'red' : 'soft'}
+                          asChild
+                        >
                           <Link to={`/bank/applications/${a.id}`}>
-                            {a.status === 'MANUAL_REVIEW' ? 'Разобрать' : 'Открыть'}
+                            {displayStatus(a) === 'MANUAL_REVIEW' ? 'Разобрать' : 'Открыть'}
                           </Link>
                         </Action>
                       </td>
@@ -272,5 +280,13 @@ export function BankJournal() {
         </table>
       </Card>
     </>
+  );
+}
+
+export function Queue({ mine = false }: { mine?: boolean } = {}) {
+  return import.meta.env.VITE_API_MODE === 'http' ? (
+    <BusinessQueue mine={mine} />
+  ) : (
+    <MockQueue mine={mine} />
   );
 }

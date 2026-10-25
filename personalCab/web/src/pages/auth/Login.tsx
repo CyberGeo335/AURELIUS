@@ -67,7 +67,9 @@ export function Login() {
   };
   if (auth.session) return <Navigate to={destinationFor(auth.session.role)} replace />;
   const submit = () => {
-    const validation = validateSignIn(form);
+    const validation = validateSignIn(
+      import.meta.env.VITE_API_MODE === 'http' ? { ...form, firstName: '-', lastName: '-' } : form,
+    );
     setErrors(validation);
     if (Object.keys(validation).length) {
       fieldsRef.current
@@ -129,7 +131,11 @@ export function Login() {
                 <h2>Вход в кабинет</h2>
               </div>
             </div>
-            <fieldset className="auth-roles" disabled={action.busy}>
+            <fieldset
+              className="auth-roles"
+              hidden={import.meta.env.VITE_API_MODE === 'http'}
+              disabled={action.busy}
+            >
               <legend className="sr-only">Тип кабинета</legend>
               {(
                 [
@@ -172,7 +178,7 @@ export function Login() {
             >
               <fieldset disabled={action.busy} className="auth-fields">
                 <legend className="sr-only">Данные для входа</legend>
-                <div className="auth-names">
+                <div className="auth-names" hidden={import.meta.env.VITE_API_MODE === 'http'}>
                   {(['firstName', 'lastName'] as const).map((field) => (
                     <div className="form-field" key={field}>
                       <label htmlFor={field}>{field === 'firstName' ? 'Имя' : 'Фамилия'}</label>

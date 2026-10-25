@@ -2676,3 +2676,61 @@ td p {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Business v3 forms use the cabinet's existing cards and controls. */
+.business-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 24px;
+  border: 0;
+  padding: 0;
+}
+[hidden] {
+  display: none !important;
+}
+.business-v3 {
+  min-width: 320px;
+}
+@media (max-width: 1000px) {
+  .business-v3 .header-inner {
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px;
+  }
+  .business-v3 .header nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+  }
+  .business-v3 .shell {
+    padding: 20px 16px;
+  }
+  .business-v3 .two-columns,
+  .business-v3 .auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .business-v3 .product-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .business-v3 .hero {
+    padding: 28px 24px;
+  }
+  .business-v3 .hero h1 {
+    font-size: clamp(26px, 5vw, 44px);
+    overflow-wrap: anywhere;
+  }
+  .business-v3 .card {
+    padding: 24px 20px;
+    min-width: 0;
+  }
+  .business-v3 .metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  .business-v3 .table-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+}

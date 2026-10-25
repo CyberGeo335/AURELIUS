@@ -1,3 +1,5 @@
+import { BusinessDetail } from '../../business/BusinessPages';
+import { displayStatus } from '../../domain/status';
 import { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
 import { Check, FileText, ArrowRight } from 'lucide-react';
@@ -290,7 +292,7 @@ function Decision({ app }: { app: Application }) {
               </p>
             )}
             {app.reason && <p>{app.reason}</p>}
-            <p className="muted small">Демо-факторы. Чем длиннее полоса, тем сильнее влияние.</p>
+
             {['karpov', 'zerno'].includes(app.companyId) ? (
               <FactorBars bank={app.companyId === 'zerno'} />
             ) : (
@@ -368,9 +370,9 @@ function Signing({ app }: { app: Application }) {
     <Card className="signing">
       <span className="status status-OFFERED">DEMO · имитация</span>
       <h1>
-        {app.status === 'FUNDED_DEMO'
+        {displayStatus(app) === 'FUNDED_DEMO'
           ? 'Деньги на счёте'
-          : app.status === 'SIGNED_DEMO'
+          : displayStatus(app) === 'SIGNED_DEMO'
             ? 'Договор подписан'
             : 'Подтвердите условия'}
       </h1>
@@ -388,7 +390,7 @@ function Signing({ app }: { app: Application }) {
         </div>
       )}
       <ErrorState message={action.error} onRetry={action.retry} />
-      {app.status === 'ACCEPTED' && (
+      {displayStatus(app) === 'ACCEPTED' && (
         <>
           <label className="check-row">
             <input
@@ -406,12 +408,12 @@ function Signing({ app }: { app: Application }) {
           </Action>
         </>
       )}
-      {app.status === 'SIGNED_DEMO' && (
+      {displayStatus(app) === 'SIGNED_DEMO' && (
         <Action disabled={action.busy} onClick={() => action.run(() => api.fund(app.id))}>
           Имитировать выдачу <ArrowRight aria-hidden size={18} />
         </Action>
       )}
-      {app.status === 'FUNDED_DEMO' && (
+      {displayStatus(app) === 'FUNDED_DEMO' && (
         <p className="positive-text">
           <Check aria-hidden /> Демо-сценарий завершён
         </p>
@@ -419,7 +421,7 @@ function Signing({ app }: { app: Application }) {
     </Card>
   );
 }
-export function ApplicationDetail() {
+function MockApplicationDetail() {
   const { id } = useParams();
   const state = useCredit();
   const api = useApi();
@@ -435,7 +437,7 @@ export function ApplicationDetail() {
       </EmptyState>
     );
   const company = state.companies.find((c) => c.id === app.companyId)!;
-  if (app.status === 'DRAFT') return <Navigate to={`/client/new/${app.id}`} replace />;
+  if (displayStatus(app) === 'DRAFT') return <Navigate to={`/client/new/${app.id}`} replace />;
   return (
     <>
       <div className="spread">
@@ -444,22 +446,22 @@ export function ApplicationDetail() {
         </Link>
         <span className="muted small">{app.id}</span>
       </div>
-      {app.status === 'OFFERED' ? (
+      {displayStatus(app) === 'OFFERED' ? (
         <Decision key={app.revision} app={app} />
-      ) : ['ACCEPTED', 'SIGNED_DEMO', 'FUNDED_DEMO'].includes(app.status) ? (
+      ) : ['ACCEPTED', 'SIGNED_DEMO', 'FUNDED_DEMO'].includes(displayStatus(app)) ? (
         <Signing app={app} />
       ) : (
         <>
           <HeroPanel>
             <StatusBadge app={app} />
             <h1>
-              {app.status === 'DECLINED'
+              {displayStatus(app) === 'DECLINED'
                 ? 'Сейчас не можем одобрить'
-                : app.status === 'MANUAL_REVIEW'
+                : displayStatus(app) === 'MANUAL_REVIEW'
                   ? 'Заявка у специалиста'
-                  : app.status === 'NEEDS_INFO'
+                  : displayStatus(app) === 'NEEDS_INFO'
                     ? 'Нужно ваше уточнение'
-                    : app.status === 'CANCELLED'
+                    : displayStatus(app) === 'CANCELLED'
                       ? 'Заявка отменена'
                       : 'Проверяем вашу заявку'}
             </h1>
@@ -467,18 +469,18 @@ export function ApplicationDetail() {
               {money(app.amount)} · {app.term} мес. · {products[app.product]}
             </p>
             <p>
-              {app.status === 'DECLINED'
+              {displayStatus(app) === 'DECLINED'
                 ? app.reason
-                : app.status === 'MANUAL_REVIEW'
+                : displayStatus(app) === 'MANUAL_REVIEW'
                   ? 'Специалист изучит данные и подберёт допустимые условия. Это не отказ.'
-                  : app.externalWait && app.status === 'CHECKING'
+                  : app.externalWait && displayStatus(app) === 'CHECKING'
                     ? 'Источник временно недоступен. Ожидаем повторного ответа.'
                     : ''}
             </p>
             <StageTrack app={app} />
           </HeroPanel>
           {app.requests
-            .filter((r) => r.state === 'OPEN' && app.status === 'NEEDS_INFO')
+            .filter((r) => r.state === 'OPEN' && displayStatus(app) === 'NEEDS_INFO')
             .map((r) => (
               <RequestAnswer key={r.id} app={app} request={r} />
             ))}
@@ -507,7 +509,7 @@ export function ApplicationDetail() {
       </div>
       <ErrorState message={action.error} onRetry={action.retry} />
       {['DRAFT', 'SUBMITTED', 'CHECKING', 'NEEDS_INFO', 'MANUAL_REVIEW', 'OFFERED'].includes(
-        app.status,
+        displayStatus(app),
       ) && (
         <Dialog>
           <DialogTrigger asChild>
@@ -530,4 +532,8 @@ export function ApplicationDetail() {
       )}
     </>
   );
+}
+
+export function ApplicationDetail() {
+  return import.meta.env.VITE_API_MODE === 'http' ? <BusinessDetail /> : <MockApplicationDetail />;
 }

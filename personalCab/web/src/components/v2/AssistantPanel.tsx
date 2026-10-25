@@ -1,3 +1,4 @@
+import { displayStatus } from '../../domain/status';
 import { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import {
@@ -53,7 +54,7 @@ export function AssistantPanel({
   const app =
     state.applications.find(
       (a) => a.companyId === profile && a.id === (pathId ?? conversation.applicationId),
-    ) ?? state.applications.find((a) => a.companyId === profile && a.status !== 'DRAFT');
+    ) ?? state.applications.find((a) => a.companyId === profile && displayStatus(a) !== 'DRAFT');
   const update = (patch: Partial<AssistantSession>) =>
     setConversation((old) => {
       const next = { ...old, ...patch };
@@ -184,9 +185,9 @@ export function AssistantPanel({
       question === 'decision'
         ? app.offers[0]?.kind === 'COUNTEROFFER'
           ? `Вы запросили ${money(app.amount)} на ${app.term} мес. Покрытие исходного платежа — ${decimal(coverage(app.flow, app.existing, app.amount, app.term))}× при минимуме 1,3×. Банк предложил варианты с меньшей нагрузкой. ${app.reason}`
-          : app.status === 'DECLINED'
+          : displayStatus(app) === 'DECLINED'
             ? app.reason
-            : app.status === 'OFFERED'
+            : displayStatus(app) === 'OFFERED'
               ? 'Платёж подходит по нагрузке. Условия и причины — в вашей заявке.'
               : status.happening
         : question === 'request'
@@ -237,7 +238,7 @@ export function AssistantPanel({
                 <button onClick={() => localContext('status')}>Что сейчас происходит?</button>
                 <button onClick={() => localContext('decision')}>Почему такое решение?</button>
                 <button onClick={() => localContext('request')}>Что нужно от меня?</button>
-                {app.status === 'OFFERED' && (
+                {displayStatus(app) === 'OFFERED' && (
                   <button onClick={() => localContext('term')}>Что будет на 18 месяцев?</button>
                 )}
               </>

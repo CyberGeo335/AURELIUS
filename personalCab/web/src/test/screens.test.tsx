@@ -77,7 +77,7 @@ describe('Key screens', () => {
     fireEvent.click(button);
     await waitFor(() =>
       expect(api.getSnapshot().applications.find((a) => a.id === 'R01-2026-00151')?.status).toBe(
-        'OFFERED',
+        'APPROVED',
       ),
     );
     expect(
@@ -138,7 +138,7 @@ describe('Key screens', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Перепроверить на 18 мес.' }));
     await waitFor(() =>
       expect(api.getSnapshot().applications.find((a) => a.id === offer.id)?.status).toBe(
-        'CHECKING',
+        'UNDER_REVIEW',
       ),
     );
   });

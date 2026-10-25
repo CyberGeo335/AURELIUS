@@ -50,16 +50,16 @@ describe('Mock credit lifecycle', () => {
     );
     await process(a);
     const offer = find(a, id).offers[0];
-    expect(find(a, id).status).toBe('OFFERED');
+    expect(find(a, id).status).toBe('APPROVED');
     await a.accept(id, offer.id);
     await a.accept(id, offer.id);
     await a.sign(id);
     await a.sign(id);
     await a.fund(id);
     await a.fund(id);
-    expect(find(a, id).status).toBe('FUNDED_DEMO');
+    expect(find(a, id).status).toBe('APPROVED');
     expect(find(a, id).history.filter((e) => e.text.includes('Договор подписан'))).toHaveLength(1);
-    expect(find(api(), id).status).toBe('FUNDED_DEMO');
+    expect(find(api(), id).status).toBe('APPROVED');
   });
   it('blocks incomplete drafts and preserves missing-data history', async () => {
     const a = api();
@@ -68,14 +68,14 @@ describe('Mock credit lifecycle', () => {
     const id = await completeDraft(a, 'missing');
     await a.submit(id);
     await process(a);
-    expect(find(a, id).status).toBe('NEEDS_INFO');
+    expect(find(a, id).status).toBe('AWAITING_DATA');
     const request = find(a, id).requests[0];
     await expect(a.answerRequest(id, request.id, 'Ответ')).rejects.toThrow();
     await a.answerRequest(id, request.id, 'Выписка приложена', 'statement.pdf');
     await a.answerRequest(id, request.id, 'Выписка приложена', 'statement.pdf');
     expect(find(a, id).revision).toBe(2);
     await process(a);
-    expect(find(a, id).status).toBe('OFFERED');
+    expect(find(a, id).status).toBe('APPROVED');
     expect(find(a, id).revisions).toHaveLength(1);
     expect(find(a, id).requests[0].state).toBe('CLOSED');
   });
@@ -84,7 +84,7 @@ describe('Mock credit lifecycle', () => {
     const id = await completeDraft(a, 'normal', 'zerno');
     await a.submit(id);
     await process(a);
-    expect(find(a, id).status).toBe('MANUAL_REVIEW');
+    expect(find(a, id).status).toBe('UNDER_REVIEW');
     await expect(a.bankDecision(id, 1, 'A', 'коротко')).rejects.toThrow();
     await expect(
       a.bankDecision(id, 1, 'BOTH', 'Проверки ещё не завершены сотрудником'),
@@ -123,10 +123,10 @@ describe('Mock credit lifecycle', () => {
     now += 2000;
     await a.tick();
     expect(find(a, id).externalWait).toBe(true);
-    expect(find(a, id).status).toBe('CHECKING');
+    expect(find(a, id).status).toBe('UNDER_REVIEW');
     now += 9000;
     await process(a);
-    expect(find(a, id).status).toBe('OFFERED');
+    expect(find(a, id).status).toBe('APPROVED');
   });
   it('provides understandable decline and rejects illegal signing', async () => {
     const a = api();
@@ -201,6 +201,6 @@ describe('Mock credit lifecycle', () => {
     expect(request.dueAt).toBe(now + 86400000);
     await a.answerRequest(id, request.id, 'Доверенность приложена', 'authority.pdf');
     expect(find(a, id).revision).toBe(revision + 1);
-    expect(find(a, id).status).toBe('CHECKING');
+    expect(find(a, id).status).toBe('UNDER_REVIEW');
   });
 });

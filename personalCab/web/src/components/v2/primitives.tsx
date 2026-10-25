@@ -1,3 +1,4 @@
+import { displayStatus } from '../../domain/status';
 import { useId, type ReactNode, type ComponentProps } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, Check, MessageCircle, AlertCircle } from 'lucide-react';
@@ -28,11 +29,11 @@ export function SourceBadge({ children }: { children: ReactNode }) {
 export function StatusBadge({ app }: { app: Application }) {
   return (
     <span
-      className={`status status-${app.status === 'OFFERED' && app.offers[0]?.kind === 'COUNTEROFFER' ? 'NEEDS_INFO' : app.status}`}
+      className={`status status-${displayStatus(app) === 'OFFERED' && app.offers[0]?.kind === 'COUNTEROFFER' ? 'NEEDS_INFO' : displayStatus(app)}`}
     >
-      {app.status === 'OFFERED' && app.offers[0]?.kind === 'COUNTEROFFER'
+      {displayStatus(app) === 'OFFERED' && app.offers[0]?.kind === 'COUNTEROFFER'
         ? 'Одобрено на других условиях'
-        : statusLabels[app.status]}
+        : statusLabels[displayStatus(app)]}
     </span>
   );
 }
@@ -103,13 +104,13 @@ export function StageTrack({
           )}
           <span className={mini ? 'sr-only' : 'stage-label'}>
             {label}
-            {bank && i === current && app.status === 'MANUAL_REVIEW' ? ' · стоп' : ''}
+            {bank && i === current && displayStatus(app) === 'MANUAL_REVIEW' ? ' · стоп' : ''}
           </span>
         </motion.li>
       ))}
       {!mini && (
         <li className="sr-only" aria-live="polite" aria-atomic="true">
-          Текущий этап: {labels[current]}. {statusLabels[app.status]}.
+          Текущий этап: {labels[current]}. {statusLabels[displayStatus(app)]}.
         </li>
       )}
     </ol>
@@ -149,6 +150,22 @@ export function KeyValue({
   );
 }
 export function CompanyCard({ company }: { company: Company }) {
+  if (company.server)
+    return (
+      <Card>
+        <h3>Ваш бизнес</h3>
+        <h2>{company.name}</h2>
+        <dl className="details">
+          <dt>ИНН</dt>
+          <dd>{company.inn || 'Нет данных'}</dd>
+          <dt>ОКВЭД</dt>
+          <dd>{company.okved || 'Нет данных'}</dd>
+          <dt>Регистрация</dt>
+          <dd>{company.registered || 'Нет данных'}</dd>
+        </dl>
+      </Card>
+    );
+
   return (
     <Card>
       <h3>Ваш бизнес</h3>
@@ -206,54 +223,9 @@ export function MonthlyBars({ values }: { values: number[] }) {
     </figure>
   );
 }
-export function FactorBars({
-  bank = false,
-  showValues = false,
-}: {
-  bank?: boolean;
-  showValues?: boolean;
-}) {
-  const rows = bank
-    ? [
-        ['Без просрочек 24 мес.', 'Кредитная история', 88, false],
-        ['Ровные обороты', 'Поступления по выписке', 64, false],
-        ['Действующий кредит', 'Дополнительная нагрузка', 48, true],
-        ['Молодая компания', 'Короткая история бизнеса', 40, true],
-      ]
-    : [
-        ['Нет просрочек за 24 месяца', 'Кредитная история', 94, false],
-        ['Выручка ровная', '11 из 12 месяцев выше 0,95 млн ₽', 76, false],
-        ['Платёж по силам', 'Поток покрывает обязательства', 61, false],
-        ['Бизнесу 2 года 4 месяца', 'Молодой бизнес — выше риск', 35, true],
-        ['Спад в феврале', 'На 26% ниже среднего', 22, true],
-      ];
-  return (
-    <>
-      <div className="factors">
-        {rows.map(([label, desc, width, negative], index) => (
-          <div className="factor" key={String(label)}>
-            <div>
-              <strong>{label}</strong>
-              <p className="small muted">{desc}</p>
-            </div>
-            <div
-              aria-label={negative ? 'Против одобрения' : 'За одобрение'}
-              className="factor-rail"
-            >
-              <span className={negative ? 'negative' : ''} style={{ width: `${width}%` }} />
-              {showValues && (
-                <span className="factor-value">{['−1,1', '−0,7', '+0,6', '+0,5'][index]}</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="legend small">
-        <span>■ За одобрение</span>
-        <span className="red-text">■ Против</span>
-      </p>
-    </>
-  );
+// Factor categories and synthetic contributions are intentionally not displayed.
+export function FactorBars(_props: { bank?: boolean; showValues?: boolean }) {
+  return null;
 }
 export function CoverageMeter({ value }: { value: number }) {
   return (

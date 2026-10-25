@@ -1,3 +1,4 @@
+import { displayStatus } from '../domain/status';
 import {
   Component,
   lazy,
@@ -131,7 +132,7 @@ function Layout({ role }: { role: 'bank' | 'client' }) {
     ['/bank/journal', 'Журнал'],
   ];
   const openRequests = state.applications
-    .filter((a) => a.companyId === session.profile && a.status === 'NEEDS_INFO')
+    .filter((a) => a.companyId === session.profile && displayStatus(a) === 'NEEDS_INFO')
     .reduce((n, a) => n + a.requests.filter((r) => r.state === 'OPEN').length, 0);
   return (
     <>
@@ -186,9 +187,11 @@ function Layout({ role }: { role: 'bank' | 'client' }) {
               <span className="block small">
                 {role === 'bank'
                   ? 'Сотрудник банка'
-                  : session.profile === 'karpov'
-                    ? 'ИП Карпов'
-                    : 'ООО «Зерно Опт»'}
+                  : import.meta.env.VITE_API_MODE === 'http'
+                    ? state.companies.find((c) => c.id === session.profile)?.name
+                    : session.profile === 'karpov'
+                      ? 'ИП Карпов'
+                      : 'ООО «Зерно Опт»'}
               </span>
             </span>
             <LogOut aria-hidden size={17} />
@@ -201,7 +204,9 @@ function Layout({ role }: { role: 'bank' | 'client' }) {
         <Outlet />
       </main>
       <footer className="shell footer">
-        AURELIUS · Демо-условия. Подпись и выдача имитируются на демо-стенде.
+        {import.meta.env.VITE_API_MODE === 'http'
+          ? 'AURELIUS · Кредитный кабинет'
+          : 'AURELIUS · Демо-условия. Подпись и выдача имитируются на демо-стенде.'}
       </footer>
     </>
   );
@@ -238,6 +243,14 @@ function Auxiliary({ kind }: { kind: 'company' | 'clients' | 'policies' }) {
           ))}
         </div>
       </>
+    );
+  if (kind === 'policies' && import.meta.env.VITE_API_MODE === 'http')
+    return (
+      <Card>
+        <h1>Политики и модели</h1>
+        <p>DEMO_ANNUAL_PD_V2 · DSCR 1,20</p>
+        <p>Экономические параметры: AURELIUS_MVP_20261024_V1, из БД.</p>
+      </Card>
     );
   if (kind === 'policies')
     return (
@@ -347,27 +360,34 @@ export function App() {
           }
         />
       </Routes>
-      {session?.role === 'client' && location.pathname.startsWith('/client') && (
-        <button
-          type="button"
-          id="assistant-launcher"
-          className="assistant-launcher"
-          aria-label={assistant ? 'Свернуть чат с помощником' : 'Открыть чат с помощником'}
-          aria-expanded={assistant}
-          aria-controls={assistant ? 'assistant-chat' : undefined}
-          onClick={() => setAssistant((old) => !old)}
-        >
-          {assistant ? (
-            <ChevronDown aria-hidden size={21} />
-          ) : (
-            <MessageCircle aria-hidden size={21} />
-          )}
-          <span>{assistant ? 'Свернуть' : 'Помощник'}</span>
-        </button>
-      )}
+      {import.meta.env.VITE_API_MODE !== 'http' &&
+        session?.role === 'client' &&
+        location.pathname.startsWith('/client') && (
+          <button
+            type="button"
+            id="assistant-launcher"
+            className="assistant-launcher"
+            aria-label={assistant ? 'Свернуть чат с помощником' : 'Открыть чат с помощником'}
+            aria-expanded={assistant}
+            aria-controls={assistant ? 'assistant-chat' : undefined}
+            onClick={() => setAssistant((old) => !old)}
+          >
+            {assistant ? (
+              <ChevronDown aria-hidden size={21} />
+            ) : (
+              <MessageCircle aria-hidden size={21} />
+            )}
+            <span>{assistant ? 'Свернуть' : 'Помощник'}</span>
+          </button>
+        )}
       <AssistantPanel
         key={`${session?.role}-${session?.profile}`}
-        open={assistant && session?.role === 'client' && location.pathname.startsWith('/client')}
+        open={
+          import.meta.env.VITE_API_MODE !== 'http' &&
+          assistant &&
+          session?.role === 'client' &&
+          location.pathname.startsWith('/client')
+        }
         onOpenChange={setAssistant}
         seed={assistantSeed}
       />

@@ -1,3 +1,5 @@
+import { BusinessReview } from '../../business/BusinessPages';
+import { displayStatus } from '../../domain/status';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useApi, useCredit, useAction } from '../../app/context';
@@ -66,7 +68,7 @@ function DecisionPanel({ app }: { app: Application }) {
   return (
     <aside className="dark decision-panel">
       <h2>Ваше решение</h2>
-      {app.status === 'MANUAL_REVIEW' ? (
+      {displayStatus(app) === 'MANUAL_REVIEW' ? (
         <>
           <fieldset>
             <legend className="sr-only">Решение по заявке</legend>
@@ -245,7 +247,7 @@ function DataChecks({ app }: { app: Application }) {
     </Card>
   );
 }
-export function Review() {
+function MockReview() {
   const { id } = useParams();
   const state = useCredit();
   const app = state.applications.find((a) => a.id === id);
@@ -283,7 +285,7 @@ export function Review() {
         </div>
       </div>
       <StageTrack app={app} bank />
-      {app.status === 'DECLINED' && (
+      {displayStatus(app) === 'DECLINED' && (
         <Card>
           <h2>Решение: отказ</h2>
           <p className="red-text">{app.reasonCode}</p>
@@ -292,7 +294,7 @@ export function Review() {
       )}
       <div className="review-layout">
         <div className="stack">
-          {app.status === 'MANUAL_REVIEW' && (
+          {displayStatus(app) === 'MANUAL_REVIEW' && (
             <Card className="reason-card">
               <h2>Почему автоматика остановилась</h2>
               <div className="two-columns">
@@ -322,7 +324,7 @@ export function Review() {
               </div>
             </Card>
           )}
-          {app.status === 'MANUAL_REVIEW' &&
+          {displayStatus(app) === 'MANUAL_REVIEW' &&
             (requiredChecks(app).authority || requiredChecks(app).revenue) && (
               <DataChecks app={app} />
             )}
@@ -340,7 +342,6 @@ export function Review() {
                 · ревизия {app.revision}
               </p>
               <div className="metrics">
-                <KeyValue label="Уровень риска" value={demoRisk(app).label} />
                 <KeyValue label="PD, 12 мес." value={demoRisk(app).pd} />
               </div>
               {['zerno', 'karpov'].includes(company.id) ? (
@@ -427,4 +428,8 @@ export function Review() {
       </div>
     </>
   );
+}
+
+export function Review() {
+  return import.meta.env.VITE_API_MODE === 'http' ? <BusinessReview /> : <MockReview />;
 }

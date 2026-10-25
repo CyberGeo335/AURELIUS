@@ -1,3 +1,4 @@
+import { setMockStatus } from '../domain/status';
 import type { Application, Company, CreditState, Product } from '../domain/types';
 import { defaultFields } from '../domain/forms';
 export const companies: Company[] = [
@@ -128,7 +129,7 @@ export function seedState(now = Date.now()): CreditState {
     Object.assign(a, {
       amount,
       term,
-      status,
+
       stage: status === 'MANUAL_REVIEW' ? 4 : status === 'OFFERED' ? 5 : 2,
       statement: true,
       businessConfirmed: true,
@@ -139,6 +140,7 @@ export function seedState(now = Date.now()): CreditState {
       leasing: companyId === 'karpov' ? null : true,
       revision: companyId === 'zerno' ? 3 : 1,
     });
+    setMockStatus(a, status);
     a.fields[`${product}_05`] = String(amount);
     a.fields[`${product}_06`] = String(term);
     a.fields[`${product}_31`] = 'Подтверждаю';

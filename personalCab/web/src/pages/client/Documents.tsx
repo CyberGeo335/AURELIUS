@@ -1,3 +1,4 @@
+import { displayStatus } from '../../domain/status';
 import { Link } from 'react-router';
 import {
   FileText,
@@ -90,7 +91,7 @@ export function ApplicationDocuments({
 }) {
   const openRequest = app.requests.find((r) => r.state === 'OPEN');
   const destination =
-    app.status === 'DRAFT' ? `/client/new/${app.id}` : `/client/applications/${app.id}`;
+    displayStatus(app) === 'DRAFT' ? `/client/new/${app.id}` : `/client/applications/${app.id}`;
   return (
     <div className={`application-documents ${compact ? 'compact' : ''}`}>
       <section>
@@ -122,12 +123,12 @@ export function ApplicationDocuments({
             <strong>Файлов пока нет</strong>
             <p className="muted small">
               {['ACCEPTED', 'SIGNED_DEMO', 'FUNDED_DEMO', 'DECLINED', 'CANCELLED'].includes(
-                app.status,
+                displayStatus(app),
               )
                 ? 'Вы не добавляли файлы к этой заявке.'
                 : 'Если для проверки понадобится документ, здесь появится запрос банка.'}
             </p>
-            {(openRequest || app.status === 'DRAFT') && (
+            {(openRequest || displayStatus(app) === 'DRAFT') && (
               <Action tone="soft" asChild>
                 <Link to={destination}>
                   {openRequest ? 'Ответить на запрос' : 'Продолжить анкету'}
@@ -182,7 +183,7 @@ export function Documents() {
               <Action tone="soft" asChild>
                 <Link
                   to={
-                    app.status === 'DRAFT'
+                    displayStatus(app) === 'DRAFT'
                       ? `/client/new/${app.id}`
                       : `/client/applications/${app.id}`
                   }
