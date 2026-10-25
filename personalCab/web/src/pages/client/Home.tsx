@@ -218,9 +218,10 @@ export function Applications() {
               <p className="small muted">
                 {a.id} · {datetime(a.updated)}
               </p>
-              <h2>{money(a.amount)}</h2>
+              <h2>{a.server?.requested_amount === null ? 'Сумма не указана' : money(a.amount)}</h2>
               <p>
-                {products[a.product]} · {a.term} мес.
+                {products[a.product]} ·{' '}
+                {a.server?.requested_term_months === null ? 'Срок не указан' : `${a.term} мес.`}
               </p>
             </div>
             <div className="application-progress">

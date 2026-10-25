@@ -16,6 +16,12 @@ import { Textarea } from '../components/ui/textarea';
 import { money } from '../domain/finance';
 import { products, type Application, type Company, type ServerRequirement } from '../domain/types';
 
+function requestedAmount(app: Application) {
+  return app.server?.requested_amount === null ? 'Сумма не указана' : money(app.amount);
+}
+function requestedTerm(app: Application) {
+  return app.server?.requested_term_months === null ? 'Срок не указан' : `${app.term} мес.`;
+}
 function requirements(rows: ServerRequirement[], app: Application, company: Company) {
   return rows.filter(
     (r) =>
@@ -95,7 +101,7 @@ export function BusinessHome() {
                   № {app.id} · {products[app.product]}
                 </Link>
                 <p>
-                  Запрошено: {money(app.amount)} · {app.term} мес.
+                  Запрошено: {requestedAmount(app)} · {requestedTerm(app)}
                 </p>
               </div>
               <StatusBadge app={app} />
@@ -443,7 +449,7 @@ export function BusinessDetail() {
         <StatusBadge app={app} />
         <h1>{products[app.product]}</h1>
         <p>
-          Запрошено: {money(app.amount)} на {app.term} мес.
+          Запрошено: {requestedAmount(app)} · {requestedTerm(app)}
         </p>
         <p>Цель: {app.purpose || 'Не указана'}</p>
       </HeroPanel>
@@ -540,7 +546,7 @@ export function BusinessQueue({ mine = false }: { mine?: boolean }) {
                   </td>
                   <td>{products[app.product]}</td>
                   <td>
-                    {money(app.amount)} · {app.term} мес.
+                    {requestedAmount(app)} · {requestedTerm(app)}
                   </td>
                   <td>
                     <StatusBadge app={app} />
@@ -587,7 +593,7 @@ function ReviewDetails({ app }: { app: Application }) {
         <StatusBadge app={app} />
         <h1>{state.companies.find((c) => c.id === app.companyId)?.name}</h1>
         <p>
-          {products[app.product]} · запрошено {money(app.amount)} на {app.term} мес.
+          {products[app.product]} · запрошено {requestedAmount(app)} · {requestedTerm(app)}
         </p>
         <p>Цель: {app.purpose || 'Не указана'}</p>
       </HeroPanel>
