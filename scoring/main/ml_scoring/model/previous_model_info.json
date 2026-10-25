@@ -1,0 +1,74 @@
+{
+  "config": {
+    "winner": "stage2",
+    "stage2_best_trial": 27,
+    "stage2_best_value": 0.12564068424436126,
+    "baseline_weighted_ipcw_brier": 0.12619560595815615,
+    "stage1_weighted_ipcw_brier": 0.1258712086656087,
+    "selected_weighted_ipcw_brier": 0.12564068424436126,
+    "stage2_best_params": {
+      "depth": 3,
+      "learning_rate": 0.1358747070410349,
+      "l2_leaf_reg": 1.7171813302545575,
+      "bagging_temperature": 0.05951745659613404
+    },
+    "stage2_best_iteration": 762,
+    "selected_model_source": "models/trial_0027.cbm",
+    "horizons_by_term": {
+      "12": [
+        6
+      ],
+      "18": [
+        6,
+        12
+      ],
+      "24": [
+        6,
+        12,
+        18
+      ],
+      "36": [
+        6,
+        12,
+        24
+      ],
+      "48": [
+        6,
+        12,
+        24,
+        36
+      ],
+      "60": [
+        6,
+        12,
+        24,
+        36,
+        48
+      ]
+    },
+    "features": [
+      "age_months",
+      "industry",
+      "entity_type",
+      "monthly_revenue",
+      "revenue_trend_12m",
+      "revenue_volatility",
+      "operating_margin",
+      "cash_buffer_months",
+      "dscr",
+      "debt_to_revenue",
+      "prior_overdue_30d",
+      "requested_amount",
+      "annual_rate",
+      "macro_stress",
+      "month_on_book"
+    ],
+    "categorical_features": [
+      "industry",
+      "entity_type"
+    ],
+    "test_used": false
+  },
+  "sha256": "178568ed424e75009d836ac38cd5ebc69ec12cd74a320e50a7b91fe17327d8e2",
+  "original_artifact": "models/experiments/survival_v3_optuna_stage2/best_model.cbm"
+}

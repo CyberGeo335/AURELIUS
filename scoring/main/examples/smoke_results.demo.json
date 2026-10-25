@@ -1,0 +1,74 @@
+[
+  {
+    "product": "R01",
+    "decision": "MANUAL_REVIEW",
+    "amount": "3000000.00",
+    "model_version": "dt_monotone_v1_1e729ce490ba9ce6",
+    "automatic_recommendation": "POSITIVE",
+    "risk_assessment": {
+      "method": "annual_pd_limit",
+      "comparison_horizon_months": 12,
+      "pd_limit_1y_raw": 0.2,
+      "pd_limit_1y": 0.2,
+      "annual_funding_rate_pct": "16.00",
+      "annual_headroom_pct": "9.00",
+      "positive_headroom": true,
+      "pd_application_1y": 0.13175777272877687,
+      "pd_application_term": 0.35814542330835564,
+      "scored_amount": "3000000.00",
+      "term_months": 36,
+      "decision_method": "annual_pd_limit",
+      "annual_rate_pct": "28.00",
+      "pd_1y_evaluated": true,
+      "passes_pd_limit": true
+    }
+  },
+  {
+    "product": "R02",
+    "decision": "MANUAL_REVIEW",
+    "amount": "750000.00",
+    "model_version": "dt_monotone_v1_1e729ce490ba9ce6",
+    "automatic_recommendation": "POSITIVE",
+    "risk_assessment": {
+      "method": "annual_pd_limit",
+      "comparison_horizon_months": 12,
+      "pd_limit_1y_raw": 0.2,
+      "pd_limit_1y": 0.2,
+      "annual_funding_rate_pct": "16.00",
+      "annual_headroom_pct": "9.00",
+      "positive_headroom": true,
+      "pd_application_1y": 0.10774777402706859,
+      "pd_application_term": 0.16048351274318506,
+      "scored_amount": "750000.00",
+      "term_months": 18,
+      "decision_method": "annual_pd_limit",
+      "annual_rate_pct": "28.00",
+      "pd_1y_evaluated": true,
+      "passes_pd_limit": true
+    }
+  },
+  {
+    "product": "R03",
+    "decision": "MANUAL_REVIEW",
+    "amount": "100000.00",
+    "model_version": "dt_monotone_v1_1e729ce490ba9ce6",
+    "automatic_recommendation": "POSITIVE",
+    "risk_assessment": {
+      "method": "annual_pd_limit",
+      "comparison_horizon_months": 12,
+      "pd_limit_1y_raw": 0.2,
+      "pd_limit_1y": 0.2,
+      "annual_funding_rate_pct": "16.00",
+      "annual_headroom_pct": "9.00",
+      "positive_headroom": true,
+      "pd_application_1y": 0.10486712097791784,
+      "pd_application_term": 0.10486712097791784,
+      "scored_amount": "100000.00",
+      "term_months": 12,
+      "decision_method": "annual_pd_limit",
+      "annual_rate_pct": "28.00",
+      "pd_1y_evaluated": false,
+      "passes_pd_limit": true
+    }
+  }
+]

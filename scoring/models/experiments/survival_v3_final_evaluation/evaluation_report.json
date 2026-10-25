@@ -1,0 +1,21 @@
+{
+  "selected_model": "optuna_stage2",
+  "test_weighted_ipcw_brier": 0.12743008993783522,
+  "test_weighted_gini_across_horizons": 0.3868502445183023,
+  "test_weighted_roc_auc_across_horizons": 0.6934251222591512,
+  "test_weighted_pr_auc_across_horizons": 0.3894470732400067,
+  "test_brier_skill_score_vs_train_km": 0.10517751886038518,
+  "test_stage1_weighted_ipcw_brier": 0.1275471533907345,
+  "test_baseline_weighted_ipcw_brier": 0.12800647051047223,
+  "validation_max_abs_calibration_bias": 0.020866093706922426,
+  "validation_max_abs_calibration_error": 0.03689699931318335,
+  "test_used_for_tuning": false,
+  "notes": [
+    "IPCW, Kaplan-Meier и наивные PD оценены по train.",
+    "Gini/AUC/PR-AUC рассчитаны на уровне кредитов по каждому горизонту.",
+    "Сводные AUC/Gini — взвешенное среднее горизонтов, не глобальная метрика.",
+    "Bootstrap учитывает кластеризацию по borrower_id и условен относительно train.",
+    "Решение о калибровке принимается по validation, не по test.",
+    "Модель и гиперпараметры зафиксированы до оценки test."
+  ]
+}

@@ -1,0 +1,669 @@
+{
+  "application_id": 1,
+  "decision": "MANUAL_REVIEW",
+  "eligibility_status": "ELIGIBLE",
+  "reasons": [
+    {
+      "code": "BANK_CONFIRMATION_REQUIRED",
+      "message": "Automatic checks passed; bank employee confirmation required"
+    }
+  ],
+  "policy_version": "DEMO_ANNUAL_PD_V2",
+  "offer": {
+    "amount": "3000000.00",
+    "term_months": 36,
+    "annual_rate_pct": "28.00",
+    "repayment_type": "ANNUITY",
+    "max_monthly_payment": "124090.98",
+    "affordability_payment": "124090.98",
+    "monthly_schedule": [
+      {
+        "month": 1,
+        "opening_balance": "3000000.00",
+        "principal": "54090.76",
+        "interest": "70000.00",
+        "payment": "124090.76",
+        "closing_balance": "2945909.24",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 2,
+        "opening_balance": "2945909.24",
+        "principal": "55352.88",
+        "interest": "68737.88",
+        "payment": "124090.76",
+        "closing_balance": "2890556.36",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 3,
+        "opening_balance": "2890556.36",
+        "principal": "56644.44",
+        "interest": "67446.32",
+        "payment": "124090.76",
+        "closing_balance": "2833911.92",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 4,
+        "opening_balance": "2833911.92",
+        "principal": "57966.15",
+        "interest": "66124.61",
+        "payment": "124090.76",
+        "closing_balance": "2775945.77",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 5,
+        "opening_balance": "2775945.77",
+        "principal": "59318.69",
+        "interest": "64772.07",
+        "payment": "124090.76",
+        "closing_balance": "2716627.08",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 6,
+        "opening_balance": "2716627.08",
+        "principal": "60702.79",
+        "interest": "63387.97",
+        "payment": "124090.76",
+        "closing_balance": "2655924.29",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 7,
+        "opening_balance": "2655924.29",
+        "principal": "62119.19",
+        "interest": "61971.57",
+        "payment": "124090.76",
+        "closing_balance": "2593805.10",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 8,
+        "opening_balance": "2593805.10",
+        "principal": "63568.64",
+        "interest": "60522.12",
+        "payment": "124090.76",
+        "closing_balance": "2530236.46",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 9,
+        "opening_balance": "2530236.46",
+        "principal": "65051.91",
+        "interest": "59038.85",
+        "payment": "124090.76",
+        "closing_balance": "2465184.55",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 10,
+        "opening_balance": "2465184.55",
+        "principal": "66569.79",
+        "interest": "57520.97",
+        "payment": "124090.76",
+        "closing_balance": "2398614.76",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 11,
+        "opening_balance": "2398614.76",
+        "principal": "68123.08",
+        "interest": "55967.68",
+        "payment": "124090.76",
+        "closing_balance": "2330491.68",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 12,
+        "opening_balance": "2330491.68",
+        "principal": "69712.62",
+        "interest": "54378.14",
+        "payment": "124090.76",
+        "closing_balance": "2260779.06",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 13,
+        "opening_balance": "2260779.06",
+        "principal": "71339.25",
+        "interest": "52751.51",
+        "payment": "124090.76",
+        "closing_balance": "2189439.81",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 14,
+        "opening_balance": "2189439.81",
+        "principal": "73003.83",
+        "interest": "51086.93",
+        "payment": "124090.76",
+        "closing_balance": "2116435.98",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 15,
+        "opening_balance": "2116435.98",
+        "principal": "74707.25",
+        "interest": "49383.51",
+        "payment": "124090.76",
+        "closing_balance": "2041728.73",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 16,
+        "opening_balance": "2041728.73",
+        "principal": "76450.42",
+        "interest": "47640.34",
+        "payment": "124090.76",
+        "closing_balance": "1965278.31",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 17,
+        "opening_balance": "1965278.31",
+        "principal": "78234.27",
+        "interest": "45856.49",
+        "payment": "124090.76",
+        "closing_balance": "1887044.04",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 18,
+        "opening_balance": "1887044.04",
+        "principal": "80059.73",
+        "interest": "44031.03",
+        "payment": "124090.76",
+        "closing_balance": "1806984.31",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 19,
+        "opening_balance": "1806984.31",
+        "principal": "81927.79",
+        "interest": "42162.97",
+        "payment": "124090.76",
+        "closing_balance": "1725056.52",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 20,
+        "opening_balance": "1725056.52",
+        "principal": "83839.44",
+        "interest": "40251.32",
+        "payment": "124090.76",
+        "closing_balance": "1641217.08",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 21,
+        "opening_balance": "1641217.08",
+        "principal": "85795.69",
+        "interest": "38295.07",
+        "payment": "124090.76",
+        "closing_balance": "1555421.39",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 22,
+        "opening_balance": "1555421.39",
+        "principal": "87797.59",
+        "interest": "36293.17",
+        "payment": "124090.76",
+        "closing_balance": "1467623.80",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 23,
+        "opening_balance": "1467623.80",
+        "principal": "89846.20",
+        "interest": "34244.56",
+        "payment": "124090.76",
+        "closing_balance": "1377777.60",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 24,
+        "opening_balance": "1377777.60",
+        "principal": "91942.62",
+        "interest": "32148.14",
+        "payment": "124090.76",
+        "closing_balance": "1285834.98",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 25,
+        "opening_balance": "1285834.98",
+        "principal": "94087.94",
+        "interest": "30002.82",
+        "payment": "124090.76",
+        "closing_balance": "1191747.04",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 26,
+        "opening_balance": "1191747.04",
+        "principal": "96283.33",
+        "interest": "27807.43",
+        "payment": "124090.76",
+        "closing_balance": "1095463.71",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 27,
+        "opening_balance": "1095463.71",
+        "principal": "98529.94",
+        "interest": "25560.82",
+        "payment": "124090.76",
+        "closing_balance": "996933.77",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 28,
+        "opening_balance": "996933.77",
+        "principal": "100828.97",
+        "interest": "23261.79",
+        "payment": "124090.76",
+        "closing_balance": "896104.80",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 29,
+        "opening_balance": "896104.80",
+        "principal": "103181.65",
+        "interest": "20909.11",
+        "payment": "124090.76",
+        "closing_balance": "792923.15",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 30,
+        "opening_balance": "792923.15",
+        "principal": "105589.22",
+        "interest": "18501.54",
+        "payment": "124090.76",
+        "closing_balance": "687333.93",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 31,
+        "opening_balance": "687333.93",
+        "principal": "108052.97",
+        "interest": "16037.79",
+        "payment": "124090.76",
+        "closing_balance": "579280.96",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 32,
+        "opening_balance": "579280.96",
+        "principal": "110574.20",
+        "interest": "13516.56",
+        "payment": "124090.76",
+        "closing_balance": "468706.76",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 33,
+        "opening_balance": "468706.76",
+        "principal": "113154.27",
+        "interest": "10936.49",
+        "payment": "124090.76",
+        "closing_balance": "355552.49",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 34,
+        "opening_balance": "355552.49",
+        "principal": "115794.54",
+        "interest": "8296.22",
+        "payment": "124090.76",
+        "closing_balance": "239757.95",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 35,
+        "opening_balance": "239757.95",
+        "principal": "118496.41",
+        "interest": "5594.35",
+        "payment": "124090.76",
+        "closing_balance": "121261.54",
+        "capacity_requirement": "124090.76"
+      },
+      {
+        "month": 36,
+        "opening_balance": "121261.54",
+        "principal": "121261.54",
+        "interest": "2829.44",
+        "payment": "124090.98",
+        "closing_balance": "0.00",
+        "capacity_requirement": "124090.98"
+      }
+    ],
+    "economics": {
+      "expected_contribution_after_required_return": "88206.46",
+      "discounted_expected_credit_loss": "250906.39",
+      "method": "monthly_survival_opening_ead_v1",
+      "profitable": true,
+      "fees_included": false
+    }
+  },
+  "scoring": {
+    "model_version": "dt_monotone_v1_1e729ce490ba9ce6",
+    "monthly_hazard": [
+      0.0071785336944006585,
+      0.011830165078251104,
+      0.011968630376738757,
+      0.012038378133084301,
+      0.012038378133084301,
+      0.012038378133084301,
+      0.012273453758336883,
+      0.012192017671344462,
+      0.012208746287592467,
+      0.012251453504899486,
+      0.012153602902768445,
+      0.012272960452042268,
+      0.012272960452042268,
+      0.012224093695395219,
+      0.012115969568777083,
+      0.012197927428340888,
+      0.012197927428340888,
+      0.012197927428340888,
+      0.012197927428340888,
+      0.012327714400711948,
+      0.012334072889686132,
+      0.012334072889686132,
+      0.012334072889686132,
+      0.012334072889686132,
+      0.012386362471704838,
+      0.012386362471704838,
+      0.012386362471704838,
+      0.012527210954262529,
+      0.012533314156512964,
+      0.012533314156512964,
+      0.012680403374566142,
+      0.012716797050115563,
+      0.013073086411010916,
+      0.013245601156932386,
+      0.013338153420797453,
+      0.013338153420797453
+    ],
+    "cumulative_pd": [
+      0.0071785336944006906,
+      0.018923775534027243,
+      0.030665914236066905,
+      0.04233512449778065,
+      0.053863856393849496,
+      0.06525380105595846,
+      0.0767263653044793,
+      0.08798293377417354,
+      0.09911751874567909,
+      0.11015463857814489,
+      0.12096946574573664,
+      0.13175777272877687,
+      0.14241367524686965,
+      0.15289689083254154,
+      0.16316036632483089,
+      0.17336807544556,
+      0.18345127167122488,
+      0.19341147380108337,
+      0.20325018210819024,
+      0.21307228631197972,
+      0.22277831009152183,
+      0.23236461906629802,
+      0.24183268980743633,
+      0.25118398067392866,
+      0.26045908731392053,
+      0.26961930912110577,
+      0.27866606910066594,
+      0.28770237142150934,
+      0.29662982137342275,
+      0.30544538079047223,
+      0.31425261352771716,
+      0.32297312386913235,
+      0.331823954723368,
+      0.3406743481217187,
+      0.3494685348207385,
+      0.35814542330835564
+    ],
+    "pd_by_horizon": {
+      "6": 0.06525380105595846,
+      "12": 0.13175777272877687,
+      "24": 0.25118398067392866
+    },
+    "term_months": 36
+  },
+  "audit": {
+    "input_fingerprint": "d86f0986ee9e1e082756fa58282c4122d1a221002292ba4fcf68b5a8d93dea2c",
+    "demo_only": true,
+    "as_of": "2026-10-24",
+    "policy": {
+      "version": "DEMO_ANNUAL_PD_V2",
+      "demo_only": true,
+      "minimum_dscr": "1.20",
+      "amount_step": "50000.00",
+      "max_candidates": 1000,
+      "allow_unvalidated_term_pd": true,
+      "capital_cost_pct": "0.00",
+      "discount_rate_pct": "15.00",
+      "pd_limits": {},
+      "decision_method": "annual_pd_limit"
+    },
+    "snapshot": {
+      "as_of": "2026-10-24",
+      "application": {
+        "application_id": 1,
+        "company_id": 1,
+        "product_code": "R01",
+        "requested_amount": "3000000.00",
+        "requested_term_months": 36,
+        "requested_term_days": null,
+        "purpose": "Пополнение оборотных средств",
+        "application_status": "SUBMITTED",
+        "missing_data_status": "COMPLETE"
+      },
+      "company": {
+        "company_id": 1,
+        "entity_type": "LEGAL_ENTITY",
+        "registration_date": "2019-01-15",
+        "status": "ACTIVE",
+        "information_reliability_status": "VERIFIED",
+        "sme_category": "SMALL"
+      },
+      "product": {
+        "product_code": "R01",
+        "active": true
+      },
+      "terms": {
+        "terms_id": 1,
+        "product_code": "R01",
+        "version_code": "ALFA_PUBLIC_2026",
+        "min_amount": "300000.00",
+        "max_amount": "30000000.00",
+        "min_contract_term_value": 12,
+        "max_contract_term_value": 60,
+        "contract_term_unit": "MONTHS",
+        "allowed_entity_types": [
+          "LEGAL_ENTITY",
+          "INDIVIDUAL_ENTREPRENEUR"
+        ],
+        "requires_collateral": false,
+        "guarantor_requirement": "CONDITIONAL"
+      },
+      "rate_option": {
+        "rate_option_id": 1,
+        "terms_id": 1,
+        "min_annual_rate_pct": "23.5"
+      },
+      "repayment_option": {
+        "repayment_option_id": 6,
+        "terms_id": 1,
+        "repayment_type": "ANNUITY"
+      },
+      "submission_confirmed": true,
+      "individual_annual_rate_pct": "28.00",
+      "individual_rate_source": "DEMO assumption; not a bank quote",
+      "internal_confirmations": {
+        "guarantor_requirement_resolved": true,
+        "legal_checks_clear": true,
+        "credit_history_checked": true,
+        "fees_resolved": true,
+        "purpose_resolved": true
+      },
+      "feature_contract_version": "synthetic_origination_v2",
+      "model_features": {
+        "industry": "services",
+        "monthly_revenue": 1200000,
+        "revenue_trend_12m": 0.05,
+        "revenue_volatility": 0.15,
+        "operating_margin": 0.25,
+        "cash_buffer_months": 2.0,
+        "dscr": 3.0,
+        "debt_to_revenue": 0.3,
+        "prior_overdue_30d": 0,
+        "macro_stress": 0.0
+      },
+      "feature_provenance": {
+        "industry": "DEMO training taxonomy",
+        "monthly_revenue": "DEMO origination monthly revenue",
+        "revenue_trend_12m": "DEMO revenue(t)/revenue(t-12)-1",
+        "revenue_volatility": "DEMO population std(last 12 revenues)/mean(last 12 revenues)",
+        "operating_margin": "DEMO operating cash flow/monthly revenue",
+        "cash_buffer_months": "DEMO cash balance/monthly revenue",
+        "dscr": "DEMO operating cash available/existing debt service",
+        "debt_to_revenue": "DEMO synthetic base debt ratio",
+        "prior_overdue_30d": "DEMO complete synthetic history",
+        "macro_stress": "DEMO scenario 0; not KEY_RATE"
+      },
+      "capacity": {
+        "monthly_cash_available_for_debt_service": "300000.00",
+        "existing_monthly_debt_service": "100000.00",
+        "source": "DEMO synthetic cash capacity independent of model risk score"
+      },
+      "risk_policy": {
+        "product_code": "R01",
+        "policy_version": "DEMO_ECONOMICS_V1",
+        "funding_spread_pct": "1.00",
+        "operating_cost_pct": "1.00",
+        "required_margin_pct": "2.00",
+        "lgd_pct": "45.00"
+      },
+      "key_rate_pct": "15.00",
+      "key_rate_source": "DEMO invented scenario; not current central bank data",
+      "key_rate_effective_date": "2026-10-24",
+      "economics_source": "DEMO_ECONOMICS_V1: all economic numbers are assumptions",
+      "fees": [],
+      "eligibility_rules": [],
+      "purposes": []
+    },
+    "available_monthly_payment": "150000.00",
+    "feature_sources": {
+      "industry": "DEMO training taxonomy",
+      "monthly_revenue": "DEMO origination monthly revenue",
+      "revenue_trend_12m": "DEMO revenue(t)/revenue(t-12)-1",
+      "revenue_volatility": "DEMO population std(last 12 revenues)/mean(last 12 revenues)",
+      "operating_margin": "DEMO operating cash flow/monthly revenue",
+      "cash_buffer_months": "DEMO cash balance/monthly revenue",
+      "dscr": "DEMO operating cash available/existing debt service",
+      "debt_to_revenue": "DEMO synthetic base debt ratio",
+      "prior_overdue_30d": "DEMO complete synthetic history",
+      "macro_stress": "DEMO scenario 0; not KEY_RATE",
+      "age_months": "companies.registration_date; completed calendar months",
+      "entity_type": "companies.entity_type",
+      "requested_amount": "candidate offer amount",
+      "annual_rate": "individual offer rate / 100"
+    },
+    "feature_adjustments": {},
+    "financial_observations": {},
+    "model_sha256": "1e729ce490ba9ce67b69abae6730fed469b5e13db7107348634d46cd2859472b",
+    "economics_inputs": {
+      "funding_spread_pct": "1.00",
+      "operating_cost_pct": "1.00",
+      "required_margin_pct": "2.00",
+      "lgd_pct": "45.00",
+      "key_rate_pct": "15.00"
+    },
+    "amount_search": {
+      "method": "descending_exhaustive_grid",
+      "step": "50000.00",
+      "maximum_is_grid_bound": true
+    },
+    "pricing_search": {
+      "rates_pct": [
+        "28.00"
+      ],
+      "source": "Fixed individual quote",
+      "objective": "largest feasible amount, then lowest passing rate"
+    },
+    "scored_features": {
+      "industry": "services",
+      "monthly_revenue": 1200000.0,
+      "revenue_trend_12m": 0.05,
+      "revenue_volatility": 0.15,
+      "operating_margin": 0.25,
+      "cash_buffer_months": 2.0,
+      "dscr": 3.0,
+      "debt_to_revenue": 0.3,
+      "prior_overdue_30d": 0.0,
+      "macro_stress": 0.0,
+      "age_months": 93.0,
+      "entity_type": "OOO",
+      "requested_amount": 3000000.0,
+      "annual_rate": 0.28
+    },
+    "evaluations": [
+      {
+        "amount": "3000000.00",
+        "annual_rate_pct": "28.00",
+        "pd_term": 0.35814542330835564,
+        "economics": {
+          "expected_contribution_after_required_return": "88206.46",
+          "discounted_expected_credit_loss": "250906.39",
+          "method": "monthly_survival_opening_ead_v1",
+          "profitable": true,
+          "fees_included": false
+        },
+        "risk_reasons": [],
+        "risk_assessment": {
+          "method": "annual_pd_limit",
+          "comparison_horizon_months": 12,
+          "pd_limit_1y_raw": 0.2,
+          "pd_limit_1y": 0.2,
+          "annual_funding_rate_pct": "16.00",
+          "annual_headroom_pct": "9.00",
+          "positive_headroom": true,
+          "pd_application_1y": 0.13175777272877687,
+          "pd_application_term": 0.35814542330835564,
+          "scored_amount": "3000000.00",
+          "term_months": 36,
+          "decision_method": "annual_pd_limit",
+          "annual_rate_pct": "28.00",
+          "pd_1y_evaluated": true,
+          "passes_pd_limit": true
+        }
+      }
+    ],
+    "pd_storage_horizon_months": 24,
+    "full_term_pd_is_outside_evaluated_horizons": true
+  },
+  "automatic_recommendation": "POSITIVE",
+  "risk_assessment": {
+    "method": "annual_pd_limit",
+    "comparison_horizon_months": 12,
+    "pd_limit_1y_raw": 0.2,
+    "pd_limit_1y": 0.2,
+    "annual_funding_rate_pct": "16.00",
+    "annual_headroom_pct": "9.00",
+    "positive_headroom": true,
+    "pd_application_1y": 0.13175777272877687,
+    "pd_application_term": 0.35814542330835564,
+    "scored_amount": "3000000.00",
+    "term_months": 36,
+    "decision_method": "annual_pd_limit",
+    "annual_rate_pct": "28.00",
+    "pd_1y_evaluated": true,
+    "passes_pd_limit": true
+  }
+}

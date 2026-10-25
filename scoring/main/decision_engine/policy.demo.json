@@ -1,0 +1,12 @@
+{
+  "version": "DEMO_ANNUAL_PD_V2",
+  "decision_method": "annual_pd_limit",
+  "demo_only": true,
+  "minimum_dscr": "1.20",
+  "amount_step": "50000.00",
+  "max_candidates": 1000,
+  "allow_unvalidated_term_pd": true,
+  "capital_cost_pct": "0.00",
+  "discount_rate_pct": "15.00",
+  "pd_limits": {}
+}

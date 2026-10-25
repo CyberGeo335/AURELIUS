@@ -1,0 +1,23 @@
+{
+    "features": [
+        "age_months",
+        "industry",
+        "entity_type",
+        "monthly_revenue",
+        "revenue_trend_12m",
+        "revenue_volatility",
+        "operating_margin",
+        "cash_buffer_months",
+        "dscr",
+        "debt_to_revenue",
+        "prior_overdue_30d",
+        "requested_amount",
+        "term_months",
+        "annual_rate",
+        "macro_stress"
+    ],
+    "categorical_features": [
+        "industry",
+        "entity_type"
+    ]
+}

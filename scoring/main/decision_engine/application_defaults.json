@@ -1,0 +1,20 @@
+{
+  "version": "MVP_DB_INPUTS_V2",
+  "demo_only": true,
+  "macro_stress_scenario": 0.0,
+  "macro_stress_description": "Explicit neutral synthetic scenario; not inferred from KEY_RATE and not a measured macro index",
+  "pricing_markup_pct": "2.00",
+  "maximum_draft_rate_pct": "30.00",
+  "draft_rate_step_pct": "0.50",
+  "pricing_ceiling_description": "Explicit MVP assumption, not an Alfa-Bank tariff: capped draft risk-based pricing up to 30% annually; employee confirmation required",
+  "pricing_description": "Indicative MVP draft rate = selected public base floor + 2 percentage points; individual bank pricing still requires employee confirmation",
+  "repayment_preferences": {"R01": "ANNUITY", "R02": "EQUAL_PRINCIPAL", "R03": "OTHER"},
+  "industry_by_okved_division": {
+    "01": "agriculture", "02": "agriculture", "03": "agriculture",
+    "10-33": "manufacturing", "41-43": "construction",
+    "45-47": "retail", "49-53": "transport",
+    "55-56": "services", "58-63": "services", "68-75": "services",
+    "77-82": "services", "85-88": "services", "90-96": "services"
+  },
+  "industry_description": "Coarse project mapping to the six training categories; wholesale 46 is approximated by training retail. Unmapped divisions require internal review, never default to services."
+}
