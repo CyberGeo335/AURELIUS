@@ -204,7 +204,7 @@ def test_scoring_outage_retries_submission_without_duplicate_mutation(cabinet, u
         assert db.execute("SELECT count(*) AS n FROM aurelius_cabinet.events WHERE application_id=%s AND action='submit'", (aid,)).fetchone()['n'] == 1
 
 
-@pytest.mark.parametrize('change', [None, 'financial', 'company', 'catalog', 'legacy', 'day', 'draft'])
+@pytest.mark.parametrize('change', [None, 'financial', 'company', 'catalog', 'legacy', 'day', 'draft', 'revert'])
 def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users, monkeypatch, change):
     """Use a synthetic financial fixture in the disposable DB, real CatBoost/library."""
     client, _, bank = users
@@ -236,6 +236,18 @@ def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users,
     assert borrower["assessment"] is None
     assert borrower["offer"] is None
     command(cabinet, bank, 'claim', aid)
+    if change == 'revert':
+        with cabinet.connect() as db:
+            original = db.execute('SELECT name FROM public.companies WHERE company_id=%s', (cid,)).fetchone()['name']
+            first_snapshot = db.execute('SELECT snapshot_id FROM aurelius_cabinet.calculation_inputs WHERE application_id=%s ORDER BY input_id DESC LIMIT 1', (aid,)).fetchone()['snapshot_id']
+            db.execute('UPDATE public.companies SET name=name || %s WHERE company_id=%s', (' changed', cid))
+        command(cabinet, bank, 'score', aid)
+        with cabinet.connect() as db:
+            db.execute('UPDATE public.companies SET name=%s WHERE company_id=%s', (original, cid))
+        command(cabinet, bank, 'score', aid)
+        with cabinet.connect() as db:
+            assert db.execute('SELECT snapshot_id FROM aurelius_cabinet.calculation_inputs WHERE application_id=%s ORDER BY input_id DESC LIMIT 1', (aid,)).fetchone()['snapshot_id'] == first_snapshot
+            assert db.execute("SELECT snapshot_id FROM public.application_snapshots WHERE application_id=%s AND snapshot_type='DECISION' ORDER BY snapshot_version DESC LIMIT 1", (aid,)).fetchone()['snapshot_id'] != first_snapshot
     if change == 'draft':
         with cabinet.connect() as db:
             db.execute('UPDATE public.companies SET name=name || %s WHERE company_id=%s', (' updated', cid))
@@ -244,11 +256,17 @@ def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users,
         assert error.value.code == 'SCORING_STALE'
         command(cabinet, bank, 'score', aid)
     command(cabinet, bank, "review", aid, decision="APPROVE", reason="Условия проверены сотрудником банка.")
+    if change == 'revert':
+        with cabinet.connect() as db:
+            assessment = db.execute('SELECT snapshot_data FROM public.application_snapshots WHERE snapshot_id=%s', (first_snapshot,)).fetchone()['snapshot_data']['assessment']
+            reviewed = db.execute('SELECT scoring_result_id FROM public.credit_decisions WHERE application_id=%s ORDER BY decision_id DESC LIMIT 1', (aid,)).fetchone()
+            assert reviewed['scoring_result_id'] == assessment['persistence']['scoring_result_id']
+        assert next(a for a in cabinet.state(bank)['applications'] if a['application_id'] == aid)['assessment'] == assessment
     published = next(a for a in cabinet.state(actor)["applications"] if a["application_id"] == aid)
     assert published["application_status"] == "APPROVED"
     assert published["offer"]["offer_status"] == "PROPOSED"
     assert "pd_application" not in json.dumps(published, default=str)
-    if change and change != 'draft':
+    if change and change not in ('draft', 'revert'):
         with cabinet.connect() as db:
             snapshots_before = db.execute('SELECT * FROM public.application_snapshots WHERE application_id=%s ORDER BY snapshot_id', (aid,)).fetchall()
             if change == 'financial':

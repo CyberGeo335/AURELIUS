@@ -72,14 +72,23 @@ def latest_input(db, aid):
     return db.execute('SELECT * FROM aurelius_cabinet.calculation_inputs WHERE application_id=%s ORDER BY input_id DESC LIMIT 1', (aid,)).fetchone()
 
 
+def calculation_hash(db, aid, snapshot_id):
+    # run_application may legitimately return an older cached DECISION when
+    # source data returns to its former values. Bind that exact result, while
+    # also detecting any later out-of-band calculation or snapshot mutation.
+    latest = db.execute("SELECT snapshot_id,snapshot_version FROM public.application_snapshots WHERE application_id=%s AND snapshot_type='DECISION' ORDER BY snapshot_version DESC LIMIT 1", (aid,)).fetchone()
+    selected = db.execute("SELECT snapshot_id,snapshot_data FROM public.application_snapshots WHERE application_id=%s AND snapshot_id=%s AND snapshot_type='DECISION'", (aid, snapshot_id)).fetchone()
+    return fingerprint({'contract': 'cabinet-input-guard-v1', 'inputs': input_hash(db, aid),
+                        'latest_snapshot': latest, 'selected_snapshot': selected})
+
+
 def current_calculation(db, aid):
     from .cabinet import Cabinet
     guard = latest_input(db, aid)
-    snapshot = db.execute("SELECT * FROM public.application_snapshots WHERE application_id=%s AND snapshot_type='DECISION' ORDER BY snapshot_version DESC LIMIT 1", (aid,)).fetchone()
     offer = Cabinet.latest_offer(db, aid)
-    return guard if (guard and snapshot and guard['snapshot_id'] == snapshot['snapshot_id']
+    return guard if (guard
                      and guard['offer_hash'] == (offer_hash(offer) if offer else None)
-                     and guard['input_hash'] == input_hash(db, aid)) else None
+                     and guard['input_hash'] == calculation_hash(db, aid, guard['snapshot_id'])) else None
 
 
 def offer_hash(offer):

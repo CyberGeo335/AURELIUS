@@ -139,6 +139,10 @@ class Cabinet:
         dialogue = db.execute('SELECT payload FROM aurelius_cabinet.dialogues WHERE application_id=%s AND user_id=%s', (aid, user_id)).fetchone() if not bank else None
         decision = db.execute("SELECT * FROM public.credit_decisions WHERE application_id=%s "
                               "ORDER BY decided_at DESC,decision_id DESC LIMIT 1", (aid,)).fetchone()
+        calculation = Cabinet.latest_calculation(db, aid)
+        if calculation and not any(str(reason.get('code', '')).startswith('BANK_') for reason in ((decision or {}).get('reasons') or [])):
+            result_id = calculation['snapshot_data'].get('assessment', {}).get('persistence', {}).get('decision_id')
+            decision = db.execute('SELECT * FROM public.credit_decisions WHERE application_id=%s AND decision_id=%s', (aid, result_id)).fetchone()
         offer = Cabinet.latest_offer(db, aid)
         # An unpublished calculation is only available to the reviewer.
         if not bank and (application["application_status"] != "APPROVED" or not offer or
@@ -149,8 +153,7 @@ class Cabinet:
                      "offered_term_months", "offered_annual_rate_pct")}
         assessment = None
         if bank:
-            snapshot = db.execute("SELECT snapshot_data FROM public.application_snapshots WHERE application_id=%s "
-                                  "AND snapshot_type='DECISION' ORDER BY snapshot_version DESC LIMIT 1", (aid,)).fetchone()
+            snapshot = calculation
             assessment = snapshot["snapshot_data"].get("assessment") if snapshot else None
         return {**application, "version": meta["version"] if meta else 1,
                 'dialogue': dialogue_view(dialogue['payload']) if dialogue else None,
@@ -231,7 +234,7 @@ class Cabinet:
         return result
 
     def guarded_score(self, db, aid):
-        from .cabinet_freshness import input_hash, lock_inputs, offer_hash
+        from .cabinet_freshness import calculation_hash, input_hash, lock_inputs, offer_hash
         with db.transaction():
             lock_inputs(db)
             before = input_hash(db, aid)
@@ -247,9 +250,9 @@ class Cabinet:
                 # client while the scorer inserts its output. Check its exact
                 # resolved snapshot as well as before/after source fingerprints.
                 coherent = self.scoring_snapshot_matches(result, aid)
-                offer = self.latest_offer(db, aid)
+                offer = db.execute('SELECT * FROM public.application_product_terms WHERE application_id=%s AND offer_id=%s', (aid, persistence.get('offer_id'))).fetchone() if persistence.get('offer_id') else None
                 db.execute('INSERT INTO aurelius_cabinet.calculation_inputs(application_id,snapshot_id,input_hash,offer_hash) VALUES(%s,%s,%s,%s)',
-                           (aid, snapshot['snapshot_id'], after if before == after and coherent else 'CHANGED_DURING_CALCULATION', offer_hash(offer) if offer else None))
+                           (aid, snapshot['snapshot_id'], calculation_hash(db, aid, snapshot['snapshot_id']) if before == after and coherent else 'CHANGED_DURING_CALCULATION', offer_hash(offer) if offer else None))
 
     def scoring_snapshot_matches(self, result, aid):
         expected = result.get('audit', {}).get('snapshot')
@@ -425,10 +428,17 @@ class Cabinet:
             raise ApiError(403, 'Действие доступно ответственному сотруднику. Сначала возьмите заявку в работу.', 'ASSIGNEE_REQUIRED')
 
     @staticmethod
+    def latest_calculation(db, aid):
+        # Cabinet's last explicit scoring call may reuse an older cached result.
+        # Its own immutable snapshot, including a result with no offer, wins.
+        snapshot = db.execute("SELECT s.snapshot_data FROM aurelius_cabinet.calculation_inputs i JOIN public.application_snapshots s ON s.snapshot_id=i.snapshot_id AND s.application_id=i.application_id WHERE i.application_id=%s ORDER BY i.input_id DESC LIMIT 1", (aid,)).fetchone()
+        if not snapshot:
+            snapshot = db.execute("SELECT snapshot_data FROM public.application_snapshots WHERE application_id=%s AND snapshot_type='DECISION' ORDER BY snapshot_version DESC LIMIT 1", (aid,)).fetchone()
+        return snapshot
+
+    @staticmethod
     def latest_offer(db, aid):
-        # Use the offer of the latest calculation, never an old successful calculation
-        # when the latest assessment has no offer. DECISION snapshots remain immutable.
-        snapshot = db.execute("SELECT snapshot_data FROM public.application_snapshots WHERE application_id=%s AND snapshot_type='DECISION' ORDER BY snapshot_version DESC LIMIT 1", (aid,)).fetchone()
+        snapshot = Cabinet.latest_calculation(db, aid)
         if not snapshot:
             return None
         offer_id = snapshot["snapshot_data"].get("assessment", {}).get("persistence", {}).get("offer_id")
@@ -519,7 +529,9 @@ class Cabinet:
         if decision not in ("APPROVE", "REJECT", "REQUEST_DATA") or not isinstance(reason, str) or not reason.strip():
             raise ApiError(400, "Укажите решение и его причину.")
         aid = app["application_id"]
-        last = db.execute("SELECT * FROM public.credit_decisions WHERE application_id=%s ORDER BY decided_at DESC,decision_id DESC LIMIT 1", (aid,)).fetchone()
+        calculation = self.latest_calculation(db, aid)
+        decision_id = (calculation['snapshot_data'].get('assessment', {}).get('persistence', {}).get('decision_id') if calculation else None)
+        last = db.execute('SELECT * FROM public.credit_decisions WHERE application_id=%s AND decision_id=%s', (aid, decision_id)).fetchone() if decision_id else None
         if not last:
             raise ApiError(409, "Сначала выполните скоринг.")
         offer = self.latest_offer(db, aid)
