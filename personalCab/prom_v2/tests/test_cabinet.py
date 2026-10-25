@@ -204,7 +204,8 @@ def test_scoring_outage_retries_submission_without_duplicate_mutation(cabinet, u
         assert db.execute("SELECT count(*) AS n FROM aurelius_cabinet.events WHERE application_id=%s AND action='submit'", (aid,)).fetchone()['n'] == 1
 
 
-def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users):
+@pytest.mark.parametrize('change', [None, 'financial', 'company', 'catalog', 'legacy', 'day', 'draft'])
+def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users, monkeypatch, change):
     """Use a synthetic financial fixture in the disposable DB, real CatBoost/library."""
     client, _, bank = users
     aid = int(command(cabinet, client, "create", product="R01")["application_id"])
@@ -235,15 +236,82 @@ def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users)
     assert borrower["assessment"] is None
     assert borrower["offer"] is None
     command(cabinet, bank, 'claim', aid)
+    if change == 'draft':
+        with cabinet.connect() as db:
+            db.execute('UPDATE public.companies SET name=name || %s WHERE company_id=%s', (' updated', cid))
+        with pytest.raises(ApiError) as error:
+            command(cabinet, bank, 'review', aid, decision='APPROVE', reason='Review')
+        assert error.value.code == 'SCORING_STALE'
+        command(cabinet, bank, 'score', aid)
     command(cabinet, bank, "review", aid, decision="APPROVE", reason="Условия проверены сотрудником банка.")
     published = next(a for a in cabinet.state(actor)["applications"] if a["application_id"] == aid)
     assert published["application_status"] == "APPROVED"
     assert published["offer"]["offer_status"] == "PROPOSED"
     assert "pd_application" not in json.dumps(published, default=str)
+    if change and change != 'draft':
+        with cabinet.connect() as db:
+            snapshots_before = db.execute('SELECT * FROM public.application_snapshots WHERE application_id=%s ORDER BY snapshot_id', (aid,)).fetchall()
+            if change == 'financial':
+                db.execute('UPDATE public.financial_statements SET operating_profit=operating_profit+100 WHERE company_id=%s', (cid,))
+            elif change == 'company':
+                db.execute('UPDATE public.companies SET name=name || %s WHERE company_id=%s', (' updated', cid))
+            elif change == 'catalog':
+                # Restore the shared catalogue immediately after detection below.
+                db.execute("UPDATE public.credit_product_terms SET max_amount=max_amount+1 WHERE product_code='R01'")
+            elif change == 'legacy':
+                db.execute('DELETE FROM aurelius_cabinet.offer_publications WHERE offer_id=%s', (published['offer']['offer_id'],))
+        if change == 'day':
+            from datetime import date, timedelta
+            import personalCab.prom_v2.cabinet_freshness as freshness
+            class Tomorrow(date):
+                @classmethod
+                def today(cls):
+                    return date.today() + timedelta(days=1)
+            monkeypatch.setattr(freshness, 'date', Tomorrow)
+        body = dict(kind='credit', action='accept', application_id=aid, expected_version=published['version'], request_id=uuid4().hex, offer_id=published['offer']['offer_id'])
+        try:
+            for _ in range(2):
+                with pytest.raises(ApiError) as error:
+                    cabinet.action(actor, body)
+                assert error.value.code == 'OFFER_STALE'
+        finally:
+            if change == 'catalog':
+                with cabinet.connect() as db:
+                    db.execute("UPDATE public.credit_product_terms SET max_amount=max_amount-1 WHERE product_code='R01'")
+            monkeypatch.undo()
+        stale = next(a for a in cabinet.state(actor)['applications'] if a['application_id'] == aid)
+        assert stale['offer'] is None
+        assert stale['application_status'] == 'UNDER_REVIEW'
+        assert stale['offer_stale']['reason']
+        with cabinet.connect() as db:
+            assert db.execute('SELECT * FROM public.application_snapshots WHERE application_id=%s ORDER BY snapshot_id', (aid,)).fetchall() == snapshots_before
+            assert db.execute('SELECT offer_status FROM public.application_product_terms WHERE offer_id=%s', (published['offer']['offer_id'],)).fetchone()['offer_status'] == 'DECLINED'
+        command(cabinet, bank, 'score', aid)
+        command(cabinet, bank, 'review', aid, decision='APPROVE', reason='Повторная проверка')
+        published = next(a for a in cabinet.state(actor)['applications'] if a['application_id'] == aid)
     command(cabinet, actor, "accept", aid, offer_id=published["offer"]["offer_id"])
     accepted = next(a for a in cabinet.state(actor)["applications"] if a["application_id"] == aid)
     assert accepted["offer"]["offer_status"] == "ACCEPTED"
     assert accepted["application_status"] == "APPROVED"
+
+
+def test_input_locks_block_external_updates_and_inserts(cabinet, users):
+    from concurrent.futures import ThreadPoolExecutor
+    import psycopg
+    from personalCab.prom_v2.cabinet_freshness import lock_inputs
+    def write(query, args):
+        with cabinet.connect() as writer:
+            writer.execute("SET LOCAL lock_timeout='150ms'")
+            with pytest.raises(psycopg.errors.LockNotAvailable):
+                writer.execute(query, args)
+            writer.rollback()
+    with cabinet.connect() as db:
+        lock_inputs(db)
+        with ThreadPoolExecutor(2) as pool:
+            futures = [pool.submit(write, 'UPDATE public.companies SET name=name WHERE company_id=%s', (users[0]['company_id'],)),
+                       pool.submit(write, "INSERT INTO public.bank_transactions(company_id,transaction_date,amount,direction,currency) VALUES(%s,CURRENT_DATE,1,'IN','RUB')", (users[0]['company_id'],))]
+            for future in futures:
+                future.result()
 
 
 def test_document_bytes_scope_retry_and_open_request(cabinet, users):

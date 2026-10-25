@@ -56,6 +56,29 @@ const state = {
 };
 
 describe('HTTP cabinet', () => {
+  it('filters My reviews by employee ID', async () => {
+    vi.stubEnv('VITE_API_MODE', 'http');
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => Response.json(url.endsWith('session')
+      ? { ...user, role: 'BANK_EMPLOYEE', company_id: null }
+      : { ...state, applications: [
+        { ...application, assignment: { employee_id: 10, first_name: 'Иван', last_name: 'Иванов' } },
+        { ...application, application_id: 457, assignment: { employee_id: 11, first_name: 'Иван', last_name: 'Иванов' } },
+      ] })));
+    render(<MemoryRouter initialEntries={['/bank/mine']}><Providers><App /></Providers></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Мои разборы' });
+    expect(screen.getByRole('link', { name: /456/ })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /457/ })).not.toBeInTheDocument();
+  });
+  it('shows stale-offer reason without an acceptance button', async () => {
+    vi.stubEnv('VITE_API_MODE', 'http');
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => Response.json(url.endsWith('session') ? user : {
+      ...state, applications: [{ ...application, application_status: 'UNDER_REVIEW', offer: null,
+        offer_stale: { reason: 'Данные изменились, банк повторно проверяет предложение.' } }],
+    })));
+    render(<MemoryRouter initialEntries={['/client/applications/456']}><Providers><App /></Providers></MemoryRouter>);
+    await screen.findByText('Данные изменились, банк повторно проверяет предложение.');
+    expect(screen.queryByRole('button', { name: 'Принять предложение' })).not.toBeInTheDocument();
+  });
   it('uploads real bytes and reuses a failed upload without answering a request', async () => {
     const bodies: string[] = [];
     vi.stubGlobal(

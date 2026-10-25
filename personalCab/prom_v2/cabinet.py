@@ -59,7 +59,7 @@ class Cabinet:
     def initialize(self):
         # Deliberately execute only this additive migration, never older init scripts.
         with self.connect() as db:
-            for name in ("005_cabinet.sql", "006_cabinet_documents.sql", "007_cabinet_assignments.sql"):
+            for name in ("005_cabinet.sql", "006_cabinet_documents.sql", "007_cabinet_assignments.sql", "008_cabinet_freshness.sql"):
                 source = Path(__file__).with_name("migrations") / name
                 db.execute(source.read_text(encoding="utf-8"), prepare=False)
 
@@ -151,6 +151,7 @@ class Cabinet:
             assessment = snapshot["snapshot_data"].get("assessment") if snapshot else None
         return {**application, "version": meta["version"] if meta else 1,
                 "assignment": db.execute("SELECT a.employee_id,a.assigned_at,u.first_name,u.last_name FROM aurelius_cabinet.assignments a JOIN public.user_accounts u ON u.user_id=a.employee_id WHERE a.application_id=%s", (aid,)).fetchone(),
+                "offer_stale": db.execute("SELECT reason FROM aurelius_cabinet.stale_offers WHERE application_id=%s ORDER BY detected_at DESC LIMIT 1", (aid,)).fetchone() if not offer or offer['offer_status'] == 'DECLINED' else None,
                 "documents": db.execute(f"SELECT {DOCUMENT_COLUMNS} FROM aurelius_cabinet.documents WHERE application_id=%s ORDER BY document_id", (aid,)).fetchall(),
                 "form_state": meta["form_state"] if meta else {},
                 "decision": decision["decision"] if decision else None,
@@ -186,15 +187,21 @@ class Cabinet:
                     if receipt["input_hash"] != fingerprint:
                         raise ApiError(409, "Идентификатор запроса уже использован.", "REQUEST_ID_REUSED")
                     if not receipt["result"].get("pending_score"):
-                        return receipt["result"]
+                        return self.action_result(receipt["result"])
                     aid = int(receipt["result"]["application_id"])
                     self.owned(db, user, aid)
                     if body['action'] == 'score':
                         self.require_assignee(db, user, aid)
                 else:
                     with db.transaction():
+                        if body['action'] in ('review', 'accept'):
+                            from .cabinet_freshness import lock_inputs
+                            lock_inputs(db)
+                            lock_inputs(db, outputs=True)
                         aid = self.mutate(db, user, body)
                         result = {"application_id": str(aid)}
+                        if body['action'] == 'accept' and self.latest_offer(db, aid)['offer_status'] != 'ACCEPTED':
+                            result['error'] = 'OFFER_STALE'
                         if body["action"] in ("submit", "score", "revise"):
                             result["pending_score"] = True
                         # Persist the domain mutation and its receipt atomically. A
@@ -202,15 +209,61 @@ class Cabinet:
                         db.execute("INSERT INTO aurelius_cabinet.receipts VALUES(%s,%s,%s,%s)",
                                    (user["user_id"], request_id, fingerprint, Jsonb(result)))
                 if body["action"] in ("submit", "score", "revise"):
-                    self.score(aid)
-                result = {"application_id": str(aid)}
+                    self.guarded_score(db, aid)
+                result = {"application_id": str(aid), **({'error': result['error']} if 'error' in result else {})} if not receipt else receipt['result']
+                result.pop('pending_score', None)
                 with db.transaction():
                     db.execute("UPDATE aurelius_cabinet.receipts SET result=%s WHERE user_id=%s AND request_id=%s",
                                (Jsonb(result), user["user_id"], request_id))
-                return result
+                return self.action_result(result)
             finally:
                 for key in reversed(keys):
                     db.execute("SELECT pg_advisory_unlock(hashtextextended(%s,0))", (key,))
+
+    @staticmethod
+    def action_result(result):
+        if result.get('error') == 'OFFER_STALE':
+            raise ApiError(409, 'Данные изменились, банк повторно проверяет предложение.', 'OFFER_STALE')
+        return result
+
+    def guarded_score(self, db, aid):
+        from .cabinet_freshness import input_hash, lock_inputs, offer_hash
+        with db.transaction():
+            lock_inputs(db)
+            before = input_hash(db, aid)
+            result = self.score(aid)
+            lock_inputs(db, outputs=True)
+            after = input_hash(db, aid)
+            persistence = result.get('persistence', {})
+            if persistence.get('decision_id'):
+                snapshot = db.execute("SELECT * FROM public.application_snapshots WHERE application_id=%s AND snapshot_type='DECISION' AND snapshot_data->'assessment'->'persistence'->>'decision_id'=%s ORDER BY snapshot_version DESC LIMIT 1", (aid, str(persistence['decision_id']))).fetchone()
+                if not snapshot:
+                    raise ApiError(409, 'Не найден снимок расчёта. Повторите скоринг.')
+                # External individual offer inputs can be written by another DB
+                # client while the scorer inserts its output. Check its exact
+                # resolved snapshot as well as before/after source fingerprints.
+                coherent = self.scoring_snapshot_matches(result, aid)
+                offer = self.latest_offer(db, aid)
+                db.execute('INSERT INTO aurelius_cabinet.calculation_inputs(application_id,snapshot_id,input_hash,offer_hash) VALUES(%s,%s,%s,%s)',
+                           (aid, snapshot['snapshot_id'], after if before == after and coherent else 'CHANGED_DURING_CALCULATION', offer_hash(offer) if offer else None))
+
+    def scoring_snapshot_matches(self, result, aid):
+        expected = result.get('audit', {}).get('snapshot')
+        if not expected:
+            return not result.get('offer')
+        from sqlalchemy import create_engine
+        from main.application_service import automatic_context
+        from main.database import load_snapshot
+        from main.decision_engine.policy import Policy
+        from .cabinet_freshness import fingerprint
+        engine = create_engine(self.url)
+        try:
+            with engine.connect() as connection:
+                policy = Policy.load(Path(__file__).resolve().parents[2] / 'scoring/main/decision_engine/policy.demo.json')
+                context = automatic_context(connection, aid, policy, date.fromisoformat(expected['as_of']))
+                return fingerprint(load_snapshot(connection, aid, context)) == fingerprint(expected)
+        finally:
+            engine.dispose()
 
     def score(self, application_id):
         if self.scorer:
@@ -304,7 +357,17 @@ class Cabinet:
             offer = self.latest_offer(db, aid)
             if not offer or str(offer["offer_id"]) != str(body.get("offer_id")) or offer["offer_status"] != "PROPOSED":
                 raise ApiError(409, "Предложение изменилось.")
-            db.execute("UPDATE public.application_product_terms SET offer_status='ACCEPTED' WHERE offer_id=%s", (offer["offer_id"],))
+            from .cabinet_freshness import current_calculation, offer_hash, stale_offer
+            guard = current_calculation(db, aid)
+            publication = db.execute('SELECT * FROM aurelius_cabinet.offer_publications WHERE offer_id=%s', (offer['offer_id'],)).fetchone()
+            decision = db.execute('SELECT decision_id FROM public.credit_decisions WHERE application_id=%s ORDER BY decided_at DESC,decision_id DESC LIMIT 1', (aid,)).fetchone()
+            if (not guard or not publication or publication['input_id'] != guard['input_id']
+                    or publication['offer_hash'] != offer_hash(offer) or not decision
+                    or publication['decision_id'] != decision['decision_id']):
+                stale_offer(db, aid, offer, user)
+                action = 'accept_blocked'
+            else:
+                db.execute("UPDATE public.application_product_terms SET offer_status='ACCEPTED' WHERE offer_id=%s", (offer["offer_id"],))
         elif action == "cancel":
             if app["application_status"] in ("REJECTED", "CANCELLED"):
                 raise ApiError(409, "Заявка закрыта.")
@@ -454,6 +517,11 @@ class Cabinet:
         offer = self.latest_offer(db, aid)
         if decision == "APPROVE" and (not offer or offer["offer_status"] != "DRAFT"):
             raise ApiError(409, "Для одобрения нужен рассчитанный черновик предложения.")
+        if decision == 'APPROVE':
+            from .cabinet_freshness import current_calculation, offer_hash
+            guard = current_calculation(db, aid)
+            if not guard:
+                raise ApiError(409, 'Исходные данные изменились или расчёт не имеет отпечатка. Повторите скоринг перед решением.', 'SCORING_STALE')
         if decision == "APPROVE" and db.execute("SELECT 1 FROM public.application_data_requests WHERE application_id=%s AND request_status='OPEN'", (aid,)).fetchone():
             raise ApiError(409, "Сначала дождитесь ответов на открытые запросы.")
         if decision == "REQUEST_DATA":
@@ -465,6 +533,8 @@ class Cabinet:
         status = {"APPROVE": "APPROVED", "REJECT": "REJECTED", "REQUEST_DATA": "AWAITING_DATA"}[decision]
         db.execute("UPDATE public.credit_applications SET application_status=%s,decision_date=now() WHERE application_id=%s", (status, aid))
         if decision == "APPROVE":
+            decision_row = db.execute('SELECT decision_id FROM public.credit_decisions WHERE application_id=%s ORDER BY decided_at DESC,decision_id DESC LIMIT 1', (aid,)).fetchone()
+            db.execute('INSERT INTO aurelius_cabinet.offer_publications(offer_id,input_id,decision_id,offer_hash) VALUES(%s,%s,%s,%s)', (offer['offer_id'], guard['input_id'], decision_row['decision_id'], offer_hash(offer)))
             db.execute("UPDATE public.application_product_terms SET offer_status='PROPOSED' WHERE offer_id=%s", (offer["offer_id"],))
         elif decision == "REJECT":
             db.execute("UPDATE public.application_product_terms SET offer_status='DECLINED' WHERE application_id=%s AND offer_status IN ('DRAFT','PROPOSED')", (aid,))

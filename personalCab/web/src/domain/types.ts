@@ -132,6 +132,7 @@ export interface CreditState {
 export type BankAction = 'A' | 'B' | 'BOTH' | 'INFO' | 'DECLINE';
 
 export interface ServerApplication {
+  offer_stale?: { reason: string } | null;
   assignment?: {
     employee_id: number;
     first_name: string;

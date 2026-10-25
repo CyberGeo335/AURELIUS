@@ -405,6 +405,7 @@ function Reasons({ app }: { app: Application }) {
   return (
     <Card>
       <h2>Причины решения</h2>
+      {app.server?.offer_stale && <p role="status">{app.server.offer_stale.reason}</p>}
       {reasons.length ? (
         reasons.map((r, i) => <p key={i}>{r.message}</p>)
       ) : (
