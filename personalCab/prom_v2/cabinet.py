@@ -51,6 +51,7 @@ class Cabinet:
             raise RuntimeError("Set DATABASE_URL for business_scoring")
         self.conninfo = self.url.replace("postgresql+psycopg://", "postgresql://", 1)
         self.scorer = scorer
+        self.dialogue_dependencies = None
 
     def connect(self, autocommit=False):
         return psycopg.connect(self.conninfo, row_factory=dict_row, autocommit=autocommit,
@@ -59,7 +60,7 @@ class Cabinet:
     def initialize(self):
         # Deliberately execute only this additive migration, never older init scripts.
         with self.connect() as db:
-            for name in ("005_cabinet.sql", "006_cabinet_documents.sql", "007_cabinet_assignments.sql", "008_cabinet_freshness.sql"):
+            for name in ("005_cabinet.sql", "006_cabinet_documents.sql", "007_cabinet_assignments.sql", "008_cabinet_freshness.sql", "009_cabinet_dialogues.sql"):
                 source = Path(__file__).with_name("migrations") / name
                 db.execute(source.read_text(encoding="utf-8"), prepare=False)
 
@@ -121,7 +122,7 @@ class Cabinet:
             apps = db.execute("SELECT * FROM public.credit_applications WHERE (%s OR company_id=%s) "
                               "ORDER BY application_date DESC,application_id DESC",
                               (bank, user["company_id"])).fetchall()
-            return {"companies": companies, "applications": [self.project(db, a, bank) for a in apps],
+            return {"companies": companies, "applications": [self.project(db, a, bank, user['user_id']) for a in apps],
                     "requirements": db.execute("SELECT * FROM public.application_field_requirements "
                                                "ORDER BY product_code,field_number").fetchall(),
                     "catalog": db.execute("SELECT t.* FROM public.credit_product_terms t "
@@ -130,10 +131,12 @@ class Cabinet:
                                           "AND (effective_to IS NULL OR effective_to>=CURRENT_DATE)").fetchall()}
 
     @staticmethod
-    def project(db, application, bank):
+    def project(db, application, bank, user_id=None):
         from .cabinet_documents import DOCUMENT_COLUMNS
+        from .cabinet_assistant import dialogue_view
         aid = application["application_id"]
         meta = db.execute("SELECT * FROM aurelius_cabinet.application_state WHERE application_id=%s", (aid,)).fetchone()
+        dialogue = db.execute('SELECT payload FROM aurelius_cabinet.dialogues WHERE application_id=%s AND user_id=%s', (aid, user_id)).fetchone() if not bank else None
         decision = db.execute("SELECT * FROM public.credit_decisions WHERE application_id=%s "
                               "ORDER BY decided_at DESC,decision_id DESC LIMIT 1", (aid,)).fetchone()
         offer = Cabinet.latest_offer(db, aid)
@@ -150,8 +153,9 @@ class Cabinet:
                                   "AND snapshot_type='DECISION' ORDER BY snapshot_version DESC LIMIT 1", (aid,)).fetchone()
             assessment = snapshot["snapshot_data"].get("assessment") if snapshot else None
         return {**application, "version": meta["version"] if meta else 1,
+                'dialogue': dialogue_view(dialogue['payload']) if dialogue else None,
                 "assignment": db.execute("SELECT a.employee_id,a.assigned_at,u.first_name,u.last_name FROM aurelius_cabinet.assignments a JOIN public.user_accounts u ON u.user_id=a.employee_id WHERE a.application_id=%s", (aid,)).fetchone(),
-                "offer_stale": db.execute("SELECT reason FROM aurelius_cabinet.stale_offers WHERE application_id=%s ORDER BY detected_at DESC LIMIT 1", (aid,)).fetchone() if not offer or offer['offer_status'] == 'DECLINED' else None,
+                "offer_stale": db.execute("SELECT reason FROM aurelius_cabinet.stale_offers WHERE application_id=%s ORDER BY detected_at DESC LIMIT 1", (aid,)).fetchone() if application['application_status'] in ('SUBMITTED', 'UNDER_REVIEW', 'AWAITING_DATA') and (not offer or offer['offer_status'] == 'DECLINED') else None,
                 "documents": db.execute(f"SELECT {DOCUMENT_COLUMNS} FROM aurelius_cabinet.documents WHERE application_id=%s ORDER BY document_id", (aid,)).fetchall(),
                 "form_state": meta["form_state"] if meta else {},
                 "decision": decision["decision"] if decision else None,
@@ -192,6 +196,7 @@ class Cabinet:
                     self.owned(db, user, aid)
                     if body['action'] == 'score':
                         self.require_assignee(db, user, aid)
+                    result = dict(receipt['result'])
                 else:
                     with db.transaction():
                         if body['action'] in ('review', 'accept'):
@@ -210,7 +215,6 @@ class Cabinet:
                                    (user["user_id"], request_id, fingerprint, Jsonb(result)))
                 if body["action"] in ("submit", "score", "revise"):
                     self.guarded_score(db, aid)
-                result = {"application_id": str(aid), **({'error': result['error']} if 'error' in result else {})} if not receipt else receipt['result']
                 result.pop('pending_score', None)
                 with db.transaction():
                     db.execute("UPDATE aurelius_cabinet.receipts SET result=%s WHERE user_id=%s AND request_id=%s",
@@ -303,7 +307,10 @@ class Cabinet:
             self.client(user)
         if action in ('score', 'review', 'verify'):
             self.require_assignee(db, user, aid)
-        if action in ('claim', 'release'):
+        if action in ('chat', 'confirm_facts'):
+            from .cabinet_assistant import run_dialogue
+            run_dialogue(self, db, user, app, body, meta)
+        elif action in ('claim', 'release'):
             self.employee(user)
             if not db.execute("SELECT 1 FROM public.user_accounts WHERE user_id=%s AND role='BANK_EMPLOYEE' AND is_active FOR SHARE", (user['user_id'],)).fetchone():
                 raise ApiError(403, 'Требуется активный сотрудник банка.')
@@ -326,6 +333,7 @@ class Cabinet:
             if app["application_status"] != "DRAFT":
                 raise ApiError(409, "Редактировать можно только черновик.")
             self.save(db, app, body.get("patch", {}), meta["form_state"])
+            db.execute("UPDATE aurelius_cabinet.dialogues SET payload=jsonb_set(payload,'{pending}','null'::jsonb),updated_at=now() WHERE application_id=%s", (aid,))
         elif action == "submit":
             if app["application_status"] != "DRAFT":
                 raise ApiError(409, "Заявка уже отправлена.")

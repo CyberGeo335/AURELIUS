@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { HttpAuthApi } from '../api/HttpAuthApi';
 import { HttpCreditApi } from '../api/HttpCreditApi';
@@ -56,26 +56,234 @@ const state = {
 };
 
 describe('HTTP cabinet', () => {
+  it('does not overwrite a saved assistant change with an older form', async () => {
+    vi.stubEnv('VITE_API_MODE', 'http');
+    const bodies: { expected_version: number; patch: { fields: Record<string, string> } }[] = [];
+    let current = { ...application, application_status: 'DRAFT', offer: null };
+    const data = () => ({
+      ...state,
+      applications: [current],
+      requirements: [
+        {
+          product_code: 'R01',
+          field_number: 5,
+          field_code: 'R01_05',
+          field_label: 'Запрашиваемая сумма',
+          required_ooo: true,
+          required_ip: true,
+          target_db_field: 'credit_applications.requested_amount',
+          format_rule: null,
+        },
+      ],
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('action')) {
+          const body = JSON.parse(String(init?.body));
+          bodies.push(body);
+          if (body.expected_version !== current.version)
+            return Response.json({ code: 'STALE_CASE_VERSION' }, { status: 409 });
+          current = { ...current, version: current.version + 1 };
+          return Response.json({ application_id: '456' });
+        }
+        return Response.json(url.endsWith('session') ? user : data());
+      }),
+    );
+    const api = new HttpCreditApi();
+    render(
+      <MemoryRouter initialEntries={['/client/new/456']}>
+        <Providers api={api}>
+          <App />
+        </Providers>
+      </MemoryRouter>,
+    );
+    const amount = await screen.findByRole('textbox', { name: 'Запрашиваемая сумма' });
+    fireEvent.change(amount, { target: { value: '2500000' } });
+    await act(async () => {
+      current = { ...current, version: 3, requested_amount: '4000000' };
+      await api.refresh();
+    });
+    expect(amount).toHaveValue('2500000');
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить черновик' }));
+    await screen.findByText(/Заявка изменилась. Ваш ввод сохранён/);
+    expect(bodies[0].expected_version).toBe(2);
+    expect(amount).toHaveValue('2500000');
+    fireEvent.click(screen.getByRole('button', { name: 'Заменить мой ввод сохранённой версией' }));
+    expect(amount).toHaveValue('4000000');
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить черновик' }));
+    await vi.waitFor(() => expect(bodies).toHaveLength(2));
+    expect(bodies[1].expected_version).toBe(3);
+    expect(bodies[1].patch.fields.R01_05).toBe('4000000');
+  });
+  it('requires explicit assistant confirmation and sends only the proposal ID', async () => {
+    vi.stubEnv('VITE_API_MODE', 'http');
+    const requests: Record<string, unknown>[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('action')) {
+          requests.push(JSON.parse(String(init?.body)));
+          return Response.json({ application_id: '456' });
+        }
+        return Response.json(
+          url.endsWith('session')
+            ? user
+            : {
+                ...state,
+                applications: [
+                  {
+                    ...application,
+                    application_status: 'DRAFT',
+                    offer: null,
+                    dialogue: {
+                      history: [{ role: 'assistant', content: 'Проверьте извлечённые сведения.' }],
+                      pending: {
+                        proposal_id: 'PROP-test',
+                        patch: { amount_rub: 1000000 },
+                        quotes: { amount_rub: 'миллион рублей' },
+                        clear_fields: [],
+                      },
+                      problems: [],
+                    },
+                  },
+                ],
+              },
+        );
+      }),
+    );
+    render(
+      <MemoryRouter initialEntries={['/client/applications/456']}>
+        <Providers>
+          <App />
+        </Providers>
+      </MemoryRouter>,
+    );
+    await screen.findByRole('heading', { name: 'Предложенные сведения' });
+    expect(requests).toHaveLength(0);
+    expect(screen.getByText('Из сообщения: «миллион рублей»')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Подтвердить предложенные изменения' }));
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    expect(requests[0]).toMatchObject({
+      action: 'confirm_facts',
+      application_id: 456,
+      proposal_id: 'PROP-test',
+    });
+    expect(requests[0]).not.toHaveProperty('patch');
+    expect(requests[0]).not.toHaveProperty('company_id');
+  });
+  it('selecting a file never answers a data request', async () => {
+    vi.stubEnv('VITE_API_MODE', 'http');
+    const requests: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (init?.method === 'POST') requests.push(String(init.body));
+        return Response.json(
+          url.endsWith('session')
+            ? user
+            : {
+                ...state,
+                applications: [
+                  {
+                    ...application,
+                    application_status: 'AWAITING_DATA',
+                    offer: null,
+                    requests: [
+                      {
+                        request_id: 99,
+                        field_code: 'R01_05',
+                        question_text: 'Предоставьте выписку',
+                        request_status: 'OPEN',
+                      },
+                    ],
+                  },
+                ],
+              },
+        );
+      }),
+    );
+    render(
+      <MemoryRouter initialEntries={['/client/applications/456']}>
+        <Providers>
+          <App />
+        </Providers>
+      </MemoryRouter>,
+    );
+    await screen.findByText('Предоставьте выписку');
+    const input = screen.getAllByLabelText('Выбрать PDF или CSV')[1];
+    fireEvent.change(input, { target: { files: [new File(['a,b\n1,2'], 'statement.csv')] } });
+    expect(requests).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Отправить ответ' })).toBeDisabled();
+    expect(screen.getByText('Предоставьте выписку')).toBeInTheDocument();
+  });
   it('filters My reviews by employee ID', async () => {
     vi.stubEnv('VITE_API_MODE', 'http');
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => Response.json(url.endsWith('session')
-      ? { ...user, role: 'BANK_EMPLOYEE', company_id: null }
-      : { ...state, applications: [
-        { ...application, assignment: { employee_id: 10, first_name: 'Иван', last_name: 'Иванов' } },
-        { ...application, application_id: 457, assignment: { employee_id: 11, first_name: 'Иван', last_name: 'Иванов' } },
-      ] })));
-    render(<MemoryRouter initialEntries={['/bank/mine']}><Providers><App /></Providers></MemoryRouter>);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        Response.json(
+          url.endsWith('session')
+            ? { ...user, role: 'BANK_EMPLOYEE', company_id: null }
+            : {
+                ...state,
+                applications: [
+                  {
+                    ...application,
+                    assignment: { employee_id: 10, first_name: 'Иван', last_name: 'Иванов' },
+                  },
+                  {
+                    ...application,
+                    application_id: 457,
+                    assignment: { employee_id: 11, first_name: 'Иван', last_name: 'Иванов' },
+                  },
+                ],
+              },
+        ),
+      ),
+    );
+    render(
+      <MemoryRouter initialEntries={['/bank/mine']}>
+        <Providers>
+          <App />
+        </Providers>
+      </MemoryRouter>,
+    );
     await screen.findByRole('heading', { name: 'Мои разборы' });
     expect(screen.getByRole('link', { name: /456/ })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /457/ })).not.toBeInTheDocument();
   });
   it('shows stale-offer reason without an acceptance button', async () => {
     vi.stubEnv('VITE_API_MODE', 'http');
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => Response.json(url.endsWith('session') ? user : {
-      ...state, applications: [{ ...application, application_status: 'UNDER_REVIEW', offer: null,
-        offer_stale: { reason: 'Данные изменились, банк повторно проверяет предложение.' } }],
-    })));
-    render(<MemoryRouter initialEntries={['/client/applications/456']}><Providers><App /></Providers></MemoryRouter>);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        Response.json(
+          url.endsWith('session')
+            ? user
+            : {
+                ...state,
+                applications: [
+                  {
+                    ...application,
+                    application_status: 'UNDER_REVIEW',
+                    offer: null,
+                    offer_stale: {
+                      reason: 'Данные изменились, банк повторно проверяет предложение.',
+                    },
+                  },
+                ],
+              },
+        ),
+      ),
+    );
+    render(
+      <MemoryRouter initialEntries={['/client/applications/456']}>
+        <Providers>
+          <App />
+        </Providers>
+      </MemoryRouter>,
+    );
     await screen.findByText('Данные изменились, банк повторно проверяет предложение.');
     expect(screen.queryByRole('button', { name: 'Принять предложение' })).not.toBeInTheDocument();
   });

@@ -7,6 +7,7 @@ import io
 import unicodedata
 
 MAX_DOCUMENT_BYTES = 10 * 1024 * 1024
+csv.field_size_limit(MAX_DOCUMENT_BYTES)
 DOCUMENT_COLUMNS = "document_id,application_id,uploaded_by,data_request_id,filename,media_type,octet_length(content) AS size,sha256,source,processing_status,created_at"
 
 
@@ -58,6 +59,8 @@ def store_document(db, user: dict, app: dict, body: dict) -> dict:
     from .cabinet import ApiError
     content, media_type = validate_document(body.get('filename'), body.get('content_base64'))
     request_id = body.get('data_request_id')
+    if request_id is not None and (type(request_id) is not int or request_id <= 0):
+        raise ApiError(400, 'Недопустимый идентификатор дозапроса.')
     if request_id is not None and not db.execute(
             "SELECT 1 FROM public.application_data_requests WHERE request_id=%s AND application_id=%s AND request_status='OPEN' FOR UPDATE",
             (request_id, app['application_id'])).fetchone():

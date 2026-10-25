@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useApi, useCredit, useSession, useAction } from '../app/context';
 import { HttpCreditApi } from '../api/HttpCreditApi';
@@ -195,6 +195,7 @@ function DraftForm({
     String(app.server?.product_details?.max_tranche_term_unit ?? ''),
   );
   const [saved, setSaved] = useState(false);
+  const [formVersion, setFormVersion] = useState(app.revision);
   const code = (n: number) => `${app.product}_${String(n).padStart(2, '0')}`;
   const save = async () => {
     const details: Record<string, unknown> = {};
@@ -223,6 +224,7 @@ function DraftForm({
     if (app.product === 'R02' && values[code(33)])
       product_details.drawdown_period_months = Number(values[code(33)]);
     await api.command('save', app.id, {
+      expected_version: formVersion,
       patch: {
         fields: values,
         details,
@@ -233,6 +235,9 @@ function DraftForm({
         purpose: values[code(4)],
       },
     });
+    setFormVersion(
+      api.getSnapshot().applications.find((item) => item.id === app.id)?.revision ?? formVersion,
+    );
     setSaved(true);
   };
   return (
@@ -245,6 +250,36 @@ function DraftForm({
         <h1>{products[app.product]}</h1>
         <p>{company.name}</p>
       </HeroPanel>
+      {app.revision !== formVersion && (
+        <Card>
+          <p role="status">
+            Сохранённая заявка изменилась. Ваш ввод остаётся в форме; старая версия не перезапишет
+            изменения из диалога или другой вкладки.
+          </p>
+          <p>
+          Сохранено: {requestedAmount(app)} · {requestedTerm(app)} · Цель:{' '}
+            {app.purpose || 'Не указана'}.
+          </p>
+          <Action
+            tone="outline"
+            disabled={action.busy}
+            onClick={() => {
+              setValues(initialFields(rows, app, company));
+              setConsents({
+                consentBki: app.consentBki,
+                consentData: app.consentData,
+                businessConfirmed: app.businessConfirmed,
+              });
+              setTranche(String(app.server?.product_details?.max_tranche_term_value ?? ''));
+              setUnit(String(app.server?.product_details?.max_tranche_term_unit ?? ''));
+              setFormVersion(app.revision);
+              setSaved(false);
+            }}
+          >
+            Заменить мой ввод сохранённой версией
+          </Action>
+        </Card>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -368,6 +403,19 @@ function DraftForm({
             <Action type="submit" disabled={action.busy}>
               {action.busy ? 'Сохраняем и проверяем…' : 'Отправить заявку'}
             </Action>
+            <Action
+              type="button"
+              tone="outline"
+              disabled={action.busy}
+              onClick={() =>
+                void action.run(async () => {
+                  await save();
+                  nav(`/client/applications/${app.id}`);
+                })
+              }
+            >
+              Сохранить и обсудить с ассистентом
+            </Action>
           </div>
         </Card>
       </form>
@@ -441,6 +489,7 @@ function Documents({ app, requestId }: { app: Application; requestId?: string })
   const api = useApi() as HttpCreditApi;
   const action = useAction();
   const [file, setFile] = useState<File | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const documents = (app.server?.documents ?? []).filter(
     (document) => !requestId || String(document.data_request_id) === requestId,
   );
@@ -468,6 +517,7 @@ function Documents({ app, requestId }: { app: Application; requestId?: string })
       <label className="form-field">
         Выбрать PDF или CSV
         <input
+          ref={fileInput}
           type="file"
           accept=".pdf,.csv"
           disabled={action.busy}
@@ -479,7 +529,11 @@ function Documents({ app, requestId }: { app: Application; requestId?: string })
         disabled={action.busy || !file}
         onClick={() =>
           void action.run(async () => {
-            if (file) await api.uploadDocument(app.id, file, requestId);
+            if (file) {
+              await api.uploadDocument(app.id, file, requestId);
+              setFile(null);
+              if (fileInput.current) fileInput.current.value = '';
+            }
           })
         }
       >
@@ -514,6 +568,7 @@ export function BusinessDetail() {
           <Link to={`/client/new/${app.id}`}>Продолжить заполнение</Link>
         </Card>
       )}
+      {app.status === 'DRAFT' && <BusinessAssistant app={app} />}
       <Offer app={app} />
       <Reasons app={app} />
       <Card>
@@ -548,6 +603,99 @@ export function BusinessDetail() {
         </div>
       </Card>
     </>
+  );
+}
+const assistantLabels: Record<string, string> = {
+  amount_rub: 'Сумма, ₽',
+  term_months: 'Срок, месяцев',
+  purpose: 'Цель',
+  legal_form: 'Форма бизнеса',
+  inn: 'ИНН',
+  financing_need: 'Характер потребности',
+  needed_by: 'Когда нужны деньги',
+  repayment_source: 'Источник погашения',
+  recurring: 'Повторяющаяся потребность',
+  known_obligations: 'Известные обязательства',
+  seasonality: 'Сезонность',
+  collateral: 'Обеспечение',
+  project_name: 'Название проекта',
+  business_age_months: 'Возраст бизнеса, месяцев',
+  monthly_revenue_rub: 'Заявленная месячная выручка, ₽',
+  operating_cycle_days: 'Операционный цикл, дней',
+  has_collateral: 'Наличие обеспечения',
+  tranche_term_days: 'Срок транша, дней',
+  tranche_term_months: 'Срок транша, месяцев',
+  drawdown_period_months: 'Период выборки, месяцев',
+};
+function BusinessAssistant({ app }: { app: Application }) {
+  const api = useApi() as HttpCreditApi;
+  const action = useAction();
+  const [text, setText] = useState('');
+  const dialogue = app.server?.dialogue;
+  const pending = dialogue?.pending;
+  return (
+    <Card>
+      <h2>Ассистент по заявке</h2>
+      <p className="small muted">
+        Сообщение предлагает изменения анкеты. Подтверждение сведений, согласия и отправка заявки
+        выполняются отдельными действиями.
+      </p>
+      <div aria-live="polite">
+        {dialogue?.history.map((message, index) => (
+          <div className="inset" key={index}>
+            <strong>{message.role === 'user' ? 'Вы' : 'Ассистент'}</strong>
+            <p>{message.content}</p>
+          </div>
+        ))}
+      </div>
+      {pending && (
+        <div className="inset">
+          <h3>Предложенные сведения</h3>
+          <dl>
+            {Object.entries(pending.patch).map(([field, value]) => (
+              <div key={field}>
+                <dt>{assistantLabels[field] ?? field}</dt>
+                <dd>{pending.display_values?.[field] ?? String(value)}</dd>
+                {pending.quotes[field] && (
+                  <dd className="small muted">Из сообщения: «{pending.quotes[field]}»</dd>
+                )}
+              </div>
+            ))}
+          </dl>
+          <Action
+            disabled={action.busy}
+            onClick={() =>
+              void action.run(() =>
+                api.command('confirm_facts', app.id, { proposal_id: pending.proposal_id }),
+              )
+            }
+          >
+            Подтвердить предложенные изменения
+          </Action>
+        </div>
+      )}
+      <label className="form-field">
+        Расскажите о потребности
+        <Textarea
+          value={text}
+          maxLength={12000}
+          disabled={action.busy}
+          onChange={(event) => setText(event.target.value)}
+        />
+      </label>
+      <ErrorState message={action.error} onRetry={action.retry} />
+      <Action
+        disabled={action.busy || !text.trim()}
+        onClick={() =>
+          void action.run(async () => {
+            await api.command('chat', app.id, { text });
+            setText('');
+          })
+        }
+      >
+        {action.busy ? 'Ассистент обрабатывает сообщение…' : 'Отправить сообщение'}
+      </Action>
+    </Card>
   );
 }
 export function BusinessQueue({ mine = false }: { mine?: boolean }) {

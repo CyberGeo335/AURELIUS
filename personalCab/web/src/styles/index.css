@@ -2692,6 +2692,8 @@ td p {
 }
 @media (max-width: 1000px) {
   .business-v3 .header-inner {
+    height: auto;
+    min-height: 80px;
     flex-wrap: wrap;
     gap: 16px;
     padding: 16px;

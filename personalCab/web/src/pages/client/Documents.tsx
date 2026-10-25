@@ -154,6 +154,28 @@ export function Documents() {
   const state = useCredit();
   const { session } = useSession();
   const apps = state.applications.filter((a) => a.companyId === session!.profile);
+  if (import.meta.env.VITE_API_MODE === 'http')
+    return (
+      <Card>
+        <h1>Документы заявок</h1>
+        <p>Загруженные документы сохранены без проверки содержания.</p>
+        {apps.map((app) => (
+          <div className="inset" key={app.id}>
+            <Link to={`/client/applications/${app.id}`}>Заявка № {app.id}</Link>
+            {app.server?.documents?.map((document) => (
+              <p key={document.document_id}>
+                <a href={`/api/v2/documents/${document.document_id}`} download>
+                  {document.filename}
+                </a>{' '}
+                · Сохранён, не проверен
+              </p>
+            ))}
+            {!app.server?.documents?.length && <p className="muted">Документов пока нет.</p>}
+          </div>
+        ))}
+        {!apps.length && <p>Пока нет заявок.</p>}
+      </Card>
+    );
   const count = apps.reduce((n, a) => n + a.files.length, 0);
   return (
     <>

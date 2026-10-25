@@ -118,7 +118,9 @@ export function Login() {
             <div className="auth-demo-note">
               Все данные на стенде синтетические.
               <br />
-              Подпись и выдача — имитация.
+              {import.meta.env.VITE_API_MODE === 'http'
+                ? 'Сценарий завершается принятием предложения.'
+                : 'Подпись и выдача — имитация.'}
             </div>
           </HeroPanel>
           <Card className="auth-card">
@@ -316,39 +318,41 @@ export function Login() {
         </div>
         <div className="auth-bottom">
           <p className="small muted">AURELIUS · Альфа Будущее · 2026</p>
-          <Dialog open={resetOpen} onOpenChange={setResetOpen}>
-            <DialogTrigger asChild>
-              <Action tone="ghost">
-                <RotateCcw aria-hidden size={16} />
-                Сбросить демо-данные
-              </Action>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Начать демонстрацию заново?</DialogTitle>
-                <DialogDescription>
-                  Созданные заявки и история демо будут заменены исходными примерами для всех
-                  вкладок этого браузера.
-                </DialogDescription>
-              </DialogHeader>
-              <ErrorState message={reset.error} onRetry={reset.retry} />
-              <Action
-                disabled={reset.busy}
-                onClick={() =>
-                  reset.run(async () => {
-                    await api.reset();
-                    new AssistantSessionStore().clear();
-                    setResetOpen(false);
-                  })
-                }
-              >
-                Сбросить демо-данные
-              </Action>
-              <DialogClose asChild>
-                <Action tone="soft">Сохранить текущие данные</Action>
-              </DialogClose>
-            </DialogContent>
-          </Dialog>
+          {import.meta.env.VITE_API_MODE !== 'http' && (
+            <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+              <DialogTrigger asChild>
+                <Action tone="ghost">
+                  <RotateCcw aria-hidden size={16} />
+                  Сбросить демо-данные
+                </Action>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Начать демонстрацию заново?</DialogTitle>
+                  <DialogDescription>
+                    Созданные заявки и история демо будут заменены исходными примерами для всех
+                    вкладок этого браузера.
+                  </DialogDescription>
+                </DialogHeader>
+                <ErrorState message={reset.error} onRetry={reset.retry} />
+                <Action
+                  disabled={reset.busy}
+                  onClick={() =>
+                    reset.run(async () => {
+                      await api.reset();
+                      new AssistantSessionStore().clear();
+                      setResetOpen(false);
+                    })
+                  }
+                >
+                  Сбросить демо-данные
+                </Action>
+                <DialogClose asChild>
+                  <Action tone="soft">Сохранить текущие данные</Action>
+                </DialogClose>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </main>
     </>

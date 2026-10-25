@@ -132,6 +132,17 @@ export interface CreditState {
 export type BankAction = 'A' | 'B' | 'BOTH' | 'INFO' | 'DECLINE';
 
 export interface ServerApplication {
+  dialogue?: {
+    history: { role: string; content: string }[];
+    pending: {
+      proposal_id: string;
+      patch: Record<string, unknown>;
+      clear_fields: string[];
+      quotes: Record<string, string>;
+      display_values?: Record<string, string>;
+    } | null;
+    problems: { field: string; code: string }[];
+  } | null;
   offer_stale?: { reason: string } | null;
   assignment?: {
     employee_id: number;

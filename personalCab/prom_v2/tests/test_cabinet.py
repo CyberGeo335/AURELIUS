@@ -381,3 +381,63 @@ def test_concurrent_assignment_and_release_permissions(cabinet, users):
         actions = db.execute("SELECT action,details FROM aurelius_cabinet.events WHERE application_id=%s AND action IN ('claim','release') ORDER BY event_id", (aid,)).fetchall()
     assert [r['action'] for r in actions] == ['claim', 'release', 'claim']
     assert actions[1]['details']['employee_id'] == winner['user_id']
+
+
+def test_v2_dialogue_confirmation_form_sync_and_isolation(cabinet, users):
+    from personalCab.prom_v2.adapters import CatalogProducts, ReferenceKnowledge, checked_extraction
+    client, other, bank = users
+    seen = []
+    class Extractor:
+        def extract(self, text, case):
+            seen.append(case.request.model_dump())
+            return checked_extraction({'patch': {'amount_rub': 1500000, 'term_months': 36, 'legal_form': 'OOO'},
+                                       'evidence': {'amount_rub': '1500000 рублей', 'term_months': '36 месяцев', 'legal_form': 'ООО'}}, text, case)
+    cabinet.dialogue_dependencies = (Extractor(), CatalogProducts(), ReferenceKnowledge())
+    aid = int(command(cabinet, client, 'create', product='R01')['application_id'])
+    command(cabinet, client, 'save', aid, patch={'term': 24, 'purpose': 'Моя сохранённая цель'})
+    app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
+    body = dict(kind='credit', action='chat', request_id=uuid4().hex, application_id=aid,
+                expected_version=app['version'], text='ООО нужно 1500000 рублей на 36 месяцев')
+    assert cabinet.action(client, body) == cabinet.action(client, body)
+    app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
+    assert app['requested_amount'] is None and app['requested_term_months'] == 24
+    pending = app['dialogue']['pending']
+    assert pending['patch']['amount_rub'] == 1500000
+    assert sum(m['role'] == 'user' for m in app['dialogue']['history']) == 1
+    assert 'Кредит для бизнеса' in app['dialogue']['history'][-1]['content']
+    assert 'Факторинг' in app['dialogue']['history'][-1]['content']
+    command(cabinet, client, 'confirm_facts', aid, proposal_id=pending['proposal_id'])
+    app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
+    assert str(app['requested_amount']) == '1500000.00'
+    assert app['requested_term_months'] == 36 and app['purpose'] == 'Моя сохранённая цель'
+    assert next(f['field_value'] for f in app['fields'] if f['field_code'] == 'R01_12') == 'ООО'
+    assert app['application_status'] == 'DRAFT' and not app['form_state'].get('consentData')
+    assert next(a for a in cabinet.state(bank)['applications'] if a['application_id'] == aid)['dialogue'] is None
+    for actor in (bank, other):
+        with pytest.raises(ApiError) as error:
+            command(cabinet, actor, 'chat', aid, text=body['text']) if actor == bank else cabinet.action(actor, {**body, 'request_id': uuid4().hex})
+        assert error.value.status in (403, 404)
+    command(cabinet, client, 'chat', aid, text=body['text'])
+    pending = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)['dialogue']['pending']
+    command(cabinet, client, 'save', aid, patch={'amount': 2000000})
+    with pytest.raises(ApiError) as error:
+        command(cabinet, client, 'confirm_facts', aid, proposal_id=pending['proposal_id'])
+    assert error.value.code == 'STALE_PROPOSAL'
+    command(cabinet, client, 'chat', aid, text=body['text'])
+    assert seen[-1]['amount_rub'] == 2000000
+    assert seen[-1]['legal_form'] == 'OOO'
+
+
+def test_dialogue_model_outage_is_retryable_without_fake_history(cabinet, users):
+    from personalCab.prom_v2.adapters import CatalogProducts, ReferenceKnowledge
+    class Offline:
+        def extract(self, *_):
+            raise ConnectionError('Test outage')
+    cabinet.dialogue_dependencies = (Offline(), CatalogProducts(), ReferenceKnowledge())
+    client = users[0]
+    aid = int(command(cabinet, client, 'create', product='R01')['application_id'])
+    with pytest.raises(ApiError) as error:
+        command(cabinet, client, 'chat', aid, text='Нужен миллион рублей')
+    assert error.value.status == 503
+    app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
+    assert app['dialogue'] is None and app['version'] == 1
