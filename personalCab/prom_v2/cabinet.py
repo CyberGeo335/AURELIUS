@@ -152,11 +152,12 @@ class Cabinet:
                 "decision": decision["decision"] if decision else None,
                 "reasons": (decision or {}).get("reasons") or [], "offer": offer,
                 "assessment": assessment,
+                "verifications": db.execute("SELECT e.details,e.created_at,u.first_name,u.last_name FROM aurelius_cabinet.events e JOIN public.user_accounts u USING(user_id) WHERE e.application_id=%s AND e.action='verify' ORDER BY e.event_id DESC", (aid,)).fetchall() if bank else [],
                 "details": db.execute("SELECT * FROM public.application_details WHERE application_id=%s", (aid,)).fetchone(),
                 "product_details": db.execute("SELECT * FROM public.application_product_details WHERE application_id=%s", (aid,)).fetchone(),
                 "fields": db.execute("SELECT * FROM public.application_field_values WHERE application_id=%s", (aid,)).fetchall(),
                 "requests": db.execute("SELECT * FROM public.application_data_requests WHERE application_id=%s ORDER BY requested_at", (aid,)).fetchall(),
-                "history": db.execute("SELECT event_id,action,details,created_at FROM aurelius_cabinet.events "
+                "history": db.execute("SELECT event_id,action,created_at FROM aurelius_cabinet.events "
                                       "WHERE application_id=%s ORDER BY event_id DESC", (aid,)).fetchall()}
 
     def action(self, user, body):
@@ -221,6 +222,7 @@ class Cabinet:
 
     def mutate(self, db, user, body):
         action = body.get("action")
+        event_details = {}
         if action == "create":
             self.client(user)
             code = body.get("product")
@@ -259,6 +261,16 @@ class Cabinet:
         elif action == "review":
             self.employee(user)
             self.review(db, app, body)
+        elif action == "verify":
+            self.employee(user)
+            if app["application_status"] not in ("SUBMITTED", "UNDER_REVIEW", "AWAITING_DATA"):
+                raise ApiError(409, "Заявка закрыта для проверки.")
+            kind, source, comment = body.get("check_kind"), body.get("source_ref"), body.get("comment")
+            if kind not in ("authority", "revenue") or not isinstance(source, str) or not source.strip() or len(source) > 1000 or not isinstance(comment, str) or not comment.strip() or len(comment) > 10000:
+                raise ApiError(400, "Укажите вид проверки, источник и комментарий.")
+            # Owner-approved attestation only. No alteration of company/financial facts,
+            # no inferred VERIFIED field value and no synthetic model inputs.
+            event_details = {"kind": kind, "source_ref": source.strip(), "comment": comment.strip()}
         elif action == "accept":
             if app["application_status"] != "APPROVED":
                 raise ApiError(409, "Нет одобренного предложения.")
@@ -294,12 +306,12 @@ class Cabinet:
         else:
             raise ApiError(400, "Неизвестное действие.")
         db.execute("UPDATE aurelius_cabinet.application_state SET version=version+1,updated_at=now() WHERE application_id=%s", (aid,))
-        self.event(db, aid, user, action)
+        self.event(db, aid, user, action, event_details)
         return aid
 
     @staticmethod
-    def event(db, aid, user, action):
-        db.execute("INSERT INTO aurelius_cabinet.events(application_id,user_id,action) VALUES(%s,%s,%s)", (aid, user["user_id"], action))
+    def event(db, aid, user, action, details=None):
+        db.execute("INSERT INTO aurelius_cabinet.events(application_id,user_id,action,details) VALUES(%s,%s,%s,%s)", (aid, user["user_id"], action, Jsonb(details or {})))
 
     @staticmethod
     def latest_offer(db, aid):

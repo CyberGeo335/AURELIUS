@@ -136,6 +136,23 @@ def test_http_origin_cookie_login_and_logout(cabinet, users, tmp_path):
         thread.join()
 
 
+def test_employee_attestation_preserves_source_facts(cabinet, users):
+    client, _, bank = users
+    aid = int(command(cabinet, client, 'create', product='R01')['application_id'])
+    with cabinet.connect() as db:
+        db.execute("UPDATE public.credit_applications SET application_status='UNDER_REVIEW' WHERE application_id=%s", (aid,))
+        company_before = db.execute('SELECT * FROM public.companies WHERE company_id=%s', (client['company_id'],)).fetchone()
+    for actor, source in [(client, 'Test document'), (bank, '')]:
+        with pytest.raises(ApiError):
+            command(cabinet, actor, 'verify', aid, check_kind='authority', source_ref=source, comment='Reviewed')
+    command(cabinet, bank, 'verify', aid, check_kind='authority', source_ref='Test document 123', comment='Полномочия проверены по документу')
+    app = next(a for a in cabinet.state(bank)['applications'] if a['application_id'] == aid)
+    assert app['verifications'][0]['details']['source_ref'] == 'Test document 123'
+    assert next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)['verifications'] == []
+    with cabinet.connect() as db:
+        assert db.execute('SELECT * FROM public.companies WHERE company_id=%s', (client['company_id'],)).fetchone() == company_before
+
+
 def test_scoring_outage_retries_submission_without_duplicate_mutation(cabinet, users):
     client = users[0]
     aid = int(command(cabinet, client, 'create', product='R01')['application_id'])
