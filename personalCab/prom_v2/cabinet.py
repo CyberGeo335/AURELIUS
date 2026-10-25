@@ -58,9 +58,10 @@ class Cabinet:
 
     def initialize(self):
         # Deliberately execute only this additive migration, never older init scripts.
-        source = Path(__file__).with_name("migrations") / "005_cabinet.sql"
         with self.connect() as db:
-            db.execute(source.read_text(encoding="utf-8"), prepare=False)
+            for name in ("005_cabinet.sql", "006_cabinet_documents.sql", "007_cabinet_assignments.sql"):
+                source = Path(__file__).with_name("migrations") / name
+                db.execute(source.read_text(encoding="utf-8"), prepare=False)
 
     @staticmethod
     def public_user(row):
@@ -130,6 +131,7 @@ class Cabinet:
 
     @staticmethod
     def project(db, application, bank):
+        from .cabinet_documents import DOCUMENT_COLUMNS
         aid = application["application_id"]
         meta = db.execute("SELECT * FROM aurelius_cabinet.application_state WHERE application_id=%s", (aid,)).fetchone()
         decision = db.execute("SELECT * FROM public.credit_decisions WHERE application_id=%s "
@@ -148,6 +150,8 @@ class Cabinet:
                                   "AND snapshot_type='DECISION' ORDER BY snapshot_version DESC LIMIT 1", (aid,)).fetchone()
             assessment = snapshot["snapshot_data"].get("assessment") if snapshot else None
         return {**application, "version": meta["version"] if meta else 1,
+                "assignment": db.execute("SELECT a.employee_id,a.assigned_at,u.first_name,u.last_name FROM aurelius_cabinet.assignments a JOIN public.user_accounts u ON u.user_id=a.employee_id WHERE a.application_id=%s", (aid,)).fetchone(),
+                "documents": db.execute(f"SELECT {DOCUMENT_COLUMNS} FROM aurelius_cabinet.documents WHERE application_id=%s ORDER BY document_id", (aid,)).fetchall(),
                 "form_state": meta["form_state"] if meta else {},
                 "decision": decision["decision"] if decision else None,
                 "reasons": (decision or {}).get("reasons") or [], "offer": offer,
@@ -185,6 +189,8 @@ class Cabinet:
                         return receipt["result"]
                     aid = int(receipt["result"]["application_id"])
                     self.owned(db, user, aid)
+                    if body['action'] == 'score':
+                        self.require_assignee(db, user, aid)
                 else:
                     with db.transaction():
                         aid = self.mutate(db, user, body)
@@ -242,7 +248,28 @@ class Cabinet:
             raise ApiError(409, "Заявка изменилась. Обновите данные перед повтором.", "STALE_CASE_VERSION")
         if action in ("save", "submit", "revise", "answer", "accept", "cancel"):
             self.client(user)
-        if action == "save":
+        if action in ('score', 'review', 'verify'):
+            self.require_assignee(db, user, aid)
+        if action in ('claim', 'release'):
+            self.employee(user)
+            if not db.execute("SELECT 1 FROM public.user_accounts WHERE user_id=%s AND role='BANK_EMPLOYEE' AND is_active FOR SHARE", (user['user_id'],)).fetchone():
+                raise ApiError(403, 'Требуется активный сотрудник банка.')
+            assignment = db.execute('SELECT * FROM aurelius_cabinet.assignments WHERE application_id=%s FOR UPDATE', (aid,)).fetchone()
+            if action == 'claim':
+                if app['application_status'] not in ('SUBMITTED', 'UNDER_REVIEW', 'AWAITING_DATA'):
+                    raise ApiError(409, 'Взять в работу можно заявку на рассмотрении.')
+                if assignment:
+                    raise ApiError(409, 'У заявки уже есть ответственный.', 'ALREADY_ASSIGNED')
+                db.execute('INSERT INTO aurelius_cabinet.assignments(application_id,employee_id) VALUES(%s,%s)', (aid, user['user_id']))
+            else:
+                if not assignment or assignment['employee_id'] != user['user_id']:
+                    raise ApiError(403, 'Освободить можно только свою заявку.')
+                db.execute('DELETE FROM aurelius_cabinet.assignments WHERE application_id=%s', (aid,))
+            event_details = {'employee_id': user['user_id']}
+        elif action == "upload":
+            from .cabinet_documents import store_document
+            event_details = store_document(db, user, app, body)
+        elif action == "save":
             if app["application_status"] != "DRAFT":
                 raise ApiError(409, "Редактировать можно только черновик.")
             self.save(db, app, body.get("patch", {}), meta["form_state"])
@@ -312,6 +339,19 @@ class Cabinet:
     @staticmethod
     def event(db, aid, user, action, details=None):
         db.execute("INSERT INTO aurelius_cabinet.events(application_id,user_id,action,details) VALUES(%s,%s,%s,%s)", (aid, user["user_id"], action, Jsonb(details or {})))
+
+    def document(self, user, document_id):
+        with self.connect() as db:
+            row = db.execute("SELECT * FROM aurelius_cabinet.documents WHERE document_id=%s", (document_id,)).fetchone()
+            if not row:
+                raise ApiError(404, "Документ не найден.")
+            self.owned(db, user, row['application_id'])
+            return row
+
+    def require_assignee(self, db, user, aid):
+        self.employee(user)
+        if not db.execute("SELECT 1 FROM aurelius_cabinet.assignments a JOIN public.user_accounts u ON u.user_id=a.employee_id WHERE a.application_id=%s AND a.employee_id=%s AND u.is_active AND u.role='BANK_EMPLOYEE'", (aid, user['user_id'])).fetchone():
+            raise ApiError(403, 'Действие доступно ответственному сотруднику. Сначала возьмите заявку в работу.', 'ASSIGNEE_REQUIRED')
 
     @staticmethod
     def latest_offer(db, aid):

@@ -81,7 +81,10 @@ export class HttpCreditApi implements CreditApi {
     const request = this.pending.get(key) ?? { ...body, request_id: crypto.randomUUID() };
     this.pending.set(key, request);
     try {
-      const result = await this.http.request<{ application_id: string }>('action', request);
+      const result = await this.http.request<{ application_id: string }>(
+        action === 'upload' ? 'documents' : 'action',
+        request,
+      );
       this.pending.delete(key);
       await this.refresh();
       return result.application_id;
@@ -95,6 +98,20 @@ export class HttpCreditApi implements CreditApi {
   };
   createDraft = async (_profile: Profile, product: Product) =>
     this.command('create', undefined, { product });
+  uploadDocument = async (id: string, file: File, requestId?: string) => {
+    if (!/\.(pdf|csv)$/i.test(file.name)) throw new Error('Допускаются только PDF и CSV.');
+    if (!file.size || file.size > 10 * 1024 * 1024)
+      throw new Error('Файл пуст или превышает 10 МиБ.');
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 8192)
+      binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+    await this.command('upload', id, {
+      filename: file.name,
+      content_base64: btoa(binary),
+      ...(requestId ? { data_request_id: Number(requestId) } : {}),
+    });
+  };
   saveDraft = async (id: string, patch: DraftPatch) => {
     await this.command('save', id, { patch });
   };

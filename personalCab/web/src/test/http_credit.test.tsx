@@ -56,6 +56,39 @@ const state = {
 };
 
 describe('HTTP cabinet', () => {
+  it('uploads real bytes and reuses a failed upload without answering a request', async () => {
+    const bodies: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init: RequestInit) => {
+        if (url.endsWith('documents')) {
+          bodies.push(String(init.body));
+          if (bodies.length === 1)
+            return Response.json({ message: 'Upload outage' }, { status: 503 });
+          return Response.json({ application_id: '456' });
+        }
+        return Response.json(state);
+      }),
+    );
+    const api = new HttpCreditApi();
+    await api.refresh();
+    const file = new File(['a,b\n1,2\n'], 'report.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'arrayBuffer', {
+      value: async () => new TextEncoder().encode('a,b\n1,2\n').buffer,
+    });
+    await expect(api.uploadDocument('456', file, '99')).rejects.toThrow('Upload outage');
+    await api.uploadDocument('456', file, '99');
+    expect(bodies[0]).toBe(bodies[1]);
+    expect(JSON.parse(bodies[0])).toMatchObject({
+      action: 'upload',
+      data_request_id: 99,
+      content_base64: btoa('a,b\n1,2\n'),
+    });
+    expect(JSON.parse(bodies[0])).not.toHaveProperty('answer');
+    await expect(api.uploadDocument('456', new File(['bad'], 'bad.exe'))).rejects.toThrow(
+      'PDF и CSV',
+    );
+  });
   it('takes identity from the server and never stores the password', async () => {
     const fetch = vi.fn().mockResolvedValue(Response.json(user));
     vi.stubGlobal('fetch', fetch);
@@ -91,7 +124,7 @@ describe('HTTP cabinet', () => {
     await screen.findByRole('heading', { name: 'Предложение банка' });
     expect(screen.getByText('28%')).toBeInTheDocument();
     expect(screen.getByText('Условия проверены сотрудником.')).toBeInTheDocument();
-    expect(screen.queryByText(/PD|Уровень риска|Демо-факторы/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\bPD\b|Уровень риска|Демо-факторы/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '18 мес.' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Подписать|Имитировать/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Принять предложение' }));

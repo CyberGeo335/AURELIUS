@@ -5,7 +5,7 @@ from functools import partial
 from http.cookies import SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from .cabinet import ApiError, Cabinet, serial
 
@@ -60,6 +60,21 @@ class Handler(SimpleHTTPRequestHandler):
                     return self.respond(200, user)
                 if path == "/api/v2/state":
                     return self.respond(200, self.cabinet.state(user))
+                if path.startswith('/api/v2/documents/'):
+                    document_id = path.removeprefix('/api/v2/documents/')
+                    if not document_id.isdigit():
+                        raise ApiError(404, 'Документ не найден.')
+                    row = self.cabinet.document(user, int(document_id))
+                    content = bytes(row['content'])
+                    self.send_response(200)
+                    self.send_header('Content-Type', row['media_type'])
+                    self.send_header('Content-Length', str(len(content)))
+                    self.send_header('Content-Disposition', "attachment; filename=\"document\"; filename*=UTF-8''" + quote(row['filename'], safe=''))
+                    self.send_header('Cache-Control', 'no-store')
+                    self.send_header('X-Content-Type-Options', 'nosniff')
+                    self.end_headers()
+                    self.wfile.write(content)
+                    return
                 return self.respond(404, {"message": "Маршрут не найден."})
             except Exception as exc:
                 return self.error(exc)
@@ -68,7 +83,7 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
-        if self.path not in {"/api/v2/login", "/api/v2/logout", "/api/v2/action"}:
+        if self.path not in {"/api/v2/login", "/api/v2/logout", "/api/v2/action", "/api/v2/documents"}:
             return self.respond(404, {"message": "Маршрут не найден."})
         # Strict same-origin POST, including login/logout. No wildcard CORS.
         origin = self.headers.get("Origin")
@@ -77,7 +92,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.respond(403, {"message": "Недопустимый источник запроса."})
         try:
             size = int(self.headers.get("Content-Length", "0"))
-            if not 0 < size <= 2 * 1024 * 1024:
+            limit = 14 * 1024 * 1024 if self.path == '/api/v2/documents' else 2 * 1024 * 1024
+            if not 0 < size <= limit:
                 raise ApiError(413, "Запрос слишком большой или пустой.")
             body = json.loads(self.rfile.read(size))
             if not isinstance(body, dict):
@@ -86,6 +102,8 @@ class Handler(SimpleHTTPRequestHandler):
                 token, user = self.cabinet.login(body.get("login"), body.get("password"))
                 return self.respond(200, user, token)
             user = self.cabinet.session(self.token())
+            if self.path == '/api/v2/documents' and body.get('action') != 'upload':
+                raise ApiError(400, 'Ожидается загрузка документа.')
             if self.path == "/api/v2/logout":
                 self.cabinet.logout(self.token())
                 return self.respond(200, {"authenticated": False}, "")

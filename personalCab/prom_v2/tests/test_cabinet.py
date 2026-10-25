@@ -126,6 +126,24 @@ def test_http_origin_cookie_login_and_logout(cabinet, users, tmp_path):
             assert json.load(response)['role'] == 'CLIENT'
         with opener.open(base + '/api/v2/state') as response:
             assert all(a['company_id'] == users[0]['company_id'] for a in json.load(response)['applications'])
+        import base64
+        aid = command(cabinet, users[0], 'create', product='R01')['application_id']
+        content = b'a,b\n1,2\n'
+        body = dict(kind='credit', action='upload', request_id=uuid4().hex, application_id=int(aid),
+                    expected_version=1, filename='отчёт.csv', content_base64=base64.b64encode(content).decode())
+        post('/api/v2/documents', body).close()
+        post('/api/v2/documents', body).close()
+        app = next(a for a in cabinet.state(users[0])['applications'] if str(a['application_id']) == aid)
+        assert len(app['documents']) == 1
+        download = '/api/v2/documents/' + str(app['documents'][0]['document_id'])
+        with opener.open(base + download) as response:
+            assert response.read() == content
+            assert response.headers['Content-Disposition'].startswith('attachment;')
+            assert response.headers['X-Content-Type-Options'] == 'nosniff'
+        post('/api/v2/login', db_credentials(cabinet, users[1])).close()
+        with pytest.raises(HTTPError) as error:
+            opener.open(base + download)
+        assert error.value.code == 404
         post('/api/v2/logout', {}).close()
         with pytest.raises(HTTPError) as error:
             opener.open(base + '/api/v2/session')
@@ -134,6 +152,11 @@ def test_http_origin_cookie_login_and_logout(cabinet, users, tmp_path):
         server.shutdown()
         server.server_close()
         thread.join()
+
+
+def db_credentials(cabinet, user):
+    with cabinet.connect() as db:
+        return db.execute('SELECT login,password FROM public.user_accounts WHERE user_id=%s', (user['user_id'],)).fetchone()
 
 
 def test_employee_attestation_preserves_source_facts(cabinet, users):
@@ -145,6 +168,7 @@ def test_employee_attestation_preserves_source_facts(cabinet, users):
     for actor, source in [(client, 'Test document'), (bank, '')]:
         with pytest.raises(ApiError):
             command(cabinet, actor, 'verify', aid, check_kind='authority', source_ref=source, comment='Reviewed')
+    command(cabinet, bank, 'claim', aid)
     command(cabinet, bank, 'verify', aid, check_kind='authority', source_ref='Test document 123', comment='Полномочия проверены по документу')
     app = next(a for a in cabinet.state(bank)['applications'] if a['application_id'] == aid)
     assert app['verifications'][0]['details']['source_ref'] == 'Test document 123'
@@ -210,6 +234,7 @@ def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users)
     borrower = next(a for a in cabinet.state(actor)["applications"] if a["application_id"] == aid)
     assert borrower["assessment"] is None
     assert borrower["offer"] is None
+    command(cabinet, bank, 'claim', aid)
     command(cabinet, bank, "review", aid, decision="APPROVE", reason="Условия проверены сотрудником банка.")
     published = next(a for a in cabinet.state(actor)["applications"] if a["application_id"] == aid)
     assert published["application_status"] == "APPROVED"
@@ -219,3 +244,72 @@ def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users)
     accepted = next(a for a in cabinet.state(actor)["applications"] if a["application_id"] == aid)
     assert accepted["offer"]["offer_status"] == "ACCEPTED"
     assert accepted["application_status"] == "APPROVED"
+
+
+def test_document_bytes_scope_retry_and_open_request(cabinet, users):
+    import base64
+    client, other, bank = users
+    aid = int(command(cabinet, client, 'create', product='R01')['application_id'])
+    other_aid = int(command(cabinet, other, 'create', product='R01')['application_id'])
+    with cabinet.connect() as db:
+        rid = db.execute("INSERT INTO public.application_data_requests(application_id,product_code,field_code,question_text) VALUES(%s,'R01','R01_05','Документ') RETURNING request_id", (aid,)).fetchone()['request_id']
+        foreign_rid = db.execute("INSERT INTO public.application_data_requests(application_id,product_code,field_code,question_text) VALUES(%s,'R01','R01_05','Документ') RETURNING request_id", (other_aid,)).fetchone()['request_id']
+    content = b'%PDF-1.4\nfixture\n%%EOF\n'
+    body = dict(kind='credit', action='upload', request_id=uuid4().hex, application_id=aid,
+                expected_version=1, filename='report.pdf', content_base64=base64.b64encode(content).decode(), data_request_id=rid)
+    assert cabinet.action(client, body) == cabinet.action(client, body)
+    app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
+    assert len(app['documents']) == 1
+    document = app['documents'][0]
+    assert document['uploaded_by'] == client['user_id']
+    assert document['processing_status'] == 'STORED_UNVERIFIED'
+    assert 'content' not in document
+    assert app['requests'][0]['request_status'] == 'OPEN'
+    assert bytes(cabinet.document(client, document['document_id'])['content']) == content
+    assert bytes(cabinet.document(bank, document['document_id'])['content']) == content
+    with pytest.raises(ApiError) as error:
+        cabinet.document(other, document['document_id'])
+    assert error.value.status == 404
+    with pytest.raises(ApiError):
+        command(cabinet, client, 'upload', aid, filename='report.pdf', content_base64=body['content_base64'], data_request_id=foreign_rid)
+    with cabinet.connect() as db:
+        assert db.execute('SELECT count(*) AS n FROM aurelius_cabinet.documents WHERE application_id=%s', (aid,)).fetchone()['n'] == 1
+
+
+def test_concurrent_assignment_and_release_permissions(cabinet, users):
+    from concurrent.futures import ThreadPoolExecutor
+    client, _, bank = users
+    with cabinet.connect() as db:
+        other = db.execute("SELECT * FROM public.user_accounts WHERE role='BANK_EMPLOYEE' AND is_active AND user_id<>%s LIMIT 1", (bank['user_id'],)).fetchone()
+        assert other, 'Seed must contain two active employees'
+    other = cabinet.public_user(other)
+    aid = int(command(cabinet, client, 'create', product='R01')['application_id'])
+    with cabinet.connect() as db:
+        db.execute("UPDATE public.credit_applications SET application_status='UNDER_REVIEW' WHERE application_id=%s", (aid,))
+    with pytest.raises(ApiError) as error:
+        command(cabinet, bank, 'score', aid)
+    assert error.value.code == 'ASSIGNEE_REQUIRED'
+    def claim(actor):
+        try:
+            cabinet.action(actor, dict(kind='credit', action='claim', application_id=aid, expected_version=1, request_id=uuid4().hex))
+            return actor
+        except ApiError as exc:
+            assert exc.status == 409
+            return None
+    with ThreadPoolExecutor(2) as pool:
+        results = list(pool.map(claim, [bank, other]))
+    assert sum(r is not None for r in results) == 1
+    winner = next(r for r in results if r)
+    loser = other if winner['user_id'] == bank['user_id'] else bank
+    for action in ('release', 'verify', 'review', 'score'):
+        with pytest.raises(ApiError) as error:
+            command(cabinet, loser, action, aid)
+        assert error.value.status == 403
+    command(cabinet, winner, 'release', aid)
+    command(cabinet, loser, 'claim', aid)
+    app = next(a for a in cabinet.state(bank)['applications'] if a['application_id'] == aid)
+    assert app['assignment']['employee_id'] == loser['user_id']
+    with cabinet.connect() as db:
+        actions = db.execute("SELECT action,details FROM aurelius_cabinet.events WHERE application_id=%s AND action IN ('claim','release') ORDER BY event_id", (aid,)).fetchall()
+    assert [r['action'] for r in actions] == ['claim', 'release', 'claim']
+    assert actions[1]['details']['employee_id'] == winner['user_id']

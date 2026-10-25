@@ -132,6 +132,25 @@ export interface CreditState {
 export type BankAction = 'A' | 'B' | 'BOTH' | 'INFO' | 'DECLINE';
 
 export interface ServerApplication {
+  assignment?: {
+    employee_id: number;
+    first_name: string;
+    last_name: string;
+    assigned_at: string;
+  } | null;
+  documents?: {
+    document_id: number;
+    application_id: number;
+    uploaded_by: number;
+    data_request_id: number | null;
+    filename: string;
+    media_type: string;
+    size: number;
+    sha256: string;
+    source: 'CLIENT_UPLOAD' | 'EMPLOYEE_UPLOAD';
+    processing_status: 'STORED_UNVERIFIED';
+    created_at: string;
+  }[];
   verifications?: {
     details: { kind: 'authority' | 'revenue'; source_ref: string; comment: string };
     created_at: string;

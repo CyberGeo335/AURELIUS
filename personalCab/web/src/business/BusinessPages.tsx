@@ -371,6 +371,9 @@ function DraftForm({
           </div>
         </Card>
       </form>
+      <Card>
+        <Documents app={app} />
+      </Card>
     </>
   );
 }
@@ -418,6 +421,7 @@ function RequestReply({ app, id, text }: { app: Application; id: string; text: s
     <Card>
       <h2>Нужно уточнение</h2>
       <p>{text}</p>
+      <Documents app={app} requestId={id} />
       <label className="form-field">
         Ваш ответ
         <Textarea value={answer} onChange={(e) => setAnswer(e.target.value)} />
@@ -430,6 +434,57 @@ function RequestReply({ app, id, text }: { app: Application; id: string; text: s
         Отправить ответ
       </Action>
     </Card>
+  );
+}
+function Documents({ app, requestId }: { app: Application; requestId?: string }) {
+  const api = useApi() as HttpCreditApi;
+  const action = useAction();
+  const [file, setFile] = useState<File | null>(null);
+  const documents = (app.server?.documents ?? []).filter(
+    (document) => !requestId || String(document.data_request_id) === requestId,
+  );
+  return (
+    <section aria-label={requestId ? 'Документы дозапроса' : 'Документы заявки'}>
+      <h2>{requestId ? 'Документы дозапроса' : 'Документы заявки'}</h2>
+      <p className="small muted">
+        PDF или CSV в UTF-8, до 10 МиБ. Загрузка сохраняет документ без проверки содержания.
+        Дозапрос закрывается только после отправки ответа.
+      </p>
+      {documents.map((document) => (
+        <div className="inset" key={document.document_id}>
+          <a href={`/api/v2/documents/${document.document_id}`} download>
+            {document.filename}
+          </a>
+          <p className="small muted">
+            {document.size.toLocaleString('ru-RU')} байт · Сохранён, не проверен ·{' '}
+            {document.source === 'CLIENT_UPLOAD' ? 'Загружен клиентом' : 'Загружен сотрудником'} (ID{' '}
+            {document.uploaded_by})
+            {document.data_request_id ? ` · Дозапрос № ${document.data_request_id}` : ''}
+          </p>
+        </div>
+      ))}
+      {!documents.length && <p className="muted">Документов пока нет.</p>}
+      <label className="form-field">
+        Выбрать PDF или CSV
+        <input
+          type="file"
+          accept=".pdf,.csv"
+          disabled={action.busy}
+          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+        />
+      </label>
+      <ErrorState message={action.error} onRetry={action.retry} />
+      <Action
+        disabled={action.busy || !file}
+        onClick={() =>
+          void action.run(async () => {
+            if (file) await api.uploadDocument(app.id, file, requestId);
+          })
+        }
+      >
+        {action.busy ? 'Сохранение документа…' : 'Загрузить документ'}
+      </Action>
+    </section>
   );
 }
 export function BusinessDetail() {
@@ -460,6 +515,9 @@ export function BusinessDetail() {
       )}
       <Offer app={app} />
       <Reasons app={app} />
+      <Card>
+        <Documents app={app} />
+      </Card>
       {app.requests
         .filter((r) => r.state === 'OPEN')
         .map((r) => (
@@ -493,11 +551,13 @@ export function BusinessDetail() {
 }
 export function BusinessQueue({ mine = false }: { mine?: boolean }) {
   const state = useCredit();
+  const { session } = useSession();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const apps = state.applications.filter(
     (a) =>
       a.status !== 'DRAFT' &&
+      (!mine || String(a.server?.assignment?.employee_id) === session?.userId) &&
       `${a.id} ${state.companies.find((c) => c.id === a.companyId)?.name}`
         .toLowerCase()
         .includes(query.toLowerCase()) &&
@@ -507,7 +567,7 @@ export function BusinessQueue({ mine = false }: { mine?: boolean }) {
     <>
       <HeroPanel>
         <p className="hero-eyebrow">Кабинет сотрудника</p>
-        <h1>{mine ? 'Заявки на рассмотрении' : 'Очередь заявок'}</h1>
+        <h1>{mine ? 'Мои разборы' : 'Очередь заявок'}</h1>
         <p>Данные заявок и решений из базы.</p>
       </HeroPanel>
       <Card>
@@ -534,6 +594,7 @@ export function BusinessQueue({ mine = false }: { mine?: boolean }) {
                 <th>Продукт</th>
                 <th>Запрошено</th>
                 <th>Статус</th>
+                <th>Ответственный</th>
               </tr>
             </thead>
             <tbody>
@@ -550,6 +611,9 @@ export function BusinessQueue({ mine = false }: { mine?: boolean }) {
                   </td>
                   <td>
                     <StatusBadge app={app} />
+                  </td>
+                  <td>
+                    <Responsible app={app} />
                   </td>
                 </tr>
               ))}
@@ -572,6 +636,8 @@ function ReviewDetails({ app }: { app: Application }) {
   const api = useApi() as HttpCreditApi;
   const state = useCredit();
   const action = useAction();
+  const { session } = useSession();
+  const assignedToMe = String(app.server?.assignment?.employee_id) === session?.userId;
   const [reason, setReason] = useState('');
   const [decision, setDecision] = useState('APPROVE');
   const [field, setField] = useState('');
@@ -583,7 +649,8 @@ function ReviewDetails({ app }: { app: Application }) {
     n === undefined || n === null
       ? 'Нет данных'
       : `${(n * 100).toLocaleString('ru-RU', { maximumFractionDigits: 2 })}%`;
-  const editable = ['UNDER_REVIEW', 'SUBMITTED', 'AWAITING_DATA'].includes(app.status);
+  const active = ['UNDER_REVIEW', 'SUBMITTED', 'AWAITING_DATA'].includes(app.status);
+  const editable = active && assignedToMe;
   return (
     <>
       <Link className="back-link" to="/bank">
@@ -597,6 +664,31 @@ function ReviewDetails({ app }: { app: Application }) {
         </p>
         <p>Цель: {app.purpose || 'Не указана'}</p>
       </HeroPanel>
+      <Card>
+        <h2>Ответственный</h2>
+        <Responsible app={app} />
+        <ErrorState message={action.error} onRetry={action.retry} />
+        {active && !app.server?.assignment && (
+          <Action
+            disabled={action.busy}
+            onClick={() => void action.run(() => api.command('claim', app.id))}
+          >
+            Взять в работу
+          </Action>
+        )}
+        {assignedToMe && (
+          <Action
+            tone="outline"
+            disabled={action.busy}
+            onClick={() => void action.run(() => api.command('release', app.id))}
+          >
+            Освободить заявку
+          </Action>
+        )}
+        {active && !editable && (
+          <p className="muted">Проверку, скоринг и решение сохраняет ответственный сотрудник.</p>
+        )}
+      </Card>
       <div className="two-columns">
         <Card>
           <h2>Оценка заявки</h2>
@@ -608,6 +700,9 @@ function ReviewDetails({ app }: { app: Application }) {
         <Offer app={app} />
       </div>
       <Reasons app={app} />
+      <Card>
+        <Documents app={app} />
+      </Card>
       <Card>
         <h2>Анкета клиента</h2>
         <dl className="details">
@@ -737,5 +832,15 @@ function ReviewDetails({ app }: { app: Application }) {
         </Card>
       )}
     </>
+  );
+}
+function Responsible({ app }: { app: Application }) {
+  const assigned = app.server?.assignment;
+  return (
+    <p>
+      {assigned
+        ? `${assigned.first_name} ${assigned.last_name} (ID ${assigned.employee_id})`
+        : 'Не назначен'}
+    </p>
   );
 }
