@@ -1,0 +1,11 @@
+# Только для bundled Ollama и настроенного NVIDIA Container Toolkit.
+# COMPOSE_FILE=compose.yaml:compose.gpu.yaml sh start.sh (Windows: разделитель ;)
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

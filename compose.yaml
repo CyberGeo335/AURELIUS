@@ -1,50 +1,88 @@
+x-runtime: &runtime
+  image: ${COMPOSE_PROJECT_NAME:-aurelius}-cabinet:local
+  build:
+    context: .
+    target: runtime
+    args:
+      VITE_API_MODE: ${VITE_API_MODE:?Создайте .env из .env.example; VITE_API_MODE=http}
+  environment: &environment
+    PG_HOST: db
+    PG_PORT: "5432"
+    PG_DATABASE: ${POSTGRES_DB:?Укажите POSTGRES_DB в .env}
+    PG_USER: ${POSTGRES_USER:?Укажите POSTGRES_USER в .env}
+    PG_PASSWORD: ${POSTGRES_PASSWORD:?Задайте непустой POSTGRES_PASSWORD в .env}
+    OLLAMA_BASE_URL: ${OLLAMA_ENDPOINT:-${OLLAMA_BASE_URL:-http://host.docker.internal:11434}}
+    OLLAMA_MODEL: ${OLLAMA_MODEL:-gpt-oss:20b}
+  extra_hosts:
+    - host.docker.internal:host-gateway
+
 services:
   db:
     build:
       context: .
       dockerfile: deploy/Postgres.Dockerfile
     environment:
-      POSTGRES_DB: business_scoring
-      POSTGRES_USER: aurelius
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aurelius_local_demo_only}
-      PGDATA: /var/lib/postgresql/data
-    ports:
-      - "127.0.0.1:${PG_PORT:-5433}:5432"
+      POSTGRES_DB: ${POSTGRES_DB:?Укажите POSTGRES_DB в .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Укажите POSTGRES_USER в .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задайте непустой POSTGRES_PASSWORD в .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scoring/bd/business_scoring.backup:/seed/business_scoring.backup:ro
+      - "./scoring/bd/v_3 (actual)/business_scoring_wauth.backup:/seed/business_scoring.backup:ro"
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: [CMD-SHELL, 'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 3s
       timeout: 3s
-      retries: 30
+      retries: 40
   init:
-    build: .
-    command: ["python", "-m", "personalCab.prom.prom_lab.ai_agents_lab.database", "--init-workflow"]
-    environment: &database_environment
-      PG_HOST: db
-      PG_PORT: 5432
-      PG_DATABASE: business_scoring
-      PG_USER: aurelius
-      PG_PASSWORD: ${POSTGRES_PASSWORD:-aurelius_local_demo_only}
+    <<: *runtime
+    command: [python, /app/deploy/initialize.py]
     depends_on:
       db:
         condition: service_healthy
-  app:
-    build: .
-    command: ["python", "-m", "personalCab.frontend.server", "--host", "0.0.0.0", "--port", "${APP_PORT:-5173}"]
-    ports:
-      - "127.0.0.1:${APP_PORT:-5173}:${APP_PORT:-5173}"
-    environment:
-      <<: *database_environment
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      AURELIUS_DEMO_COMPANY_ID: ${AURELIUS_DEMO_COMPANY_ID:-40}
-      AURELIUS_DEMO_ALLOWED_COMPANY_IDS: ${AURELIUS_DEMO_ALLOWED_COMPANY_IDS:-40}
-      AURELIUS_DEMO_EVIDENCE_CONSENT: ${AURELIUS_DEMO_EVIDENCE_CONSENT:-false}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+  ollama:
+    image: ollama/ollama@sha256:dea72d1e22270fe095b68fdf756d2b489d615643c5a2eaebbc5f569181e322d8
+    profiles: [bundled]
+    volumes:
+      - ollama_models:/root/.ollama
+  model-init:
+    <<: *runtime
+    command: [python, /app/deploy/ollama_ready.py]
     depends_on:
       init:
         condition: service_completed_successfully
+  app:
+    <<: *runtime
+    ports:
+      - "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-5173}:5173"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      model-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python, /app/deploy/healthcheck.py]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  probe:
+    <<: *runtime
+    profiles: [tools]
+    command: [python, /app/deploy/ollama_ready.py, --probe]
+  tests:
+    <<: *runtime
+    profiles: [tools]
+    image: ${COMPOSE_PROJECT_NAME:-aurelius}-cabinet-test:local
+    build:
+      context: .
+      target: test
+      args:
+        VITE_API_MODE: ${VITE_API_MODE:?Укажите VITE_API_MODE=http}
+    command: [python, -m, pytest, scoring/main/tests, personalCab/prom_v2/tests, deploy/tests, -q, -p, no:cacheprovider]
+    environment:
+      <<: *environment
+      PYTHONPATH: /app/scoring:/app
 volumes:
   postgres_data:
+  ollama_models:
