@@ -1,3 +1,4 @@
+import { HttpBankQueue } from './HttpBankQueue';
 import { clientVisibleReasons } from '../domain/clientReasons';
 import { sourceLabel } from '../domain/provenance';
 import { HttpProvenance } from './HttpProvenance';
@@ -657,81 +658,7 @@ export function BusinessDetail() {
   );
 }
 export function BusinessQueue({ mine = false }: { mine?: boolean }) {
-  const state = useCredit();
-  const { session } = useSession();
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState('all');
-  const apps = state.applications.filter(
-    (a) =>
-      a.status !== 'DRAFT' &&
-      (!mine || String(a.server?.assignment?.employee_id) === session?.userId) &&
-      `${a.id} ${state.companies.find((c) => c.id === a.companyId)?.name}`
-        .toLowerCase()
-        .includes(query.toLowerCase()) &&
-      (filter === 'all' || a.status === filter),
-  );
-  return (
-    <>
-      <HeroPanel>
-        <p className="hero-eyebrow">Кабинет сотрудника</p>
-        <h1>{mine ? 'Мои разборы' : 'Очередь заявок'}</h1>
-        <p>Данные заявок и решений из базы.</p>
-      </HeroPanel>
-      <Card>
-        <label className="form-field">
-          Найти заявку
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} />
-        </label>
-        <label className="form-field">
-          Статус
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="all">Все</option>
-            <option value="UNDER_REVIEW">На рассмотрении</option>
-            <option value="AWAITING_DATA">Нужны данные</option>
-            <option value="APPROVED">Одобрено</option>
-            <option value="REJECTED">Отказ</option>
-            <option value="CANCELLED">Отменена</option>
-          </select>
-        </label>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Заявка / компания</th>
-                <th>Продукт</th>
-                <th>Запрошено</th>
-                <th>Статус</th>
-                <th>Ответственный</th>
-              </tr>
-            </thead>
-            <tbody>
-              {apps.map((app) => (
-                <tr key={app.id}>
-                  <td>
-                    <Link to={`/bank/applications/${app.id}`}>
-                      № {app.id} · {state.companies.find((c) => c.id === app.companyId)?.name}
-                    </Link>
-                  </td>
-                  <td>{products[app.product]}</td>
-                  <td>
-                    {requestedAmount(app)} · {requestedTerm(app)}
-                  </td>
-                  <td>
-                    <StatusBadge app={app} />
-                    <StageTrack app={app} bank mini />
-                  </td>
-                  <td>
-                    <Responsible app={app} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!apps.length && <p>Нет заявок по выбранному фильтру.</p>}
-      </Card>
-    </>
-  );
+  return <HttpBankQueue mine={mine} />;
 }
 export function BusinessReview() {
   const { id } = useParams();
