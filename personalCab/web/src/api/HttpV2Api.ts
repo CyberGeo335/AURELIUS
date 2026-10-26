@@ -242,7 +242,15 @@ export class HttpV2Api {
     const controller = new AbortController();
     const timer = setTimeout(
       () => controller.abort(),
-      path === 'action' ? 180000 : body ? 60000 : 15000,
+      path === 'action' &&
+        (body as { kind?: string; action?: string } | undefined)?.kind === 'credit' &&
+        (body as { action?: string }).action === 'chat'
+        ? 600000
+        : path === 'action'
+          ? 180000
+          : body
+            ? 60000
+            : 15000,
     );
     try {
       const response = await fetch('/api/v2/' + path, {

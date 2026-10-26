@@ -1,3 +1,5 @@
+import { AssistantDraftCard } from './HttpAssistant';
+import { ProductTerms } from './ProductTerms';
 import { HttpBankHistory, HttpClientJourney } from './HttpHistory';
 import type { ReactNode } from 'react';
 import { ClientHome } from './ClientHome';
@@ -47,16 +49,7 @@ export function BusinessProducts() {
         return (
           <div className="product-row" key={String(row.terms_id)}>
             <div>
-              <h3>{products[code]}</h3>
-              <p className="muted">
-                {row.min_amount == null ? '' : `От ${money(Number(row.min_amount))}`}{' '}
-                {row.max_amount == null ? '' : `до ${money(Number(row.max_amount))}`}
-              </p>
-              <p>
-                {row.min_contract_term_value == null
-                  ? ''
-                  : `Срок: ${row.min_contract_term_value}–${row.max_contract_term_value} ${row.contract_term_unit === 'MONTHS' ? 'мес.' : 'дней'}`}
-              </p>
+              <ProductTerms row={row} />
             </div>
             <Action
               disabled={action.busy}
@@ -217,6 +210,7 @@ function DraftForm({
         <h1>{products[app.product]}</h1>
         <p>{company.name}</p>
       </HeroPanel>
+      <AssistantDraftCard app={app} />
       {app.revision !== formVersion && (
         <Card>
           <p role="status">
@@ -615,7 +609,7 @@ export function BusinessDetail() {
           <Link to={`/client/new/${app.id}`}>Продолжить заполнение</Link>
         </Card>
       )}
-      {app.status === 'DRAFT' && <BusinessAssistant app={app} />}
+      {app.status === 'DRAFT' && <AssistantDraftCard app={app} />}
       <HttpClientJourney app={app} />
       <Offer app={app} />
       <Reasons app={app} />
@@ -651,99 +645,6 @@ export function BusinessDetail() {
         </div>
       </Card>
     </>
-  );
-}
-const assistantLabels: Record<string, string> = {
-  amount_rub: 'Сумма, ₽',
-  term_months: 'Срок, месяцев',
-  purpose: 'Цель',
-  legal_form: 'Форма бизнеса',
-  inn: 'ИНН',
-  financing_need: 'Характер потребности',
-  needed_by: 'Когда нужны деньги',
-  repayment_source: 'Источник погашения',
-  recurring: 'Повторяющаяся потребность',
-  known_obligations: 'Известные обязательства',
-  seasonality: 'Сезонность',
-  collateral: 'Обеспечение',
-  project_name: 'Название проекта',
-  business_age_months: 'Возраст бизнеса, месяцев',
-  monthly_revenue_rub: 'Заявленная месячная выручка, ₽',
-  operating_cycle_days: 'Операционный цикл, дней',
-  has_collateral: 'Наличие обеспечения',
-  tranche_term_days: 'Срок транша, дней',
-  tranche_term_months: 'Срок транша, месяцев',
-  drawdown_period_months: 'Период выборки, месяцев',
-};
-function BusinessAssistant({ app }: { app: Application }) {
-  const api = useApi() as HttpCreditApi;
-  const action = useAction();
-  const [text, setText] = useState('');
-  const dialogue = app.server?.dialogue;
-  const pending = dialogue?.pending;
-  return (
-    <Card>
-      <h2>Ассистент по заявке</h2>
-      <p className="small muted">
-        Сообщение предлагает изменения анкеты. Подтверждение сведений, согласия и отправка заявки
-        выполняются отдельными действиями.
-      </p>
-      <div aria-live="polite">
-        {dialogue?.history.map((message, index) => (
-          <div className="inset" key={index}>
-            <strong>{message.role === 'user' ? 'Вы' : 'Ассистент'}</strong>
-            <p>{message.content}</p>
-          </div>
-        ))}
-      </div>
-      {pending && (
-        <div className="inset">
-          <h3>Предложенные сведения</h3>
-          <dl>
-            {Object.entries(pending.patch).map(([field, value]) => (
-              <div key={field}>
-                <dt>{assistantLabels[field] ?? field}</dt>
-                <dd>{pending.display_values?.[field] ?? String(value)}</dd>
-                {pending.quotes[field] && (
-                  <dd className="small muted">Из сообщения: «{pending.quotes[field]}»</dd>
-                )}
-              </div>
-            ))}
-          </dl>
-          <Action
-            disabled={action.busy}
-            onClick={() =>
-              void action.run(() =>
-                api.command('confirm_facts', app.id, { proposal_id: pending.proposal_id }),
-              )
-            }
-          >
-            Подтвердить предложенные изменения
-          </Action>
-        </div>
-      )}
-      <label className="form-field">
-        Расскажите о потребности
-        <Textarea
-          value={text}
-          maxLength={12000}
-          disabled={action.busy}
-          onChange={(event) => setText(event.target.value)}
-        />
-      </label>
-      <ErrorState message={action.error} onRetry={action.retry} />
-      <Action
-        disabled={action.busy || !text.trim()}
-        onClick={() =>
-          void action.run(async () => {
-            await api.command('chat', app.id, { text });
-            setText('');
-          })
-        }
-      >
-        {action.busy ? 'Ассистент обрабатывает сообщение…' : 'Отправить сообщение'}
-      </Action>
-    </Card>
   );
 }
 export function BusinessQueue({ mine = false }: { mine?: boolean }) {

@@ -279,6 +279,7 @@ describe('HTTP cabinet', () => {
         </Providers>
       </MemoryRouter>,
     );
+    fireEvent.click(await screen.findByRole('button', { name: 'Открыть помощника' }));
     await screen.findByRole('heading', { name: 'Предложенные сведения' });
     expect(requests).toHaveLength(0);
     expect(screen.getByText('Из сообщения: «миллион рублей»')).toBeInTheDocument();

@@ -1,3 +1,4 @@
+import { HttpAssistantProvider } from '../business/HttpAssistant';
 import { displayStatus } from '../domain/status';
 import {
   Component,
@@ -275,6 +276,16 @@ function Auxiliary({ kind }: { kind: 'company' | 'clients' | 'policies' }) {
 }
 export function App() {
   const { session } = useSession();
+  return (
+    <ErrorBoundary>
+      <HttpAssistantProvider key={`${session?.role}-${session?.userId}-${session?.profile}`}>
+        <CabinetRoutes />
+      </HttpAssistantProvider>
+    </ErrorBoundary>
+  );
+}
+function CabinetRoutes() {
+  const { session } = useSession();
   const location = useLocation();
   const [assistant, setAssistant] = useState(false);
   const [assistantSeed, setAssistantSeed] = useState<string>();
@@ -287,7 +298,7 @@ export function App() {
     setAssistant(true);
   };
   return (
-    <ErrorBoundary>
+    <>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/client" element={<Layout role="client" />}>
@@ -380,17 +391,19 @@ export function App() {
             <span>{assistant ? 'Свернуть' : 'Помощник'}</span>
           </button>
         )}
-      <AssistantPanel
-        key={`${session?.role}-${session?.profile}`}
-        open={
-          import.meta.env.VITE_API_MODE !== 'http' &&
-          assistant &&
-          session?.role === 'client' &&
-          location.pathname.startsWith('/client')
-        }
-        onOpenChange={setAssistant}
-        seed={assistantSeed}
-      />
-    </ErrorBoundary>
+      {import.meta.env.VITE_API_MODE !== 'http' && (
+        <AssistantPanel
+          key={`${session?.role}-${session?.profile}`}
+          open={
+            import.meta.env.VITE_API_MODE !== 'http' &&
+            assistant &&
+            session?.role === 'client' &&
+            location.pathname.startsWith('/client')
+          }
+          onOpenChange={setAssistant}
+          seed={assistantSeed}
+        />
+      )}
+    </>
   );
 }

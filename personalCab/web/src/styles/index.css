@@ -2783,3 +2783,132 @@ td p {
 .decision-preview > .card {
   margin-top: 16px;
 }
+
+/* The HTTP assistant is non-modal so client navigation remains available. */
+.http-assistant {
+  position: fixed;
+  z-index: 42;
+  right: 24px;
+  bottom: 96px;
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  height: 720px;
+  max-height: calc(100dvh - 120px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 24px;
+  background: var(--color-surface);
+  box-shadow: 0 16px 64px #12121326;
+  overflow: hidden;
+}
+.http-assistant[hidden] {
+  display: none;
+}
+.http-assistant-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+.http-assistant-header h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.http-assistant-header button {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+}
+.http-assistant-context {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+.http-assistant a {
+  color: var(--color-assistant-text);
+  text-decoration: underline;
+}
+.http-assistant-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.http-assistant-scroll > *,
+.http-assistant-messages > * {
+  margin-bottom: 12px;
+}
+.http-assistant .inset {
+  background: var(--color-assistant-tint);
+  padding: 14px;
+  border-radius: 16px;
+}
+.http-assistant .from-client {
+  background: var(--color-canvas);
+}
+.http-assistant h3 {
+  font-size: 15px;
+}
+.http-assistant p,
+.http-assistant dl {
+  font-size: 14px;
+}
+.http-assistant p,
+.http-assistant dd {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.http-assistant dl > div {
+  margin: 12px 0;
+}
+.http-assistant dt {
+  font-weight: 600;
+}
+.http-assistant dd {
+  margin: 4px 0;
+}
+.http-assistant .action {
+  max-width: 100%;
+  white-space: normal;
+  font-size: 13px;
+}
+.http-assistant-composer {
+  border-top: 1px solid var(--color-line);
+  padding-top: 12px;
+}
+.http-assistant-composer .form-field {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+.http-assistant-composer textarea {
+  resize: vertical;
+  min-height: 64px;
+  max-height: 120px;
+}
+.http-assistant .error-box {
+  margin: 0;
+  padding: 10px;
+  font-size: 13px;
+  max-height: 100px;
+  overflow-y: auto;
+}
+@media (max-width: 600px) {
+  .http-assistant {
+    right: 16px;
+    padding: 16px;
+  }
+}
+
+.http-assistant-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
