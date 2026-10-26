@@ -1,4 +1,0 @@
-# Совместимое имя файла; запускает тот же актуальный кабинет v3.
-# Использовать отдельно: docker compose -f compose.v2.yaml ...
-include:
-  - compose.yaml
