@@ -79,7 +79,7 @@ services:
       target: test
       args:
         VITE_API_MODE: ${VITE_API_MODE:?Укажите VITE_API_MODE=http}
-    command: [python, -m, pytest, scoring/main/tests, personalCab/prom_v2/tests, deploy/tests, -q, -p, no:cacheprovider]
+    command: [python, -m, pytest, scoring/main/tests, personalCab/prom_v2/tests, deploy/tests, personalCab/prom/prom_lab/ai_agents_lab/tests, -q, -p, no:cacheprovider]
     environment:
       <<: *environment
       PYTHONPATH: /app/scoring:/app
