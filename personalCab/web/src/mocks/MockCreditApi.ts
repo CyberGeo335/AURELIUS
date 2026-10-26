@@ -1,3 +1,4 @@
+import { requestId } from '../domain/requestId';
 import { displayStatus } from '../domain/status';
 import type { CreditApi, DraftPatch } from '../api/CreditApi';
 import type {
@@ -17,7 +18,7 @@ import { validateApplication, defaultFields } from '../domain/forms';
 import { requiredChecks } from '../domain/review';
 import { makeDraft, seedState } from './seeds';
 export const STORAGE_KEY = 'aurelius-v2-credit-v1';
-const uid = () => crypto.randomUUID();
+const uid = () => requestId();
 export class MockCreditApi implements CreditApi {
   private state: CreditState;
   private listeners = new Set<() => void>();

@@ -10,6 +10,8 @@ export function initialFields(rows: ServerRequirement[], app: Application, compa
     else if (r.field_number === 4) value = app.purpose;
     else if (r.field_number === 5) value = app.server?.requested_amount;
     else if (r.field_number === 6) value = app.server?.requested_term_months;
+    else if (r.target_db_field.split(/\s*\+\s*/).includes('companies.okved_main'))
+      value = company.server?.okved_main;
     else if (r.field_number !== 31) {
       const parts = r.target_db_field
         .split(/\s*\+\s*/)

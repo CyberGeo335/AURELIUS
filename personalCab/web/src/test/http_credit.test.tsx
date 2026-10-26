@@ -504,6 +504,8 @@ describe('HTTP cabinet', () => {
     expect(screen.queryByText(/Уровень риска|Вклад факторов/)).not.toBeInTheDocument();
   });
   it('reuses the complete mutation after an ambiguous server failure', async () => {
+    const crypto = globalThis.crypto;
+    vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) });
     const bodies: string[] = [];
     let failed = false;
     vi.stubGlobal(

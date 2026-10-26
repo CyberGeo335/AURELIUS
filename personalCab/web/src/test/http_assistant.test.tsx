@@ -315,6 +315,8 @@ it('shows company fact labels and quotes without applying the unconfirmed propos
   expect(api.getSnapshot().applications[0].server?.fields).toEqual([]);
 });
 it('retries extraction 503 with the same request and clears the error after success', async () => {
+    const crypto = globalThis.crypto;
+    vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) });
   const { commands, setHandler } = await mount();
   setHandler(async () => Response.json({ code: 'EXTRACTION_UNAVAILABLE' }, { status: 503 }));
   const panel = open();

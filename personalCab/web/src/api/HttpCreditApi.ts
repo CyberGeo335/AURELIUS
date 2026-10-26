@@ -1,3 +1,4 @@
+import { requestId } from '../domain/requestId';
 import type { CreditApi, DraftPatch } from './CreditApi';
 import type {
   Application,
@@ -93,7 +94,7 @@ export class HttpCreditApi implements CreditApi {
       ...arguments_,
     };
     const key = JSON.stringify({ action, id, arguments_ });
-    const request = this.pending.get(key) ?? { ...body, request_id: crypto.randomUUID() };
+    const request = this.pending.get(key) ?? { ...body, request_id: requestId() };
     this.pending.set(key, request);
     try {
       const result = await this.http.request<{ application_id: string }>(

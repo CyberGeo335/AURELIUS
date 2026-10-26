@@ -339,7 +339,11 @@ export function DraftForm({
                               }}
                             />
                           )}
-                          {r.format_rule && <span className="muted small">{r.format_rule}</span>}
+                          {r.field_number === 17 ? (
+                            <span className="muted small">Код ОКВЭД, например 46.90</span>
+                          ) : (
+                            r.format_rule && <span className="muted small">{r.format_rule}</span>
+                          )}
                           {(app.sources[r.field_code]?.trim() ||
                             (value.trim() && r.target_db_field.startsWith('companies.'))) && (
                             <SourceBadge>{sourceLabel(app.sources[r.field_code])}</SourceBadge>
