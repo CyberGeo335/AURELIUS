@@ -1,0 +1,3533 @@
+{
+  "info": {
+    "_postman_id": "8f0d2c4e-5b1a-4c3d-9e7f-6a5b4c3d2e1f",
+    "name": "AURELIUS — API кабинета v3",
+    "description": "Коллекция для API /api/v2 кабинета AURELIUS (код 6a9a4c1, ветка chore/cleanup-legacy, дамп v4). Описание — docs/06-api.md, OpenAPI — docs/api/openapi.yaml.\n\nПеременные baseUrl, clientLogin, clientPassword, employeeLogin, employeePassword задаются окружением или --env-var при запуске newman. Логины и пароли берутся из БД стенда (docs/07-data-model.md). Клиент — юрлицо без намеренных пропусков реквизитов (company_id 45–64).\n\nКаждая папка начинается со входа; cookie-хранилище заменяет сессию предыдущего пользователя. Запуск создаёт на стенде 4 заявки. Не запускайте на рабочей установке.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Сквозной сценарий",
+      "item": [
+        {
+          "name": "1. Клиент: черновик и отправка",
+          "item": [
+            {
+              "name": "Вход: клиент",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 и роль CLIENT', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  const u = pm.response.json();",
+                      "  pm.expect(u.role).to.eql('CLIENT');",
+                      "  pm.expect(u).to.not.have.property('password');",
+                      "  pm.expect(u.company_id).to.be.a('number'); pm.collectionVariables.set('clientCompanyId', u.company_id);",
+                      "});",
+                      "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                      "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                      "  pm.expect(c).to.include('aurelius_v3=');",
+                      "  pm.expect(c).to.include('HttpOnly');",
+                      "  pm.expect(c).to.include('SameSite=Strict');",
+                      "  pm.expect(c).to.include('Path=/api/v2');",
+                      "  pm.expect(c).to.include('Max-Age=28800');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"login\": \"{{clientLogin}}\",\n  \"password\": \"{{clientPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: своя компания",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "pm.test('клиент видит только свою компанию', () => {",
+                      "  pm.expect(s.companies).to.have.lengthOf(1);",
+                      "  pm.expect(String(s.companies[0].company_id)).to.eql(String(pm.collectionVariables.get('clientCompanyId')));",
+                      "  s.applications.forEach(a => pm.expect(String(a.company_id)).to.eql(String(pm.collectionVariables.get('clientCompanyId'))));",
+                      "});",
+                      "pm.test('требования анкеты: 99 строк', () => pm.expect(s.requirements).to.have.lengthOf(99));",
+                      "pm.test('компания — юрлицо (сценарий рассчитан на R01 для юрлица)', () => pm.expect(s.companies[0].entity_type).to.eql('LEGAL_ENTITY'));",
+                      "pm.collectionVariables.set('clientState', JSON.stringify({companies: s.companies, requirements: s.requirements}));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "create R01",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200, создан id заявки', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  const id = pm.response.json().application_id;",
+                      "  pm.expect(id).to.match(/^[0-9]+$/);",
+                      "  pm.collectionVariables.set('appMain', id);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/action",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "action"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"create\",\n  \"request_id\": \"{{$guid}}\",\n  \"product\": \"R01\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: новая заявка DRAFT, версия 1",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('DRAFT, версия 1', () => {",
+                      "  pm.expect(app.application_status).to.eql('DRAFT');",
+                      "  pm.expect(app.version).to.eql(1);",
+                      "  pm.expect(app.product_code).to.eql('R01');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "save: анкета и согласия",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Анкета собирается из требований и профиля компании; реквизиты передаются в формате API.",
+                      "const st = JSON.parse(pm.collectionVariables.get('clientState'));",
+                      "const company = st.companies[0];",
+                      "const product = 'R01';",
+                      "const isIp = company.entity_type === 'INDIVIDUAL_ENTREPRENEUR';",
+                      "const amount = '1000000';",
+                      "const term = 12;",
+                      "const purpose = 'Пополнение оборотных средств';",
+                      "const person = company.director_name || company.name || 'Контактное лицо';",
+                      "const details = {",
+                      "  contact_full_name: person,",
+                      "  contact_role: isIp ? 'ИП' : 'Руководитель',",
+                      "  contact_phone: '+79990000000',",
+                      "  signer_full_name: person,",
+                      "  signer_authority_basis: isIp ? 'ИП лично' : 'Руководитель, действует на основании устава'",
+                      "};",
+                      "const fields = {};",
+                      "for (const r of st.requirements.filter(x => x.product_code === product)) {",
+                      "  const n = r.field_number;",
+                      "  let v;",
+                      "  if (n === 1) v = product;",
+                      "  else if (n === 2) v = isIp ? 'ИП' : 'Юридическое лицо';",
+                      "  else if (n === 4) v = purpose;",
+                      "  else if (n === 5) v = amount;",
+                      "  else if (n === 6) v = String(term);",
+                      "  else if (r.target_db_field.startsWith('companies.okved_main')) v = company.okved_main || '';",
+                      "  else if (n === 7 || n === 8) v = 'Нет';",
+                      "  else if (n === 31) v = 'Подтверждаю';",
+                      "  else {",
+                      "    const parts = r.target_db_field.split(/\\s*\\+\\s*/).map(p => {",
+                      "      const [table, key] = p.split('.');",
+                      "      const src = table === 'companies' ? company : table === 'application_details' ? details : undefined;",
+                      "      return src ? src[key] : undefined;",
+                      "    }).filter(x => x !== undefined && x !== null && String(x).trim() !== '');",
+                      "    v = parts.length ? parts.map(String).join(' · ') : '';",
+                      "  }",
+                      "  fields[r.field_code] = v;",
+                      "}",
+                      "const required = st.requirements.filter(x => x.product_code === product && (isIp ? x.required_ip : x.required_ooo));",
+                      "const empty = required.filter(x => !fields[x.field_code]).map(x => x.field_code);",
+                      "if (empty.length) console.warn('Пустые обязательные поля:', empty.join(', '));",
+                      "pm.collectionVariables.set('savePatch', JSON.stringify({",
+                      "  amount, term, purpose, fields, details, product_details: {},",
+                      "  consentBki: true, consentData: true, businessConfirmed: true, step: 4",
+                      "}));"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 {application_id}', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appMain'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/action",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "action"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"save\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appMain}},\n  \"expected_version\": {{version}},\n  \"patch\": {{savePatch}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: анкета сохранена",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('версия 2, сумма и срок', () => {",
+                      "  pm.expect(app.version).to.eql(2);",
+                      "  pm.expect(Number(app.requested_amount)).to.eql(1000000);",
+                      "  pm.expect(app.requested_term_months).to.eql(12);",
+                      "});",
+                      "pm.test('согласия в form_state', () => {",
+                      "  pm.expect(app.form_state.consentBki).to.eql(true);",
+                      "  pm.expect(app.form_state.consentData).to.eql(true);",
+                      "  pm.expect(app.form_state.businessConfirmed).to.eql(true);",
+                      "});",
+                      "pm.test('поля анкеты — CLIENT / UNVERIFIED', () => {",
+                      "  const f = app.fields.find(x => x.field_code === 'R01_03');",
+                      "  pm.expect(f.value_source).to.eql('CLIENT');",
+                      "  pm.expect(f.verification_status).to.eql('UNVERIFIED');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "submit: отправка и автоматический скоринг",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 {application_id}', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appMain'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/action",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "action"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"submit\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appMain}},\n  \"expected_version\": {{version}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: на рассмотрении, клиент не видит оценку",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('UNDER_REVIEW', () => pm.expect(app.application_status).to.eql('UNDER_REVIEW'));",
+                      "pm.test('решение скоринга MANUAL_REVIEW', () => pm.expect(app.decision).to.eql('MANUAL_REVIEW'));",
+                      "pm.test('клиенту не передаются assessment, предложение и проверки', () => {",
+                      "  pm.expect(app.assessment).to.eql(null);",
+                      "  pm.expect(app.offer).to.eql(null);",
+                      "  pm.expect(app.verifications).to.eql([]);",
+                      "});",
+                      "console.log('Причины решения скоринга:', JSON.stringify(app.reasons.map(r => r.code)));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Сотрудник: рассмотрение и дозапрос",
+          "item": [
+            {
+              "name": "Вход: сотрудник",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 и роль BANK_EMPLOYEE', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  const u = pm.response.json();",
+                      "  pm.expect(u.role).to.eql('BANK_EMPLOYEE');",
+                      "  pm.expect(u).to.not.have.property('password');",
+                      "  pm.expect(u.company_id).to.eql(null);",
+                      "});",
+                      "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                      "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                      "  pm.expect(c).to.include('aurelius_v3=');",
+                      "  pm.expect(c).to.include('HttpOnly');",
+                      "  pm.expect(c).to.include('SameSite=Strict');",
+                      "  pm.expect(c).to.include('Path=/api/v2');",
+                      "  pm.expect(c).to.include('Max-Age=28800');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"login\": \"{{employeeLogin}}\",\n  \"password\": \"{{employeePassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: сотрудник видит заявку и оценку",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('сотрудник видит все компании', () => pm.expect(s.companies.length).to.be.above(1));",
+                      "pm.test('assessment передан сотруднику', () => pm.expect(app.assessment).to.be.an('object'));",
+                      "pm.test('диалог клиента сотруднику не передаётся', () => pm.expect(app.dialogue).to.eql(null));",
+                      "pm.test('ответственного нет', () => pm.expect(app.assignment).to.eql(null));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "claim: взять в работу",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 {application_id}', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appMain'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/action",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "action"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"claim\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appMain}},\n  \"expected_version\": {{version}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: назначен ответственный",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('assignment заполнен', () => pm.expect(app.assignment).to.be.an('object'));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "score: повторный расчёт",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 {application_id}', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appMain'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/action",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "action"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"score\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appMain}},\n  \"expected_version\": {{version}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: после расчёта",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('решение скоринга MANUAL_REVIEW', () => pm.expect(app.decision).to.eql('MANUAL_REVIEW'));",
+                      "console.log('PD за 12 месяцев:', app.assessment && app.assessment.scoring ? JSON.stringify(app.assessment.scoring.pd_by_horizon) : 'не рассчитана');"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "verify: проверка выручки",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 {application_id}', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appMain'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/action",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "action"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"verify\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appMain}},\n  \"expected_version\": {{version}},\n  \"check_kind\": \"revenue\",\n  \"source_ref\": \"Выписка по счёту за 09.2026 (синтетика)\",\n  \"comment\": \"Выручка за месяц совпадает с данными банка\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: проверка в журнале",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('одна проверка revenue', () => {",
+                      "  pm.expect(app.verifications).to.have.lengthOf(1);",
+                      "  pm.expect(app.verifications[0].details.kind).to.eql('revenue');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "review REQUEST_DATA: дозапрос по R01_20",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 {application_id}', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appMain'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/action",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "action"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"review\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appMain}},\n  \"expected_version\": {{version}},\n  \"decision\": \"REQUEST_DATA\",\n  \"reason\": \"Уточните фактический адрес ведения бизнеса и приложите выписку CSV.\",\n  \"field_code\": \"R01_20\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: ждём данные клиента",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('AWAITING_DATA и открытый дозапрос', () => {",
+                      "  pm.expect(app.application_status).to.eql('AWAITING_DATA');",
+                      "  const r = app.requests.find(x => x.request_status === 'OPEN');",
+                      "  pm.expect(r.field_code).to.eql('R01_20');",
+                      "  pm.collectionVariables.set('dataRequestId', r.request_id);",
+                      "});",
+                      "pm.test('решение REQUEST_DATA с причиной BANK_REQUEST_DATA', () => {",
+                      "  pm.expect(app.decision).to.eql('REQUEST_DATA');",
+                      "  pm.expect(app.reasons[0].code).to.eql('BANK_REQUEST_DATA');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Клиент: документ и ответ на дозапрос",
+          "item": [
+            {
+              "name": "Вход: клиент",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 и роль CLIENT', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  const u = pm.response.json();",
+                      "  pm.expect(u.role).to.eql('CLIENT');",
+                      "  pm.expect(u).to.not.have.property('password');",
+                      "  pm.expect(u.company_id).to.be.a('number'); pm.collectionVariables.set('clientCompanyId', u.company_id);",
+                      "});",
+                      "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                      "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                      "  pm.expect(c).to.include('aurelius_v3=');",
+                      "  pm.expect(c).to.include('HttpOnly');",
+                      "  pm.expect(c).to.include('SameSite=Strict');",
+                      "  pm.expect(c).to.include('Path=/api/v2');",
+                      "  pm.expect(c).to.include('Max-Age=28800');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"login\": \"{{clientLogin}}\",\n  \"password\": \"{{clientPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: открытый дозапрос",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('AWAITING_DATA', () => pm.expect(app.application_status).to.eql('AWAITING_DATA'));",
+                      "pm.test('клиент не видит проверки сотрудника', () => pm.expect(app.verifications).to.eql([]));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "upload CSV к дозапросу (/api/v2/documents)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 {application_id}', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appMain'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/documents",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "documents"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"upload\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appMain}},\n  \"expected_version\": {{version}},\n  \"filename\": \"vypiska-2026-09.csv\",\n  \"content_base64\": \"cGVyaW9kO3JldmVudWVfcnViCjIwMjYtMDk7MTI1MDAwMAoyMDI2LTEwOzEzMTAwMDAK\",\n  \"data_request_id\": {{dataRequestId}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: документ сохранён",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('один документ CSV, STORED_UNVERIFIED', () => {",
+                      "  pm.expect(app.documents).to.have.lengthOf(1);",
+                      "  const d = app.documents[0];",
+                      "  pm.expect(d.media_type).to.eql('text/csv');",
+                      "  pm.expect(d.source).to.eql('CLIENT_UPLOAD');",
+                      "  pm.expect(d.processing_status).to.eql('STORED_UNVERIFIED');",
+                      "  pm.expect(String(d.data_request_id)).to.eql(String(pm.collectionVariables.get('dataRequestId')));",
+                      "  pm.collectionVariables.set('documentId', d.document_id);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "answer: ответ на дозапрос",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 {application_id}', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appMain'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/action",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "action"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"answer\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appMain}},\n  \"expected_version\": {{version}},\n  \"data_request_id\": {{dataRequestId}},\n  \"answer\": \"Москва, ул. Тестовая, д. 1 (синтетический адрес)\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: снова на рассмотрении",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('UNDER_REVIEW, дозапрос ANSWERED', () => {",
+                      "  pm.expect(app.application_status).to.eql('UNDER_REVIEW');",
+                      "  pm.expect(app.requests.find(x => String(x.request_id) === String(pm.collectionVariables.get('dataRequestId'))).request_status).to.eql('ANSWERED');",
+                      "});",
+                      "pm.test('ответ записан в поле R01_20', () => {",
+                      "  pm.expect(app.fields.find(x => x.field_code === 'R01_20').field_value).to.include('Тестовая');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Сотрудник: документ и отказ",
+          "item": [
+            {
+              "name": "Вход: сотрудник",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 и роль BANK_EMPLOYEE', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  const u = pm.response.json();",
+                      "  pm.expect(u.role).to.eql('BANK_EMPLOYEE');",
+                      "  pm.expect(u).to.not.have.property('password');",
+                      "  pm.expect(u.company_id).to.eql(null);",
+                      "});",
+                      "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                      "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                      "  pm.expect(c).to.include('aurelius_v3=');",
+                      "  pm.expect(c).to.include('HttpOnly');",
+                      "  pm.expect(c).to.include('SameSite=Strict');",
+                      "  pm.expect(c).to.include('Path=/api/v2');",
+                      "  pm.expect(c).to.include('Max-Age=28800');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"login\": \"{{employeeLogin}}\",\n  \"password\": \"{{employeePassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: актуальная версия",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "GET документ клиента",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200, text/csv, attachment', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.eql('text/csv');",
+                      "  pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment');",
+                      "  pm.expect(pm.response.headers.get('Cache-Control')).to.eql('no-store');",
+                      "});",
+                      "pm.test('байты совпадают с загруженными', () => pm.expect(pm.response.text()).to.eql(\"period;revenue_rub\\n2026-09;1250000\\n2026-10;1310000\\n\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/documents/{{documentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "documents",
+                    "{{documentId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "review REJECT: отказ с причиной",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 {application_id}', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appMain'));",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/action",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "action"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"review\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appMain}},\n  \"expected_version\": {{version}},\n  \"decision\": \"REJECT\",\n  \"reason\": \"Сценарий проверки API: отказ сотрудника с причиной.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. Клиент: результат",
+          "item": [
+            {
+              "name": "Вход: клиент",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 и роль CLIENT', () => {",
+                      "  pm.response.to.have.status(200);",
+                      "  const u = pm.response.json();",
+                      "  pm.expect(u.role).to.eql('CLIENT');",
+                      "  pm.expect(u).to.not.have.property('password');",
+                      "  pm.expect(u.company_id).to.be.a('number'); pm.collectionVariables.set('clientCompanyId', u.company_id);",
+                      "});",
+                      "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                      "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                      "  pm.expect(c).to.include('aurelius_v3=');",
+                      "  pm.expect(c).to.include('HttpOnly');",
+                      "  pm.expect(c).to.include('SameSite=Strict');",
+                      "  pm.expect(c).to.include('Path=/api/v2');",
+                      "  pm.expect(c).to.include('Max-Age=28800');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Origin",
+                    "value": "{{baseUrl}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"login\": \"{{clientLogin}}\",\n  \"password\": \"{{clientPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "state: отказ и причина сотрудника",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));",
+                      "const s = pm.response.json();",
+                      "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appMain'));",
+                      "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appMain')).to.be.an('object'));",
+                      "if (app) pm.collectionVariables.set('version', app.version);",
+                      "",
+                      "",
+                      "pm.test('REJECTED', () => pm.expect(app.application_status).to.eql('REJECTED'));",
+                      "pm.test('решение REJECT с причиной BANK_REJECT', () => {",
+                      "  pm.expect(app.decision).to.eql('REJECT');",
+                      "  const r = app.reasons.find(x => x.code === 'BANK_REJECT');",
+                      "  pm.expect(r.message).to.eql('Сценарий проверки API: отказ сотрудника с причиной.');",
+                      "});",
+                      "pm.test('клиенту не передаются assessment и предложение', () => {",
+                      "  pm.expect(app.assessment).to.eql(null);",
+                      "  pm.expect(app.offer).to.eql(null);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v2/state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v2",
+                    "state"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Заявка R01 юрлица от черновика до отказа сотрудника с причиной. Воспроизводится на исходном дампе."
+    },
+    {
+      "name": "02 Отмена черновика",
+      "item": [
+        {
+          "name": "Вход: клиент",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 и роль CLIENT', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const u = pm.response.json();",
+                  "  pm.expect(u.role).to.eql('CLIENT');",
+                  "  pm.expect(u).to.not.have.property('password');",
+                  "  pm.expect(u.company_id).to.be.a('number'); pm.collectionVariables.set('clientCompanyId', u.company_id);",
+                  "});",
+                  "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                  "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                  "  pm.expect(c).to.include('aurelius_v3=');",
+                  "  pm.expect(c).to.include('HttpOnly');",
+                  "  pm.expect(c).to.include('SameSite=Strict');",
+                  "  pm.expect(c).to.include('Path=/api/v2');",
+                  "  pm.expect(c).to.include('Max-Age=28800');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{clientLogin}}\",\n  \"password\": \"{{clientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "create R01",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, создан id заявки', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const id = pm.response.json().application_id;",
+                  "  pm.expect(id).to.match(/^[0-9]+$/);",
+                  "  pm.collectionVariables.set('appCancel', id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"create\",\n  \"request_id\": \"{{$guid}}\",\n  \"product\": \"R01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: DRAFT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appCancel'));",
+                  "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appCancel')).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);",
+                  "",
+                  "pm.test('DRAFT', () => pm.expect(app.application_status).to.eql('DRAFT'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "cancel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 {application_id}', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appCancel'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"cancel\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appCancel}},\n  \"expected_version\": {{version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: CANCELLED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appCancel'));",
+                  "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appCancel')).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);",
+                  "",
+                  "pm.test('CANCELLED', () => pm.expect(app.application_status).to.eql('CANCELLED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "cancel повторно: заявка закрыта",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 INVALID_REQUEST', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().code).to.eql('INVALID_REQUEST');",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Заявка закрыта.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"cancel\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appCancel}},\n  \"expected_version\": {{version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Негативные проверки",
+      "item": [
+        {
+          "name": "Вход: клиент",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 и роль CLIENT', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const u = pm.response.json();",
+                  "  pm.expect(u.role).to.eql('CLIENT');",
+                  "  pm.expect(u).to.not.have.property('password');",
+                  "  pm.expect(u.company_id).to.be.a('number'); pm.collectionVariables.set('clientCompanyId', u.company_id);",
+                  "});",
+                  "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                  "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                  "  pm.expect(c).to.include('aurelius_v3=');",
+                  "  pm.expect(c).to.include('HttpOnly');",
+                  "  pm.expect(c).to.include('SameSite=Strict');",
+                  "  pm.expect(c).to.include('Path=/api/v2');",
+                  "  pm.expect(c).to.include('Max-Age=28800');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{clientLogin}}\",\n  \"password\": \"{{clientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: данные для анкеты",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "pm.collectionVariables.set('clientState', JSON.stringify({companies: s.companies, requirements: s.requirements}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "create R01",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, создан id заявки', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const id = pm.response.json().application_id;",
+                  "  pm.expect(id).to.match(/^[0-9]+$/);",
+                  "  pm.collectionVariables.set('appNeg', id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"create\",\n  \"request_id\": \"{{$guid}}\",\n  \"product\": \"R01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: версия 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appNeg'));",
+                  "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appNeg')).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "save с фиксированным request_id",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('negRequestId', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 {application_id}', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appNeg'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"save\",\n  \"request_id\": \"{{negRequestId}}\",\n  \"application_id\": {{appNeg}},\n  \"expected_version\": {{version}},\n  \"patch\": {\"amount\": \"500000\", \"term\": 12}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "тот же request_id и то же тело → сохранённый результат",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 {application_id}', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appNeg'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"save\",\n  \"request_id\": \"{{negRequestId}}\",\n  \"application_id\": {{appNeg}},\n  \"expected_version\": 1,\n  \"patch\": {\"amount\": \"500000\", \"term\": 12}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: повтор не изменил заявку (версия 2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appNeg'));",
+                  "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appNeg')).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);",
+                  "",
+                  "pm.test('версия 2', () => pm.expect(app.version).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "тот же request_id, другое тело → 409 REQUEST_ID_REUSED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 REQUEST_ID_REUSED', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().code).to.eql('REQUEST_ID_REUSED');",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Идентификатор запроса уже использован.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"save\",\n  \"request_id\": \"{{negRequestId}}\",\n  \"application_id\": {{appNeg}},\n  \"expected_version\": {{version}},\n  \"patch\": {\"amount\": \"700000\", \"term\": 12}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "устаревшая expected_version → 409 STALE_CASE_VERSION",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 STALE_CASE_VERSION', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().code).to.eql('STALE_CASE_VERSION');",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Заявка изменилась. Обновите данные перед повтором.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"save\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appNeg}},\n  \"expected_version\": 1,\n  \"patch\": {\"amount\": \"700000\", \"term\": 12}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "чужой Origin → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 без изменения', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "  pm.expect(pm.response.json().message).to.eql('Недопустимый источник запроса.');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Origin",
+                "value": "http://evil.example"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"save\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appNeg}},\n  \"expected_version\": {{version}},\n  \"patch\": {\"amount\": \"700000\"}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "клиент вызывает действие сотрудника → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 INVALID_REQUEST', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "  pm.expect(pm.response.json().code).to.eql('INVALID_REQUEST');",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Действие доступно сотруднику банка.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"claim\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appNeg}},\n  \"expected_version\": {{version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, сессия снята', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().authenticated).to.eql(false);",
+                  "  pm.expect(pm.response.headers.get('Set-Cookie')).to.include('Max-Age=0');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "logout"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state без сессии → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 LOGIN_REQUIRED', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().code).to.eql('LOGIN_REQUIRED');",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Войдите в кабинет.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "действие без сессии → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 LOGIN_REQUIRED', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().code).to.eql('LOGIN_REQUIRED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"cancel\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appNeg}},\n  \"expected_version\": {{version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "вход с неверным паролем → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 LOGIN_REQUIRED', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "  pm.expect(pm.response.json().code).to.eql('LOGIN_REQUIRED');",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Неверный логин или пароль.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{clientLogin}}\",\n  \"password\": \"{{clientPassword}}-wrong\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Вход: сотрудник",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 и роль BANK_EMPLOYEE', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const u = pm.response.json();",
+                  "  pm.expect(u.role).to.eql('BANK_EMPLOYEE');",
+                  "  pm.expect(u).to.not.have.property('password');",
+                  "  pm.expect(u.company_id).to.eql(null);",
+                  "});",
+                  "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                  "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                  "  pm.expect(c).to.include('aurelius_v3=');",
+                  "  pm.expect(c).to.include('HttpOnly');",
+                  "  pm.expect(c).to.include('SameSite=Strict');",
+                  "  pm.expect(c).to.include('Path=/api/v2');",
+                  "  pm.expect(c).to.include('Max-Age=28800');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{employeeLogin}}\",\n  \"password\": \"{{employeePassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: черновик виден сотруднику",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appNeg'));",
+                  "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appNeg')).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "score без назначения → 403 ASSIGNEE_REQUIRED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 ASSIGNEE_REQUIRED', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "  pm.expect(pm.response.json().code).to.eql('ASSIGNEE_REQUIRED');",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Действие доступно ответственному сотруднику. Сначала возьмите заявку в работу.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"score\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appNeg}},\n  \"expected_version\": {{version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "claim черновика → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409 INVALID_REQUEST', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "  pm.expect(pm.response.json().code).to.eql('INVALID_REQUEST');",
+                  "  pm.expect(pm.response.json().message).to.eql(\"Взять в работу можно заявку на рассмотрении.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"claim\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appNeg}},\n  \"expected_version\": {{version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "Ошибки доступа, версии и повтора запроса. Оставляет на стенде один черновик."
+    },
+    {
+      "name": "04 Одобрение и принятие предложения",
+      "item": [
+        {
+          "name": "Вход: клиент",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 и роль CLIENT', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const u = pm.response.json();",
+                  "  pm.expect(u.role).to.eql('CLIENT');",
+                  "  pm.expect(u).to.not.have.property('password');",
+                  "  pm.expect(u.company_id).to.be.a('number'); pm.collectionVariables.set('clientCompanyId', u.company_id);",
+                  "});",
+                  "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                  "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                  "  pm.expect(c).to.include('aurelius_v3=');",
+                  "  pm.expect(c).to.include('HttpOnly');",
+                  "  pm.expect(c).to.include('SameSite=Strict');",
+                  "  pm.expect(c).to.include('Path=/api/v2');",
+                  "  pm.expect(c).to.include('Max-Age=28800');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{clientLogin}}\",\n  \"password\": \"{{clientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: данные для анкеты",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "pm.collectionVariables.set('clientState', JSON.stringify({companies: s.companies, requirements: s.requirements}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "create R01",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, создан id заявки', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const id = pm.response.json().application_id;",
+                  "  pm.expect(id).to.match(/^[0-9]+$/);",
+                  "  pm.collectionVariables.set('appApprove', id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"create\",\n  \"request_id\": \"{{$guid}}\",\n  \"product\": \"R01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: версия 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appApprove'));",
+                  "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appApprove')).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "save: анкета и согласия",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Анкета собирается из требований и профиля компании; реквизиты передаются в формате API.",
+                  "const st = JSON.parse(pm.collectionVariables.get('clientState'));",
+                  "const company = st.companies[0];",
+                  "const product = 'R01';",
+                  "const isIp = company.entity_type === 'INDIVIDUAL_ENTREPRENEUR';",
+                  "const amount = '1000000';",
+                  "const term = 12;",
+                  "const purpose = 'Пополнение оборотных средств';",
+                  "const person = company.director_name || company.name || 'Контактное лицо';",
+                  "const details = {",
+                  "  contact_full_name: person,",
+                  "  contact_role: isIp ? 'ИП' : 'Руководитель',",
+                  "  contact_phone: '+79990000000',",
+                  "  signer_full_name: person,",
+                  "  signer_authority_basis: isIp ? 'ИП лично' : 'Руководитель, действует на основании устава'",
+                  "};",
+                  "const fields = {};",
+                  "for (const r of st.requirements.filter(x => x.product_code === product)) {",
+                  "  const n = r.field_number;",
+                  "  let v;",
+                  "  if (n === 1) v = product;",
+                  "  else if (n === 2) v = isIp ? 'ИП' : 'Юридическое лицо';",
+                  "  else if (n === 4) v = purpose;",
+                  "  else if (n === 5) v = amount;",
+                  "  else if (n === 6) v = String(term);",
+                  "  else if (r.target_db_field.startsWith('companies.okved_main')) v = company.okved_main || '';",
+                  "  else if (n === 7 || n === 8) v = 'Нет';",
+                  "  else if (n === 31) v = 'Подтверждаю';",
+                  "  else {",
+                  "    const parts = r.target_db_field.split(/\\s*\\+\\s*/).map(p => {",
+                  "      const [table, key] = p.split('.');",
+                  "      const src = table === 'companies' ? company : table === 'application_details' ? details : undefined;",
+                  "      return src ? src[key] : undefined;",
+                  "    }).filter(x => x !== undefined && x !== null && String(x).trim() !== '');",
+                  "    v = parts.length ? parts.map(String).join(' · ') : '';",
+                  "  }",
+                  "  fields[r.field_code] = v;",
+                  "}",
+                  "const required = st.requirements.filter(x => x.product_code === product && (isIp ? x.required_ip : x.required_ooo));",
+                  "const empty = required.filter(x => !fields[x.field_code]).map(x => x.field_code);",
+                  "if (empty.length) console.warn('Пустые обязательные поля:', empty.join(', '));",
+                  "pm.collectionVariables.set('savePatch', JSON.stringify({",
+                  "  amount, term, purpose, fields, details, product_details: {},",
+                  "  consentBki: true, consentData: true, businessConfirmed: true, step: 4",
+                  "}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 {application_id}', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appApprove'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"save\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appApprove}},\n  \"expected_version\": {{version}},\n  \"patch\": {{savePatch}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: версия 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appApprove'));",
+                  "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appApprove')).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "submit: отправка и автоматический скоринг",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 {application_id}', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appApprove'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"submit\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appApprove}},\n  \"expected_version\": {{version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Вход: сотрудник",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 и роль BANK_EMPLOYEE', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const u = pm.response.json();",
+                  "  pm.expect(u.role).to.eql('BANK_EMPLOYEE');",
+                  "  pm.expect(u).to.not.have.property('password');",
+                  "  pm.expect(u.company_id).to.eql(null);",
+                  "});",
+                  "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                  "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                  "  pm.expect(c).to.include('aurelius_v3=');",
+                  "  pm.expect(c).to.include('HttpOnly');",
+                  "  pm.expect(c).to.include('SameSite=Strict');",
+                  "  pm.expect(c).to.include('Path=/api/v2');",
+                  "  pm.expect(c).to.include('Max-Age=28800');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{employeeLogin}}\",\n  \"password\": \"{{employeePassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: рассчитанное предложение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appApprove'));",
+                  "pm.test('заявка видна', () => pm.expect(app).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);",
+                  "pm.test('рассчитан черновик предложения', () => { pm.expect(app.offer).to.be.an('object'); pm.expect(app.offer.offer_status).to.eql('DRAFT'); });",
+                  "pm.test('результат передан сотруднику', () => pm.expect(app.assessment).to.be.an('object'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "claim",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 {application_id}', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appApprove'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"claim\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appApprove}},\n  \"expected_version\": {{version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: назначен",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appApprove'));",
+                  "pm.test('заявка видна', () => pm.expect(app, 'заявка ' + pm.collectionVariables.get('appApprove')).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "review APPROVE: одобрить рассчитанные условия",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200: решение сохранено', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appApprove')); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"review\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appApprove}},\n  \"expected_version\": {{version}},\n  \"decision\": \"APPROVE\",\n  \"reason\": \"Рассчитанные условия рассмотрены сотрудником в DEMO-сценарии.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: предложение опубликовано",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appApprove'));",
+                  "pm.test('заявка видна', () => pm.expect(app).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);",
+                  "pm.test('APPROVED и PROPOSED', () => { pm.expect(app.application_status).to.eql('APPROVED'); pm.expect(app.offer.offer_status).to.eql('PROPOSED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Вход: клиент",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 и роль CLIENT', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const u = pm.response.json();",
+                  "  pm.expect(u.role).to.eql('CLIENT');",
+                  "  pm.expect(u).to.not.have.property('password');",
+                  "  pm.expect(u.company_id).to.be.a('number'); pm.collectionVariables.set('clientCompanyId', u.company_id);",
+                  "});",
+                  "pm.test('cookie aurelius_v3: HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов', () => {",
+                  "  const c = pm.response.headers.get('Set-Cookie') || '';",
+                  "  pm.expect(c).to.include('aurelius_v3=');",
+                  "  pm.expect(c).to.include('HttpOnly');",
+                  "  pm.expect(c).to.include('SameSite=Strict');",
+                  "  pm.expect(c).to.include('Path=/api/v2');",
+                  "  pm.expect(c).to.include('Max-Age=28800');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{clientLogin}}\",\n  \"password\": \"{{clientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: клиент получает предложение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appApprove'));",
+                  "pm.test('заявка видна', () => pm.expect(app).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);",
+                  "pm.test('клиент видит предложение', () => { pm.expect(app.offer.offer_status).to.eql('PROPOSED'); pm.expect(app.assessment).to.eql(null); });",
+                  "pm.collectionVariables.set('offerApprove', app.offer.offer_id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        },
+        {
+          "name": "accept: принять предложение",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200: предложение принято', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().application_id).to.eql(pm.collectionVariables.get('appApprove')); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{baseUrl}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "action"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"credit\",\n  \"action\": \"accept\",\n  \"request_id\": \"{{$guid}}\",\n  \"application_id\": {{appApprove}},\n  \"expected_version\": {{version}},\n  \"offer_id\": {{offerApprove}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "state: ACCEPTED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "const app = s.applications.find(a => String(a.application_id) === pm.collectionVariables.get('appApprove'));",
+                  "pm.test('заявка видна', () => pm.expect(app).to.be.an('object'));",
+                  "if (app) pm.collectionVariables.set('version', app.version);",
+                  "pm.test('ACCEPTED', () => pm.expect(app.offer.offer_status).to.eql('ACCEPTED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/state",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "state"
+              ]
+            }
+          }
+        }
+      ],
+      "description": "Отдельная R01-заявка клиента компании 45–64: расчёт, решение сотрудника, публикация предложения и принятие клиентом. Требуется рассчитанный черновик предложения; результат определяется данными заявки и политикой."
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:5173"
+    },
+    {
+      "key": "clientLogin",
+      "value": ""
+    },
+    {
+      "key": "clientPassword",
+      "value": ""
+    },
+    {
+      "key": "employeeLogin",
+      "value": ""
+    },
+    {
+      "key": "employeePassword",
+      "value": ""
+    }
+  ]
+}

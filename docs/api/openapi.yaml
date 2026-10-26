@@ -1,0 +1,1280 @@
+openapi: 3.1.0
+info:
+  title: AURELIUS — API кабинета v3
+  version: "6a9a4c1"
+  summary: Умный кредитный кабинет предпринимателя, same-origin API /api/v2.
+  description: |
+    API сервера `personalCab/prom_v2/cabinet_server.py` (кабинет v3). Описание по коду коммита `6a9a4c1`
+    ветки `chore/cleanup-legacy`. Подробное описание действий, порядка проверок и текстов ошибок — `docs/06-api.md`.
+
+    Общие правила:
+    - Сессия — cookie `aurelius_v3` (HttpOnly, SameSite=Strict, Path=/api/v2, 8 часов), ставится `POST /api/v2/login`.
+    - Каждый POST должен содержать заголовок `Origin`, равный `http://` + `Host`, иначе 403.
+    - Тело POST — JSON-объект, 1 байт — 2 МиБ; для `/api/v2/documents` — до 14 МиБ, иначе 413.
+    - Числа NUMERIC из БД (суммы, ставки, PD) передаются строками, даты — строками ISO 8601.
+    - Ошибка — `{message, code}`. Ответы 403 по `Origin` и 404 по маршруту содержат только `message`.
+    - Все данные синтетические. Подписание и выдача не реализованы: сценарий заканчивается `offer_status=ACCEPTED`.
+servers:
+  - url: http://127.0.0.1:5173
+    description: Локальный запуск по умолчанию (`APP_PORT=5173`)
+tags:
+  - name: Сессия
+    description: Вход, выход и текущий пользователь.
+  - name: Состояние
+    description: Данные, видимые пользователю; проекция зависит от роли.
+  - name: Действия
+    description: Все изменения заявок — `POST /api/v2/action` с полем `action`.
+  - name: Документы
+    description: Загрузка и скачивание PDF и CSV.
+security:
+  - cookieAuth: []
+paths:
+  /api/v2/login:
+    post:
+      tags: [Сессия]
+      operationId: login
+      summary: Вход по логину и паролю
+      description: Логин и пароль сверяются с `public.user_accounts` (только активные учётки). Ответ ставит cookie `aurelius_v3`.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Вход выполнен.
+          headers:
+            Set-Cookie:
+              description: '`aurelius_v3=<token>; HttpOnly; SameSite=Strict; Path=/api/v2; Max-Age=28800`'
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Неверный логин или пароль (`LOGIN_REQUIRED`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Неверный логин или пароль.
+                code: LOGIN_REQUIRED
+        '403':
+          $ref: '#/components/responses/ForeignOrigin'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+  /api/v2/logout:
+    post:
+      tags: [Сессия]
+      operationId: logout
+      summary: Выход
+      description: Удаляет сессию и снимает cookie. Требует действующей сессии.
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            example: {}
+      responses:
+        '200':
+          description: Сессия удалена.
+          headers:
+            Set-Cookie:
+              description: '`aurelius_v3=; HttpOnly; SameSite=Strict; Path=/api/v2; Max-Age=0`'
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [authenticated]
+                properties:
+                  authenticated:
+                    type: boolean
+                    const: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForeignOrigin'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+  /api/v2/session:
+    get:
+      tags: [Сессия]
+      operationId: getSession
+      summary: Текущий пользователь
+      responses:
+        '200':
+          description: Пользователь сессии.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v2/state:
+    get:
+      tags: [Состояние]
+      operationId: getState
+      summary: Компании, заявки, требования анкеты и каталог
+      description: |
+        Клиент видит только свою компанию и её заявки, сотрудник — все. Различия проекции заявки по ролям —
+        в описаниях полей `offer`, `assessment`, `verifications`, `dialogue` схемы `Application`.
+        Параметры строки запроса сервер не читает.
+      responses:
+        '200':
+          description: Состояние, видимое пользователю.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/State'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /api/v2/action:
+    post:
+      tags: [Действия]
+      operationId: postAction
+      summary: Действие с заявкой
+      description: |
+        Одно тело — одно действие, вид определяется полем `action`.
+        Для всех действий, кроме `create`, обязательны `application_id` и `expected_version` (равный `version` из `state`).
+        Квитанция по паре (пользователь, `request_id`): повтор с тем же телом возвращает сохранённый результат,
+        тот же `request_id` с другим телом — 409 `REQUEST_ID_REUSED`.
+        Порядок проверок: `kind` и `request_id` → квитанция → заявка (404) → версия (409) → роль и ответственный (403) → статус и поля.
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditAction'
+            examples:
+              create:
+                summary: Новая заявка R01
+                value:
+                  kind: credit
+                  action: create
+                  request_id: 6f1c1e4e-3c3a-4b1e-9e55-1b2a3c4d5e6f
+                  product: R01
+              submit:
+                summary: Отправка черновика
+                value:
+                  kind: credit
+                  action: submit
+                  request_id: 0b5d5d7a-8f2c-4d6a-a1b2-c3d4e5f60718
+                  application_id: 31
+                  expected_version: 2
+              review_request_data:
+                summary: Дозапрос сотрудника
+                value:
+                  kind: credit
+                  action: review
+                  request_id: 2a9e1b3c-4d5e-4f60-8a1b-2c3d4e5f6071
+                  application_id: 31
+                  expected_version: 6
+                  decision: REQUEST_DATA
+                  reason: Уточните фактический адрес ведения бизнеса.
+                  field_code: R01_20
+      responses:
+        '200':
+          $ref: '#/components/responses/ActionOk'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Чужой `Origin` (только `message`), не та роль или не ответственный (`ASSIGNEE_REQUIRED`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                assignee:
+                  value:
+                    message: Действие доступно ответственному сотруднику. Сначала возьмите заявку в работу.
+                    code: ASSIGNEE_REQUIRED
+                role:
+                  value:
+                    message: Действие доступно клиенту.
+                    code: INVALID_REQUEST
+                origin:
+                  value:
+                    message: Недопустимый источник запроса.
+        '404':
+          description: Заявка не найдена или принадлежит другой компании.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Заявка не найдена.
+                code: INVALID_REQUEST
+        '409':
+          description: |
+            Конфликт: `STALE_CASE_VERSION`, `REQUEST_ID_REUSED`, `ALREADY_ASSIGNED`, `STALE_PROPOSAL`, `SCORING_STALE`,
+            `OFFER_STALE` или недопустимый статус заявки (`INVALID_REQUEST`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                stale_version:
+                  value:
+                    message: Заявка изменилась. Обновите данные перед повтором.
+                    code: STALE_CASE_VERSION
+                reused:
+                  value:
+                    message: Идентификатор запроса уже использован.
+                    code: REQUEST_ID_REUSED
+                offer_stale:
+                  value:
+                    message: Данные изменились, банк повторно проверяет предложение.
+                    code: OFFER_STALE
+                no_offer:
+                  value:
+                    message: Для одобрения нужен рассчитанный черновик предложения.
+                    code: INVALID_REQUEST
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /api/v2/documents:
+    post:
+      tags: [Документы]
+      operationId: uploadDocument
+      summary: Загрузка PDF или CSV
+      description: |
+        Тело — действие `upload` (тот же формат, что у `/api/v2/action`). Лимит тела — 14 МиБ, самого файла — 10 МиБ.
+        Клиент загружает к заявкам своей компании, сотрудник — к любой. Статус заявки не проверяется.
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadAction'
+      responses:
+        '200':
+          $ref: '#/components/responses/ActionOk'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForeignOrigin'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /api/v2/documents/{document_id}:
+    get:
+      tags: [Документы]
+      operationId: downloadDocument
+      summary: Скачать документ
+      description: Клиент — документы заявок своей компании, сотрудник — любые. Чужой документ — 404.
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Байты документа.
+          headers:
+            Content-Disposition:
+              description: "`attachment; filename=\"document\"; filename*=UTF-8''<имя файла>`"
+              schema:
+                type: string
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: aurelius_v3
+      description: Сессионный токен из `POST /api/v2/login`. В БД хранится только SHA-256 токена.
+  parameters:
+    Origin:
+      name: Origin
+      in: header
+      required: true
+      description: Должен быть равен `http://` + значение заголовка `Host`. Браузер ставит его сам.
+      schema:
+        type: string
+        example: http://127.0.0.1:5173
+  responses:
+    ActionOk:
+      description: Действие выполнено. Новое состояние — `GET /api/v2/state`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActionResult'
+    BadRequest:
+      description: Неверные данные запроса (`INVALID_REQUEST`) или ошибка входных данных скоринга (`SCORING_INPUT_ERROR`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: 'Заполните обязательные поля: Телефон для связи'
+            code: INVALID_REQUEST
+    Unauthorized:
+      description: Нет действующей сессии.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Войдите в кабинет.
+            code: LOGIN_REQUIRED
+    ForeignOrigin:
+      description: '`Origin` не совпадает с `http://` + `Host`.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Недопустимый источник запроса.
+    NotFound:
+      description: Объект не найден или недоступен пользователю.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Документ не найден.
+            code: INVALID_REQUEST
+    Conflict:
+      description: Недопустимое состояние.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Открытый дозапрос этой заявки не найден.
+            code: INVALID_REQUEST
+    TooLarge:
+      description: Тело пустое или больше лимита, либо файл больше 10 МиБ.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Запрос слишком большой или пустой.
+            code: INVALID_REQUEST
+    Unavailable:
+      description: Ошибка конфигурации скоринга (`CONFIGURATION_ERROR`), модели (`EXTRACTION_UNAVAILABLE`) или иной сбой (`SERVICE_UNAVAILABLE`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: Операция временно недоступна. Обновите заявку и повторите расчёт.
+            code: SERVICE_UNAVAILABLE
+  schemas:
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          description: Текст для пользователя.
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+    ErrorCode:
+      type: string
+      enum:
+        - LOGIN_REQUIRED
+        - INVALID_REQUEST
+        - REQUEST_ID_REUSED
+        - STALE_CASE_VERSION
+        - ASSIGNEE_REQUIRED
+        - ALREADY_ASSIGNED
+        - STALE_PROPOSAL
+        - EXTRACTION_UNAVAILABLE
+        - SCORING_STALE
+        - OFFER_STALE
+        - SCORING_INPUT_ERROR
+        - CONFIGURATION_ERROR
+        - SERVICE_UNAVAILABLE
+    Decimal:
+      type: string
+      pattern: '^-?[0-9]+(\.[0-9]+)?$'
+      description: Значение NUMERIC из БД, переданное строкой.
+    NullableDecimal:
+      oneOf:
+        - $ref: '#/components/schemas/Decimal'
+        - type: 'null'
+    LoginRequest:
+      type: object
+      required: [login, password]
+      properties:
+        login:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+          format: password
+    User:
+      type: object
+      required: [user_id, login, first_name, last_name, role, company_id]
+      properties:
+        user_id:
+          type: integer
+        login:
+          type: string
+        first_name:
+          type: [string, 'null']
+        last_name:
+          type: [string, 'null']
+        role:
+          type: string
+          enum: [CLIENT, BANK_EMPLOYEE]
+        company_id:
+          type: [integer, 'null']
+          description: У клиента — всегда задан, у сотрудника — `null`.
+    State:
+      type: object
+      required: [companies, applications, requirements, catalog]
+      properties:
+        companies:
+          type: array
+          description: Строки `public.companies` целиком. Клиент — только своя компания.
+          items:
+            $ref: '#/components/schemas/Company'
+        applications:
+          type: array
+          description: Проекции заявок, новые сверху. Клиент — только своей компании.
+          items:
+            $ref: '#/components/schemas/Application'
+        requirements:
+          type: array
+          description: Все строки `public.application_field_requirements`.
+          items:
+            $ref: '#/components/schemas/FieldRequirement'
+        catalog:
+          type: array
+          description: Строки `public.credit_product_terms` активных продуктов, действующие на текущую дату.
+          items:
+            type: object
+            additionalProperties: true
+    Company:
+      type: object
+      description: Строка `public.companies` (все колонки, см. `scoring/bd/v_3 (actual)/schema_actual.sql`).
+      required: [company_id, entity_type]
+      properties:
+        company_id:
+          type: integer
+        entity_type:
+          type: string
+          enum: [LEGAL_ENTITY, INDIVIDUAL_ENTREPRENEUR]
+        inn:
+          type: [string, 'null']
+        name:
+          type: [string, 'null']
+      additionalProperties: true
+    FieldRequirement:
+      type: object
+      required: [product_code, field_number, field_code, field_label, required_ip, required_ooo, target_db_field]
+      properties:
+        product_code:
+          type: string
+          enum: [R01, R02, R03]
+        field_number:
+          type: integer
+        field_code:
+          type: string
+          example: R01_03
+        field_label:
+          type: string
+        required_ip:
+          type: boolean
+        required_ooo:
+          type: boolean
+        format_rule:
+          type: [string, 'null']
+        source_description:
+          type: [string, 'null']
+        fill_method:
+          type: [string, 'null']
+        target_db_field:
+          type: string
+    ApplicationStatus:
+      type: string
+      enum: [DRAFT, SUBMITTED, UNDER_REVIEW, AWAITING_DATA, APPROVED, REJECTED, CANCELLED]
+    Application:
+      type: object
+      description: |
+        Проекция заявки `Cabinet.project`: все колонки `public.credit_applications` и связанные данные.
+        Поля `offer`, `assessment`, `verifications`, `dialogue` различаются по ролям.
+      required: [application_id, company_id, product_code, application_status, version, form_state, fields, requests,
+        documents, history, decision, reasons, offer, assessment, verifications, dialogue, assignment, offer_stale,
+        details, product_details]
+      properties:
+        application_id:
+          type: integer
+        company_id:
+          type: integer
+        product_code:
+          type: string
+          enum: [R01, R02, R03]
+        application_date:
+          type: string
+          format: date-time
+        requested_amount:
+          $ref: '#/components/schemas/NullableDecimal'
+        requested_term_months:
+          type: [integer, 'null']
+        requested_term_days:
+          type: [integer, 'null']
+        purpose:
+          type: [string, 'null']
+        requested_monthly_payment:
+          $ref: '#/components/schemas/NullableDecimal'
+        application_status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        missing_data_status:
+          type: string
+          enum: [COMPLETE, PARTIAL, CRITICAL_MISSING]
+        decision_date:
+          type: [string, 'null']
+          format: date-time
+        requested_data_deadline:
+          type: [string, 'null']
+          format: date-time
+        version:
+          type: integer
+          minimum: 1
+          description: Версия заявки; передаётся как `expected_version`.
+        form_state:
+          type: object
+          properties:
+            consentBki:
+              type: boolean
+            consentData:
+              type: boolean
+            businessConfirmed:
+              type: boolean
+            step: {}
+        details:
+          description: Строка `public.application_details` или `null`.
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: 'null'
+        product_details:
+          description: Строка `public.application_product_details` или `null`.
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: 'null'
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldValue'
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataRequest'
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentMeta'
+        history:
+          type: array
+          description: События заявки, новые сверху. Только имена действий.
+          items:
+            type: object
+            required: [event_id, action, created_at]
+            properties:
+              event_id:
+                type: integer
+              action:
+                type: string
+                example: submit
+              created_at:
+                type: string
+                format: date-time
+        assignment:
+          oneOf:
+            - $ref: '#/components/schemas/Assignment'
+            - type: 'null'
+        decision:
+          type: [string, 'null']
+          enum: [APPROVE, REJECT, REQUEST_DATA, MANUAL_REVIEW, null]
+          description: Последнее решение для показа — сотрудника или скоринга последнего расчёта.
+        reasons:
+          type: array
+          description: Причины этого решения без фильтра по роли (фильтр для клиента — во фронте).
+          items:
+            $ref: '#/components/schemas/Reason'
+        offer:
+          description: |
+            Клиент — `OfferClient` только при `APPROVED` и `offer_status` `PROPOSED`/`ACCEPTED`, иначе `null`.
+            Сотрудник — `OfferEmployee` последнего расчёта в любом статусе или `null`.
+          oneOf:
+            - $ref: '#/components/schemas/OfferClient'
+            - $ref: '#/components/schemas/OfferEmployee'
+            - type: 'null'
+        offer_stale:
+          oneOf:
+            - type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+            - type: 'null'
+        assessment:
+          description: Клиент — всегда `null`. Сотрудник — результат скоринга последнего расчёта или `null`.
+          oneOf:
+            - $ref: '#/components/schemas/Assessment'
+            - type: 'null'
+        verifications:
+          type: array
+          description: Клиент — всегда пустой массив. Сотрудник — записи `verify`.
+          items:
+            $ref: '#/components/schemas/Verification'
+        dialogue:
+          description: Клиент — свой диалог по заявке или `null`. Сотрудник — всегда `null`.
+          oneOf:
+            - $ref: '#/components/schemas/Dialogue'
+            - type: 'null'
+      additionalProperties: true
+    FieldValue:
+      type: object
+      description: Строка `public.application_field_values`.
+      required: [application_id, field_code, product_code]
+      properties:
+        application_id:
+          type: integer
+        product_code:
+          type: string
+        field_code:
+          type: string
+        field_value:
+          description: JSONB; кабинет пишет строку.
+        value_source:
+          type: [string, 'null']
+          enum: [BANK, FNS, SME_REGISTER, BKI, CLIENT, CALCULATED, OTHER, null]
+        verification_status:
+          type: [string, 'null']
+          enum: [VERIFIED, UNVERIFIED, CONFLICT, EXPIRED, null]
+        changed_by_type:
+          type: string
+          enum: [CLIENT, BANK, SYSTEM, LLM]
+        source_reference:
+          type: [string, 'null']
+        obtained_at:
+          type: [string, 'null']
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    DataRequest:
+      type: object
+      description: Строка `public.application_data_requests`.
+      required: [request_id, application_id, field_code, question_text, request_status]
+      properties:
+        request_id:
+          type: integer
+        application_id:
+          type: integer
+        product_code:
+          type: string
+        field_code:
+          type: string
+        question_text:
+          type: string
+        request_status:
+          type: string
+          enum: [OPEN, ANSWERED, CANCELLED]
+        requested_at:
+          type: string
+          format: date-time
+        answered_at:
+          type: [string, 'null']
+          format: date-time
+        answer_value:
+          description: JSONB; кабинет пишет строку ответа.
+    DocumentMeta:
+      type: object
+      required: [document_id, application_id, uploaded_by, filename, media_type, size, sha256, source, processing_status, created_at]
+      properties:
+        document_id:
+          type: integer
+        application_id:
+          type: integer
+        uploaded_by:
+          type: integer
+        data_request_id:
+          type: [integer, 'null']
+        filename:
+          type: string
+        media_type:
+          type: string
+          enum: [application/pdf, text/csv]
+        size:
+          type: integer
+        sha256:
+          type: string
+        source:
+          type: string
+          enum: [CLIENT_UPLOAD, EMPLOYEE_UPLOAD]
+        processing_status:
+          type: string
+          const: STORED_UNVERIFIED
+        created_at:
+          type: string
+          format: date-time
+    Assignment:
+      type: object
+      required: [employee_id, assigned_at]
+      properties:
+        employee_id:
+          type: integer
+        assigned_at:
+          type: string
+          format: date-time
+        first_name:
+          type: [string, 'null']
+        last_name:
+          type: [string, 'null']
+    Reason:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: '`BANK_APPROVE`, `BANK_REJECT`, `BANK_REQUEST_DATA` — от сотрудника; остальные — коды скоринга.'
+          example: BANK_REJECT
+        message:
+          type: string
+    OfferClient:
+      type: object
+      description: Опубликованное предложение, как его видит клиент.
+      required: [offer_id, offer_status, offered_amount, offered_term_months, offered_annual_rate_pct]
+      properties:
+        offer_id:
+          type: integer
+        offer_status:
+          type: string
+          enum: [PROPOSED, ACCEPTED]
+        offered_amount:
+          $ref: '#/components/schemas/NullableDecimal'
+        offered_term_months:
+          type: [integer, 'null']
+        offered_annual_rate_pct:
+          $ref: '#/components/schemas/NullableDecimal'
+      additionalProperties: false
+    OfferEmployee:
+      type: object
+      description: Строка `public.application_product_terms` целиком.
+      required: [offer_id, application_id, terms_id, product_code, offer_status]
+      properties:
+        offer_id:
+          type: integer
+        application_id:
+          type: integer
+        terms_id:
+          type: integer
+        rate_option_id:
+          type: [integer, 'null']
+        repayment_option_id:
+          type: [integer, 'null']
+        product_code:
+          type: string
+        offer_status:
+          type: string
+          enum: [DRAFT, PROPOSED, ACCEPTED, DECLINED]
+        offered_amount:
+          $ref: '#/components/schemas/NullableDecimal'
+        offered_term_months:
+          type: [integer, 'null']
+        offered_annual_rate_pct:
+          $ref: '#/components/schemas/NullableDecimal'
+        offered_conditions:
+          description: JSONB с условиями, графиком и экономикой расчёта.
+      additionalProperties: true
+    Assessment:
+      type: object
+      description: |
+        `Assessment.to_dict()` из `scoring/main/schemas.py` плюс `persistence`. Передаётся только сотруднику.
+        Категорий риска не содержит.
+      properties:
+        application_id:
+          type: integer
+        decision:
+          type: string
+          enum: [MANUAL_REVIEW, REJECT]
+        eligibility_status:
+          type: string
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reason'
+        policy_version:
+          type: string
+        offer:
+          description: Черновик предложения с графиком или `null`.
+        scoring:
+          description: '`pd_by_horizon`, `monthly_hazard`, `cumulative_pd`, `model_version`, `term_months` или `null`, если PD не рассчитана.'
+        risk_assessment:
+          type: object
+          description: Лимит PD и экономические параметры расчёта.
+        automatic_recommendation:
+          type: string
+          enum: [POSITIVE, NEGATIVE, REVIEW_REQUIRED]
+        audit:
+          type: object
+          description: Служебные данные расчёта, в том числе признаки модели и их источники.
+        persistence:
+          type: object
+          properties:
+            scoring_result_id:
+              type: [integer, 'null']
+            decision_id:
+              type: integer
+            offer_id:
+              type: [integer, 'null']
+      additionalProperties: true
+    Verification:
+      type: object
+      required: [details, created_at]
+      properties:
+        details:
+          type: object
+          properties:
+            kind:
+              type: string
+              enum: [authority, revenue]
+            source_ref:
+              type: string
+            comment:
+              type: string
+        created_at:
+          type: string
+          format: date-time
+        first_name:
+          type: [string, 'null']
+        last_name:
+          type: [string, 'null']
+    Dialogue:
+      type: object
+      required: [history, pending, problems]
+      properties:
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+              content:
+                type: string
+        pending:
+          description: Неподтверждённое предложение ассистента или `null`.
+          oneOf:
+            - $ref: '#/components/schemas/Proposal'
+            - type: 'null'
+        problems:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Proposal:
+      type: object
+      required: [proposal_id, patch, quotes]
+      properties:
+        proposal_id:
+          type: string
+          example: PROP-3f2a…
+        patch:
+          type: object
+          description: Предложенные значения (`amount_rub`, `term_months`, `purpose`, `inn`, `company_name`, `ogrn`, `ogrnip`, `legal_address`, `director_name`, `okved_main`, `registration_date`, `actual_activity_description`, `legal_form`, `financing_need` и др.).
+          additionalProperties: true
+        clear_fields:
+          type: array
+          items:
+            type: string
+        quotes:
+          type: object
+          description: Дословные цитаты из сообщения по каждому полю.
+          additionalProperties:
+            type: string
+        source_message_id:
+          type: string
+        source_text:
+          type: string
+        display_values:
+          type: object
+          additionalProperties:
+            type: string
+    ActionResult:
+      type: object
+      required: [application_id]
+      properties:
+        application_id:
+          type: string
+          description: Идентификатор заявки строкой.
+          example: '31'
+    ActionKind:
+      type: string
+      const: credit
+    RequestId:
+      type: string
+      minLength: 1
+      maxLength: 120
+      description: Уникален в пределах пользователя. Повтор с тем же телом возвращает сохранённый результат.
+    CaseFields:
+      type: object
+      required: [kind, action, request_id, application_id, expected_version]
+      properties:
+        kind:
+          $ref: '#/components/schemas/ActionKind'
+        action:
+          type: string
+        request_id:
+          $ref: '#/components/schemas/RequestId'
+        application_id:
+          type: integer
+        expected_version:
+          type: integer
+          description: Должен совпадать с `version` заявки, иначе 409 `STALE_CASE_VERSION`.
+    CreditAction:
+      oneOf:
+        - $ref: '#/components/schemas/CreateAction'
+        - $ref: '#/components/schemas/SaveAction'
+        - $ref: '#/components/schemas/SubmitAction'
+        - $ref: '#/components/schemas/ChatAction'
+        - $ref: '#/components/schemas/ConfirmFactsAction'
+        - $ref: '#/components/schemas/ClaimAction'
+        - $ref: '#/components/schemas/ReleaseAction'
+        - $ref: '#/components/schemas/ScoreAction'
+        - $ref: '#/components/schemas/VerifyAction'
+        - $ref: '#/components/schemas/ReviewAction'
+        - $ref: '#/components/schemas/AnswerAction'
+        - $ref: '#/components/schemas/AcceptAction'
+        - $ref: '#/components/schemas/ReviseAction'
+        - $ref: '#/components/schemas/CancelAction'
+        - $ref: '#/components/schemas/UploadAction'
+      discriminator:
+        propertyName: action
+        mapping:
+          create: '#/components/schemas/CreateAction'
+          save: '#/components/schemas/SaveAction'
+          submit: '#/components/schemas/SubmitAction'
+          chat: '#/components/schemas/ChatAction'
+          confirm_facts: '#/components/schemas/ConfirmFactsAction'
+          claim: '#/components/schemas/ClaimAction'
+          release: '#/components/schemas/ReleaseAction'
+          score: '#/components/schemas/ScoreAction'
+          verify: '#/components/schemas/VerifyAction'
+          review: '#/components/schemas/ReviewAction'
+          answer: '#/components/schemas/AnswerAction'
+          accept: '#/components/schemas/AcceptAction'
+          revise: '#/components/schemas/ReviseAction'
+          cancel: '#/components/schemas/CancelAction'
+          upload: '#/components/schemas/UploadAction'
+    CreateAction:
+      type: object
+      description: 'Клиент. Новая заявка `DRAFT` для своей компании. Ошибки: 403 не клиент; 400 «Выберите доступный продукт.».'
+      required: [kind, action, request_id, product]
+      properties:
+        kind:
+          $ref: '#/components/schemas/ActionKind'
+        action:
+          type: string
+          const: create
+        request_id:
+          $ref: '#/components/schemas/RequestId'
+        product:
+          type: string
+          enum: [R01, R02, R03]
+    SaveAction:
+      description: Клиент, статус `DRAFT`. Сохраняет параметры заявки и анкету (`CLIENT`, `UNVERIFIED`), сбрасывает неподтверждённое предложение ассистента.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          required: [action, patch]
+          properties:
+            action:
+              const: save
+            patch:
+              $ref: '#/components/schemas/SavePatch'
+    SavePatch:
+      type: object
+      description: Все ключи необязательны; отсутствующий ключ не меняет значение.
+      properties:
+        amount:
+          description: Положительное число (строкой или числом) → `requested_amount`.
+          oneOf:
+            - type: string
+            - type: number
+              exclusiveMinimum: 0
+        term:
+          type: integer
+          minimum: 1
+          description: '`requested_term_months`.'
+        purpose:
+          type: [string, 'null']
+        fields:
+          type: object
+          description: '`{field_code: строка до 10 000 символов}`; коды — из требований продукта заявки. Реквизиты дополнительно проверяются по формату и типу заёмщика; неверное значение даёт 400 с сообщением «Проверьте формат реквизита: <код>».'
+          additionalProperties:
+            type: string
+            maxLength: 10000
+        details:
+          type: object
+          additionalProperties: false
+          properties:
+            contact_full_name:
+              type: string
+            contact_role:
+              type: string
+            contact_phone:
+              type: string
+            signer_full_name:
+              type: string
+            signer_authority_basis:
+              type: string
+            guarantor_participation:
+              type: [boolean, 'null']
+            proposed_collateral:
+              type: [boolean, 'null']
+        product_details:
+          type: object
+          additionalProperties: false
+          properties:
+            max_tranche_term_value:
+              type: integer
+              minimum: 1
+            max_tranche_term_unit:
+              type: string
+              enum: [DAYS, MONTHS]
+            drawdown_period_months:
+              type: integer
+              minimum: 1
+            is_revolving:
+              type: boolean
+            overdraft_account_ref:
+              type: string
+              pattern: '^[0-9]{20}$'
+            overdraft_bank_name:
+              type: string
+            overdraft_bank_bik:
+              type: string
+              pattern: '^[0-9]{9}$'
+        consentBki:
+          type: boolean
+        consentData:
+          type: boolean
+        businessConfirmed:
+          type: boolean
+        step:
+          description: Шаг формы в интерфейсе; сервер не проверяет.
+    SubmitAction:
+      description: |
+        Клиент, статус `DRAFT`. Проверки подачи (обязательные поля по типу компании, `_01`, `_03`, `_05`, `_06`, `_31`,
+        цель, три согласия, срок транша для R02/R03), затем `UNDER_REVIEW` и автоматический скоринг.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          properties:
+            action:
+              const: submit
+    ChatAction:
+      description: Клиент, статус `DRAFT`. Сообщение ассистенту; результат — в `dialogue`. 503 `EXTRACTION_UNAVAILABLE`, если модель не дала проверяемого ответа.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          required: [text]
+          properties:
+            action:
+              const: chat
+            text:
+              type: string
+              minLength: 1
+              maxLength: 12000
+    ConfirmFactsAction:
+      description: Клиент, статус `DRAFT`. Переносит подтверждённые значения ассистента в анкету. 409 `STALE_PROPOSAL`, если предложение уже не текущее.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          required: [proposal_id]
+          properties:
+            action:
+              const: confirm_facts
+            proposal_id:
+              type: string
+    ClaimAction:
+      description: Активный сотрудник; статус `SUBMITTED`, `UNDER_REVIEW` или `AWAITING_DATA`. 409 `ALREADY_ASSIGNED`, если ответственный уже есть.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          properties:
+            action:
+              const: claim
+    ReleaseAction:
+      description: Ответственный сотрудник. Снимает назначение; чужое — 403.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          properties:
+            action:
+              const: release
+    ScoreAction:
+      description: Ответственный сотрудник; статус `SUBMITTED` или `UNDER_REVIEW`. Повторный расчёт. Без назначения — 403 `ASSIGNEE_REQUIRED`.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          properties:
+            action:
+              const: score
+    VerifyAction:
+      description: Ответственный сотрудник; статус `SUBMITTED`, `UNDER_REVIEW` или `AWAITING_DATA`. Запись проверки в журнал, исходные данные не меняются.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          required: [check_kind, source_ref, comment]
+          properties:
+            action:
+              const: verify
+            check_kind:
+              type: string
+              enum: [authority, revenue]
+            source_ref:
+              type: string
+              minLength: 1
+              maxLength: 1000
+            comment:
+              type: string
+              minLength: 1
+              maxLength: 10000
+    ReviewAction:
+      description: |
+        Ответственный сотрудник; статус `SUBMITTED`, `UNDER_REVIEW` или `AWAITING_DATA`; нужен расчёт кабинета.
+        `APPROVE` — только по черновику предложения, при актуальном расчёте (`SCORING_STALE`) и без открытых дозапросов.
+        `REQUEST_DATA` требует `field_code`.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          required: [decision, reason]
+          properties:
+            action:
+              const: review
+            decision:
+              type: string
+              enum: [APPROVE, REJECT, REQUEST_DATA]
+            reason:
+              type: string
+              minLength: 1
+            field_code:
+              type: string
+              description: Только для `REQUEST_DATA`; код поля из требований продукта.
+    AnswerAction:
+      description: Клиент; статус `AWAITING_DATA`. Ответ на открытый дозапрос; на последнем — заявка снова `UNDER_REVIEW`.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          required: [data_request_id, answer]
+          properties:
+            action:
+              const: answer
+            data_request_id:
+              type: integer
+            answer:
+              type: string
+              minLength: 1
+              maxLength: 10000
+    AcceptAction:
+      description: Клиент; статус `APPROVED`, предложение `PROPOSED`. 409 `OFFER_STALE`, если данные изменились (предложение снимается).
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          required: [offer_id]
+          properties:
+            action:
+              const: accept
+            offer_id:
+              oneOf:
+                - type: integer
+                - type: string
+    ReviseAction:
+      description: Клиент; статус `APPROVED`, предложение `PROPOSED`. Новые сумма и срок, `UNDER_REVIEW` и скоринг. В интерфейсе не используется.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          required: [amount, term]
+          properties:
+            action:
+              const: revise
+            amount:
+              oneOf:
+                - type: string
+                - type: number
+                  exclusiveMinimum: 0
+            term:
+              type: integer
+              minimum: 1
+    CancelAction:
+      description: Клиент; статус не `REJECTED` и не `CANCELLED`, предложение не принято.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          properties:
+            action:
+              const: cancel
+    UploadAction:
+      description: Клиент (своя заявка) или сотрудник (любая). PDF или CSV до 10 МиБ, хранится как `STORED_UNVERIFIED`.
+      allOf:
+        - $ref: '#/components/schemas/CaseFields'
+        - type: object
+          required: [filename, content_base64]
+          properties:
+            action:
+              const: upload
+            filename:
+              type: string
+              minLength: 1
+              maxLength: 200
+              pattern: '\.([pP][dD][fF]|[cC][sS][vV])$'
+            content_base64:
+              type: string
+              contentEncoding: base64
+            data_request_id:
+              type: integer
+              minimum: 1
+              description: Открытый дозапрос этой заявки.
