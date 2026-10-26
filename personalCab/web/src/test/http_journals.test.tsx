@@ -231,7 +231,7 @@ it('does not invent preview terms or a reason', async () => {
   expect(preview).toHaveTextContent('Нет рассчитанного предложения.');
   expect(within(preview).queryByText('Предлагаемая сумма')).toBeNull();
 });
-it('preserves scoring messages for clients as agreed', async () => {
+it('hides internal scoring messages from clients until an employee decision', async () => {
   mount('/client/applications/456', [
     application({
       reasons: [
@@ -239,9 +239,11 @@ it('preserves scoring messages for clients as agreed', async () => {
       ],
     }),
   ]);
+  await screen.findByRole('heading', { name: 'Причины решения' });
   expect(
-    await screen.findByText('Automatic checks passed; bank employee confirmation required'),
-  ).toBeInTheDocument();
+    screen.queryByText('Automatic checks passed; bank employee confirmation required'),
+  ).toBeNull();
+  expect(screen.getByText('Решение ещё не принято.')).toBeInTheDocument();
 });
 it('directs unsupported file names to request documents and still submits text answers', async () => {
   const fetcher = vi.fn(async (_url: string, _options?: RequestInit) =>

@@ -197,8 +197,8 @@ export interface ServerApplication {
   fields: {
     field_code: string;
     field_value: unknown;
-    verification_status: string;
-    value_source: string;
+    verification_status: string | null;
+    value_source: string | null;
   }[];
   details: Record<string, unknown> | null;
   product_details: Record<string, unknown> | null;

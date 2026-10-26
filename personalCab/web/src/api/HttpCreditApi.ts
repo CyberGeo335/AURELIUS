@@ -228,7 +228,7 @@ function project(a: ServerApplication, requiredFields?: readonly string[]): Appl
     scenario: 'normal',
     externalWait: false,
     fields: Object.fromEntries(a.fields.map((f) => [f.field_code, String(f.field_value ?? '')])),
-    sources: Object.fromEntries(a.fields.map((f) => [f.field_code, f.value_source])),
+    sources: Object.fromEntries(a.fields.map((f) => [f.field_code, f.value_source ?? ''])),
     flow: 0,
     existing: 0,
     leasing: null,

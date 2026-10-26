@@ -2912,3 +2912,26 @@ td p {
   align-items: flex-start;
   gap: 12px;
 }
+
+.http-provenance td,
+.http-provenance th {
+  overflow-wrap: anywhere;
+}
+.http-provenance tbody th {
+  font-weight: 600;
+}
+.http-provenance .is-conflict {
+  background: var(--color-conflict);
+}
+.http-provenance-status.verified {
+  color: var(--color-positive);
+  background: var(--color-positive-bg);
+}
+.http-provenance-status.attention {
+  color: var(--color-attention);
+  background: var(--color-attention-bg);
+}
+.http-provenance-status.neutral {
+  color: var(--color-text-muted);
+  background: var(--color-canvas);
+}

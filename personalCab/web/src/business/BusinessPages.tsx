@@ -1,3 +1,6 @@
+import { clientVisibleReasons } from '../domain/clientReasons';
+import { sourceLabel } from '../domain/provenance';
+import { HttpProvenance } from './HttpProvenance';
 import { AssistantDraftCard } from './HttpAssistant';
 import { ProductTerms } from './ProductTerms';
 import { HttpBankHistory, HttpClientJourney } from './HttpHistory';
@@ -16,6 +19,7 @@ import {
   KeyValue,
   StatusBadge,
   StageTrack,
+  SourceBadge,
 } from '../components/v2/primitives';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -254,7 +258,8 @@ function DraftForm({
         <Card>
           <h2>Анкета</h2>
           <p className="muted">
-            Реквизиты заполнены из базы. Уточните отсутствующие сведения и параметры запроса.
+            Проверьте реквизиты и укажите параметры запроса. Источники указаны для сохранённых
+            значений.
           </p>
           <fieldset disabled={action.busy} className="business-fields">
             <legend className="sr-only">Поля заявки</legend>
@@ -302,7 +307,10 @@ function DraftForm({
                     />
                   )}
                   {r.format_rule && <span className="muted small">{r.format_rule}</span>}
-                  {readOnly && <span className="source">Из базы</span>}
+                  {(app.sources[r.field_code]?.trim() ||
+                    (value.trim() && r.target_db_field.startsWith('companies.'))) && (
+                    <SourceBadge>{sourceLabel(app.sources[r.field_code])}</SourceBadge>
+                  )}
                 </label>
               );
             })}
@@ -409,8 +417,9 @@ function Offer({ app }: { app: Application }) {
     </Card>
   );
 }
-function Reasons({ app }: { app: Application }) {
-  const reasons = app.server?.reasons ?? [];
+function Reasons({ app, audience = 'client' }: { app: Application; audience?: 'client' | 'bank' }) {
+  const allReasons = app.server?.reasons ?? [];
+  const reasons = audience === 'client' ? clientVisibleReasons(allReasons) : allReasons;
   return (
     <Card>
       <h2>Причины решения</h2>
@@ -799,27 +808,15 @@ function ReviewDetails({ app }: { app: Application }) {
         </Card>
         <Offer app={app} />
       </div>
-      <Reasons app={app} />
+      <Reasons app={app} audience="bank" />
       <Card>
         <Documents app={app} />
       </Card>
-      <Card>
-        <h2>Анкета клиента</h2>
-        <dl className="details">
-          {app.server?.fields.map((f) => (
-            <div key={f.field_code}>
-              <dt>
-                {state.requirements?.find((r) => r.field_code === f.field_code)?.field_label ??
-                  f.field_code}
-              </dt>
-              <dd>
-                {String(f.field_value ?? 'Нет данных')}{' '}
-                <span className="source">{f.verification_status}</span>
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </Card>
+      <HttpProvenance
+        app={app}
+        company={state.companies.find((c) => c.id === app.companyId)}
+        requirements={state.requirements ?? []}
+      />
       <Card>
         <h2>Проверки сотрудника</h2>
         {app.server?.verifications?.map((check, index) => (
