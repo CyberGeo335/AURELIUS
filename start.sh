@@ -7,7 +7,7 @@ if [ ! -f .env ]; then
 fi
 unset OLLAMA_ENDPOINT
 # Build once; probe runs inside Docker, so no host Python/curl/Ollama is required.
-docker compose build app
+docker compose build app db
 set +e
 docker compose run --rm --no-deps probe
 probe_status=$?

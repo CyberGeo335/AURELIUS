@@ -1,0 +1,4 @@
+# Linux container entrypoints must work even with core.autocrlf=true on Windows.
+*.sh text eol=lf
+# Windows PowerShell 5.1 needs the UTF-8 BOM in start.ps1 for Russian messages.
+*.ps1 text eol=crlf

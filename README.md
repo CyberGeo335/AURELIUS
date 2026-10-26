@@ -50,7 +50,7 @@ flowchart LR
 Linux / macOS:
 
 ```sh
-git clone -b chore/cleanup-legacy https://github.com/CyberGeo335/AURELIUS.git
+git clone -b main https://github.com/CyberGeo335/AURELIUS.git
 cd AURELIUS
 cp .env.example .env
 # Откройте .env и задайте непустой POSTGRES_PASSWORD.
@@ -60,12 +60,26 @@ sh start.sh
 Windows PowerShell:
 
 ```powershell
-git clone -b chore/cleanup-legacy https://github.com/CyberGeo335/AURELIUS.git
-cd AURELIUS
+git clone -b main https://github.com/CyberGeo335/AURELIUS.git
+Set-Location AURELIUS
 Copy-Item .env.example .env
 # Откройте .env и задайте непустой POSTGRES_PASSWORD.
 powershell -NoProfile -ExecutionPolicy Bypass -File .\start.ps1
 ```
+
+Перед запуском откройте Docker Desktop и дождитесь готовности Engine.
+Используйте Linux containers и WSL 2; `docker info` и `docker compose version`
+должны завершаться без ошибки. Для существующего клона выполните `git switch main`
+и `git pull --ff-only origin main`; существующий `.env` повторно не копируйте.
+Задайте в `.env` собственный непустой `POSTGRES_PASSWORD`, например случайный
+пароль из менеджера паролей. Запускайте скрипт из PowerShell, а не двойным кликом.
+
+Скрипт Windows проверяет Docker до сборки, пересобирает приложение и образ БД,
+а сообщение об успешном запуске выводит после проверки здоровья кабинета.
+`.gitattributes` сохраняет LF в shell-скриптах даже при `core.autocrlf=true`;
+образ PostgreSQL дополнительно нормализует окончания строк. Отключать
+`core.autocrlf` глобально не требуется. Восстановление после прежней ошибки CRLF
+описано в [инструкции развёртывания](docs/09-deployment.md#10-частые-проблемы).
 
 После готовности модели откройте http://127.0.0.1:5173.
 

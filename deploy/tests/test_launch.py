@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import shutil
+import pytest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 
@@ -130,3 +132,66 @@ def test_launcher_does_not_hide_probe_execution_failure(tmp_path):
 def test_launcher_blocks_app_after_failed_model_initialization(tmp_path):
     result, calls = shell_start(tmp_path, model_state='exited 1')
     assert result.returncode != 0 and 'up -d --no-deps app' not in calls
+
+
+def powershell_start(tmp_path, *, engine_status='0', probe_status='0',
+                     model_state='exited 0', app_state='running healthy'):
+    powershell = shutil.which('powershell') or shutil.which('pwsh')
+    if not powershell:
+        pytest.skip('PowerShell launcher is checked on Windows')
+    shutil.copyfile(DEPLOY.parent / 'start.ps1', tmp_path / 'start.ps1')
+    (tmp_path / '.env').write_text('# synthetic config\n')
+    # Exercise the real launcher with deterministic Docker CLI responses.
+    # No daemon, models, network, credentials or database are required here.
+    harness = tmp_path / 'harness.ps1'
+    harness.write_text('''
+function docker {
+    $call = $args -join ' '
+    Add-Content -LiteralPath $env:TRACE_FILE -Value $call
+    $global:LASTEXITCODE = 0
+    switch -Wildcard ($call) {
+        'info *' { $global:LASTEXITCODE = [int]$env:ENGINE_STATUS }
+        'compose run --rm --no-deps probe' { $global:LASTEXITCODE = [int]$env:PROBE_STATUS }
+        'compose ps --all --quiet model-init' { Write-Output 'test-model' }
+        'compose ps --all --quiet app' { Write-Output 'test-app' }
+        'inspect * test-model' { Write-Output $env:MODEL_STATE }
+        'inspect * test-app' { Write-Output $env:APP_STATE }
+    }
+}
+try { & (Join-Path $PSScriptRoot 'start.ps1') } catch { exit 1 }
+''', encoding='utf-8-sig')
+    trace = tmp_path / 'calls'
+    result = subprocess.run([powershell, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(harness)],
+                            capture_output=True, timeout=15,
+                            env=dict(os.environ, TRACE_FILE=str(trace), ENGINE_STATUS=engine_status,
+                                     PROBE_STATUS=probe_status, MODEL_STATE=model_state, APP_STATE=app_state))
+    return result, trace.read_text(encoding='utf-8-sig')
+
+
+def test_powershell_builds_database_and_waits_for_healthy_app(tmp_path):
+    result, calls = powershell_start(tmp_path)
+    assert result.returncode == 0
+    assert 'compose build app db' in calls
+    assert '--profile bundled' not in calls
+    assert calls.index(' test-model') < calls.index('compose up -d --no-deps app')
+    assert ' test-app' in calls
+
+
+def test_powershell_bundled_ollama(tmp_path):
+    result, calls = powershell_start(tmp_path, probe_status='2')
+    assert result.returncode == 0 and '--profile bundled up -d ollama' in calls
+
+
+def test_powershell_stops_before_build_when_engine_is_unavailable(tmp_path):
+    result, calls = powershell_start(tmp_path, engine_status='1')
+    assert result.returncode != 0 and 'compose build' not in calls
+
+
+def test_powershell_blocks_app_after_failed_model_initialization(tmp_path):
+    result, calls = powershell_start(tmp_path, model_state='exited 1')
+    assert result.returncode != 0 and 'up -d --no-deps app' not in calls
+
+
+def test_powershell_does_not_report_success_for_unhealthy_app(tmp_path):
+    result, calls = powershell_start(tmp_path, app_state='running unhealthy')
+    assert result.returncode != 0 and ' test-app' in calls

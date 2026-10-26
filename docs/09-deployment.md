@@ -47,6 +47,11 @@ sh start.sh
 
 Windows PowerShell:
 
+Откройте Docker Desktop, включите Linux containers / WSL 2 и дождитесь готовности
+Engine. Команды `docker info` и `docker compose version` должны завершаться
+без ошибки. В существующем клоне сначала выполните `git switch main` и
+`git pull --ff-only origin main`. Существующий `.env` не перезаписывайте.
+
 ```powershell
 Copy-Item .env.example .env
 # Откройте .env и задайте непустой POSTGRES_PASSWORD.
@@ -55,12 +60,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\start.ps1
 
 Что делает скрипт (`start.sh` / `start.ps1`):
 
-1. Останавливается, если нет `.env`.
-2. Собирает образ `app` (`docker compose build app`). Фронт собирается внутри образа с `VITE_API_MODE=http`.
+1. Останавливается, если нет `.env`. PowerShell также сначала проверяет доступность Docker Engine и Compose v2.
+2. Собирает образы `app` и `db` (`docker compose build app db`). Фронт собирается внутри образа с `VITE_API_MODE=http`.
 3. Запускает `probe`: проверяет из контейнера внешний Ollama по `OLLAMA_BASE_URL`. Если тот недоступен (код 2), задаёт временный `OLLAMA_ENDPOINT=http://ollama:11434` и поднимает встроенный `ollama`.
 4. Поднимает `db`, `init`, `model-init` и показывает лог `model-init`: прогресс загрузки модели и проверку генерации.
 5. Если `model-init` завершился не с кодом 0, останавливается с ошибкой. Проверки при этом не отключаются.
-6. Запускает `app` (`docker compose up -d --no-deps app`).
+6. Запускает `app` (`docker compose up -d --no-deps app`). PowerShell ждёт состояния `healthy` до 120 секунд и только затем сообщает об успехе. При `unhealthy` или остановке контейнера сообщает об ошибке.
 
 После этого кабинет открывается по адресу `http://127.0.0.1:5173` (или по вашему `APP_PORT`).
 
@@ -221,6 +226,8 @@ docker run --rm aurelius-web-test npm test
 
 | Симптом | Причина и что сделать |
 |---|---|
+| Docker не найден / Engine недоступен | установите или запустите Docker Desktop в режиме Linux containers / WSL 2, дождитесь готовности Engine; проверьте `docker info` и `docker compose version` |
+| `set: -\r: invalid option` в старом Windows-запуске | обновите `main` и повторите `start.ps1`: скрипт пересоберёт образ БД; `.gitattributes` и Dockerfile защищают shell-скрипт от CRLF |
 | `Задайте непустой POSTGRES_PASSWORD в .env` или `PG_PASSWORD must be nonempty` | в `.env` пустой пароль. Задайте непустой; пробел не подходит |
 | Порт занят | измените `APP_PORT` или `POSTGRES_PORT` в `.env` и повторите скрипт |
 | `External Ollama unavailable; use bundled Docker service.` | это не ошибка: скрипт переходит на встроенный Ollama. Внешний Ollama, слушающий только loopback хоста, контейнерам недоступен |
@@ -230,6 +237,14 @@ docker run --rm aurelius-web-test npm test
 | `init` падает с `Seed validation failed` | дамп восстановлен не полностью или том не пустой. Смотрите `docker compose logs db` и не восстанавливайте дамп поверх существующей БД |
 | `init` падает на `aurelius_deploy` | подключён том от прежней установки. Задайте новое `COMPOSE_PROJECT_NAME` |
 | Ассистент отвечает ошибкой 503 | модель не ответила (таймаут 120 секунд). Выдуманный ответ не подставляется; повторите сообщение |
+
+После прежней ошибки CRLF том может быть частично инициализирован. Если `init`
+сообщает об отсутствии `aurelius_deploy`, остановите прежний проект командой
+`docker compose --profile bundled down` (без `-v`), задайте новое уникальное
+`COMPOSE_PROJECT_NAME` в `.env` и повторите запуск. Старый том сохранится;
+не удаляйте его, если там могут быть нужные данные. Глобально отключать
+`core.autocrlf` не нужно: `*.sh` выгружаются с LF, а образ PostgreSQL дополнительно
+нормализует окончания строк при сборке.
 
 ## 11. Существующая установка и дамп v4
 
