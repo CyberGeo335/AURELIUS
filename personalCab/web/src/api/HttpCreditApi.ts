@@ -138,7 +138,9 @@ export class HttpCreditApi implements CreditApi {
   };
   answerRequest = async (id: string, requestId: string, answer: string, file?: string) => {
     if (file)
-      throw new Error('Для ответа используйте поле анкеты. Загрузка документов ещё не подключена.');
+      throw new Error(
+        'Прикрепите файл в блоке «Документы дозапроса» нужного запроса, затем отправьте текст через «Ваш ответ». Загрузка документа сама по себе не закрывает дозапрос.',
+      );
     await this.command('answer', id, { data_request_id: Number(requestId), answer });
   };
   bankDecision = async (
