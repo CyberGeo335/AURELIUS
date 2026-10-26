@@ -162,7 +162,9 @@ class Cabinet:
                 "documents": db.execute(f"SELECT {DOCUMENT_COLUMNS} FROM aurelius_cabinet.documents WHERE application_id=%s ORDER BY document_id", (aid,)).fetchall(),
                 "form_state": meta["form_state"] if meta else {},
                 "decision": decision["decision"] if decision else None,
-                "reasons": (decision or {}).get("reasons") or [], "offer": offer,
+                "reasons": [reason for reason in ((decision or {}).get("reasons") or [])
+                            if bank or reason.get("code") in {"BANK_APPROVE", "BANK_REJECT", "BANK_REQUEST_DATA"}],
+                "offer": offer,
                 "assessment": assessment,
                 "verifications": db.execute("SELECT e.details,e.created_at,u.first_name,u.last_name FROM aurelius_cabinet.events e JOIN public.user_accounts u USING(user_id) WHERE e.application_id=%s AND e.action='verify' ORDER BY e.event_id DESC", (aid,)).fetchall() if bank else [],
                 "details": db.execute("SELECT * FROM public.application_details WHERE application_id=%s", (aid,)).fetchone(),
@@ -473,11 +475,11 @@ class Cabinet:
                         raise ValueError('Registration date cannot be in the future')
                 except ValueError as exc:
                     raise ApiError(400, 'Проверьте формат реквизита: ' + code) from exc
+        # The v4 field trigger owns the append-only history, including provenance.
         old = db.execute("SELECT field_value FROM public.application_field_values WHERE application_id=%s AND field_code=%s", (app["application_id"], code)).fetchone()
         if old and old["field_value"] == value:
             return
         db.execute("INSERT INTO public.application_field_values(application_id,product_code,field_code,field_value,value_source,source_reference,obtained_at,verification_status,changed_by_type) VALUES(%s,%s,%s,%s,'CLIENT','cabinet',now(),'UNVERIFIED','CLIENT') ON CONFLICT(application_id,field_code) DO UPDATE SET field_value=EXCLUDED.field_value,value_source='CLIENT',obtained_at=now(),updated_at=now(),verification_status='UNVERIFIED',changed_by_type='CLIENT',source_reference='cabinet'", (app["application_id"], app["product_code"], code, Jsonb(value)))
-        db.execute("INSERT INTO public.application_field_history(application_id,product_code,field_code,old_value,new_value,changed_by_type,source_type,verification_status) VALUES(%s,%s,%s,%s,%s,'CLIENT','CLIENT','UNVERIFIED')", (app["application_id"], app["product_code"], code, Jsonb(old["field_value"] if old else None), Jsonb(value)))
 
     def save(self, db, app, patch, previous):
         if not isinstance(patch, dict):

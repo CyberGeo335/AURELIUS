@@ -242,6 +242,8 @@ def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users,
     borrower = next(a for a in cabinet.state(actor)["applications"] if a["application_id"] == aid)
     assert borrower["assessment"] is None
     assert borrower["offer"] is None
+    assert borrower["reasons"] == []
+    assert app["reasons"]  # Internal reasons remain available to employees.
     command(cabinet, bank, 'claim', aid)
     if change == 'revert':
         with cabinet.connect() as db:
@@ -270,6 +272,7 @@ def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users,
             assert reviewed['scoring_result_id'] == assessment['persistence']['scoring_result_id']
         assert next(a for a in cabinet.state(bank)['applications'] if a['application_id'] == aid)['assessment'] == assessment
     published = next(a for a in cabinet.state(actor)["applications"] if a["application_id"] == aid)
+    assert published["reasons"] == [{"code": "BANK_APPROVE", "message": "Условия проверены сотрудником банка."}]
     assert published["application_status"] == "APPROVED"
     assert published["offer"]["offer_status"] == "PROPOSED"
     assert "pd_application" not in json.dumps(published, default=str)
@@ -528,3 +531,14 @@ def test_dialogue_reads_saved_legal_form_and_inn_without_reasking(cabinet, users
     assert seen[-1]['legal_form'] is None
     app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
     assert 'Укажите недостающий реквизит:' in app['dialogue']['history'][-1]['content']
+
+
+def test_field_history_has_one_row_per_change_and_keeps_provenance(cabinet, users):
+    client = users[0]
+    aid = int(command(cabinet, client, 'create', product='R01')['application_id'])
+    for value in ('46.90', '46.90', '62.01'):
+        command(cabinet, client, 'save', aid, patch={'fields': {'R01_17': value}})
+    with cabinet.connect() as db:
+        rows = db.execute("SELECT old_value,new_value,source_reference,source_type,changed_by_type FROM public.application_field_history WHERE application_id=%s AND field_code='R01_17' ORDER BY history_id", (aid,)).fetchall()
+    assert [(r['old_value'], r['new_value']) for r in rows] == [(None, '46.90'), ('46.90', '62.01')]
+    assert all(r['source_reference'] == 'cabinet' and r['source_type'] == 'CLIENT' and r['changed_by_type'] == 'CLIENT' for r in rows)

@@ -1,0 +1,397 @@
+{
+  "info": {
+    "name": "AURELIUS cabinet regression (v4 seed)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Disposable seeded aurelius_test* DB only. Supply base_url and client/bank credentials via a private Newman environment. Creates and submits one synthetic R01 application."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:55181"
+    }
+  ],
+  "item": [
+    {
+      "name": "Reject foreign Origin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "http://untrusted.invalid"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{base_url}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{client_login}}\", \"password\": \"{{client_password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code, pm.response.json().message).to.equal(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create R01 draft",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{base_url}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/action",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"kind\": \"credit\", \"action\": \"create\", \"product\": \"R01\", \"request_id\": \"{{$guid}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code, pm.response.json().message).to.equal(200));",
+              "pm.collectionVariables.set('aid', pm.response.json().application_id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Prepare typed answers from current seed",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{base_url}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/state"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code, pm.response.json().message).to.equal(200));",
+              "const app = pm.response.json().applications.find(a => a.application_id === Number(pm.collectionVariables.get('aid')));",
+              "const state = pm.response.json();",
+              "const company = state.companies.find(c => c.company_id === app.company_id);",
+              "const fallback = {1:'R01', 2:'Юридическое лицо', 3:company.inn || (company.entity_type === 'INDIVIDUAL_ENTREPRENEUR' ? '770100000001' : '7701000000'), 4:'Пополнение оборотных средств', 5:'1000000', 6:'18', 9:'1990000000010', 10:'399000000000041', 14:'ООО', 15:'2019-01-15', 17:'46.90', 31:'Подтверждаю'};",
+              "const fields = {};",
+              "for (const r of state.requirements.filter(r => r.product_code === 'R01' && (company.entity_type === 'INDIVIDUAL_ENTREPRENEUR' ? r.required_ip : r.required_ooo))) {",
+              "  const parts = r.target_db_field.split(/\\s*\\+\\s*/);",
+              "  const actual = parts.map(p => p.startsWith('companies.') ? company[p.slice(10)] : null).filter(v => v != null && v !== '');",
+              "  // The name is display metadata; only the code is a valid declared OKVED fact.",
+              "  fields[r.field_code] = String(r.field_number === 17 ? (company.okved_main || fallback[17]) : fallback[r.field_number] || actual.join(' · ') || 'Синтетический тест');",
+              "}",
+              "pm.collectionVariables.set('save_body', JSON.stringify({kind:'credit',action:'save',application_id:app.application_id,expected_version:app.version,request_id:pm.variables.replaceIn('{{$guid}}'),patch:{amount:'1000000',term:18,purpose:fallback[4],fields,consentBki:true,consentData:true,businessConfirmed:true}}));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Save form",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{base_url}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/action",
+        "body": {
+          "mode": "raw",
+          "raw": "{{save_body}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code, pm.response.json().message).to.equal(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verify saved code and prepare submission",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{base_url}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/state"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code, pm.response.json().message).to.equal(200));",
+              "const app = pm.response.json().applications.find(a => a.application_id === Number(pm.collectionVariables.get('aid')));",
+              "pm.test('Code-only OKVED persisted', () => pm.expect(app.fields.find(f => f.field_code === 'R01_17').field_value).to.match(/^\\d{2}(?:\\.\\d{1,2}){0,2}$/));",
+              "pm.collectionVariables.set('submit_body', JSON.stringify({kind:'credit',action:'submit',application_id:app.application_id,expected_version:app.version,request_id:pm.variables.replaceIn('{{$guid}}')}));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Submit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{base_url}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/action",
+        "body": {
+          "mode": "raw",
+          "raw": "{{submit_body}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code, pm.response.json().message).to.equal(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Replay same submission",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{base_url}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/action",
+        "body": {
+          "mode": "raw",
+          "raw": "{{submit_body}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code, pm.response.json().message).to.equal(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verify client redaction",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{base_url}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/state"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code, pm.response.json().message).to.equal(200));",
+              "const app = pm.response.json().applications.find(a => a.application_id === Number(pm.collectionVariables.get('aid')));",
+              "pm.test('Submitted', () => pm.expect(app.application_status).to.be.oneOf(['UNDER_REVIEW','AWAITING_DATA','REJECTED']));",
+              "pm.test('No unpublished offer or assessment', () => { pm.expect(app.offer).to.equal(null); pm.expect(app.assessment).to.equal(null); });",
+              "pm.test('Only employee reasons', () => pm.expect(app.reasons.every(r => ['BANK_APPROVE','BANK_REJECT','BANK_REQUEST_DATA'].includes(r.code))).to.equal(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employee login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{base_url}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"login\": \"{{bank_login}}\", \"password\": \"{{bank_password}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code, pm.response.json().message).to.equal(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verify current scorer semantics",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{base_url}}"
+          }
+        ],
+        "url": "{{base_url}}/api/v2/state"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.expect(pm.response.code, pm.response.json().message).to.equal(200));",
+              "const app = pm.response.json().applications.find(a => a.application_id === Number(pm.collectionVariables.get('aid')));",
+              "pm.test('Assessment available to employee', () => pm.expect(app.assessment).to.be.an('object'));",
+              "pm.test('Offer follows actual calculation', () => {",
+              " const offerId = app.assessment.persistence && app.assessment.persistence.offer_id;",
+              " if (offerId) { pm.expect(app.offer.offer_id).to.equal(offerId); pm.expect(app.offer.offer_status).to.equal('DRAFT'); }",
+              " else pm.expect(app.offer).to.equal(null);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

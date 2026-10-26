@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import { application, requirements, mountQueueForm } from './queueFormFixtures';
-import { fieldStep, formStepTitles } from '../domain/formSteps';
+import { initialFields, fieldStep, formStepTitles } from '../domain/formSteps';
 import type { Product } from '../domain/types';
 
 afterEach(() => {
@@ -251,3 +251,34 @@ it('preserves unrelated unsaved contact edits when assistant confirmation change
     patch: { fields: { R01_24: 'Моя правка контакта', R01_05: '4000000' } },
   });
 });
+
+it.each(['R01', 'R02', 'R03'] as Product[])(
+  'prefills only the %s OKVED code when the company also has its name',
+  (product) => {
+    const rows = requirements(product).map((r) =>
+      r.field_number === 17
+        ? {
+            ...r,
+            target_db_field: 'companies.okved_main + companies.okved_main_name',
+          }
+        : r,
+    );
+    const app = { product, fields: {} } as Parameters<typeof initialFields>[1];
+    const company = {
+      id: '1',
+      entity: 'OOO',
+      name: 'Fixture',
+      inn: '',
+      registration: '',
+      registered: '',
+      okved: '46.90',
+      flow: 0,
+      existing: 0,
+      monthly: [],
+      server: { okved_main: '46.90', okved_main_name: 'Оптовая торговля' },
+    } as Parameters<typeof initialFields>[2];
+    expect(initialFields(rows, app, company)[`${product}_17`]).toBe('46.90');
+    company.server = { okved_main: null, okved_main_name: 'Оптовая торговля' };
+    expect(initialFields(rows, app, company)[`${product}_17`]).toBe('');
+  },
+);

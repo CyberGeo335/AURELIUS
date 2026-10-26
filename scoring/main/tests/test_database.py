@@ -65,7 +65,11 @@ class DatabaseTests(unittest.TestCase):
             snapshot = connection.execute(text("SELECT feature_snapshot FROM public.scoring_results WHERE application_id=:id"),
                                           {"id": self.application_id}).scalar_one()
             self.assertEqual(snapshot["pd_horizon_months"], 24)
-            self.assertAlmostEqual(snapshot["risk_assessment"]["pd_limit_1y"], 0.2)
+            # Persistence must preserve the actual DB economics, which override
+            # the example's fallback policy (v4 seed gives 7.5 / 45, not 0.2).
+            economics = first["audit"]["economics_inputs"]
+            expected_limit = float(snapshot["risk_assessment"]["annual_headroom_pct"]) / float(economics["lgd_pct"])
+            self.assertAlmostEqual(snapshot["risk_assessment"]["pd_limit_1y"], expected_limit)
             decision = connection.execute(text("SELECT decision,approved_amount,approved_term_days FROM public.credit_decisions WHERE application_id=:id"),
                                           {"id": self.application_id}).mappings().one()
             self.assertEqual(decision["decision"], "MANUAL_REVIEW")
@@ -163,10 +167,14 @@ class DatabaseTests(unittest.TestCase):
 
     def test_baseline_seed_idempotency_and_db_source(self):
         from main.database import load_snapshot
+        from sqlalchemy import text
         from main.seed_policy import load_baseline, seed_baseline
         with self.engine.connect() as connection:
             transaction = connection.begin()
             try:
+                # Empty economics only within this rolled-back transaction.
+                connection.execute(text("DELETE FROM public.risk_policy_parameters"))
+                connection.execute(text("DELETE FROM public.macro_indicators WHERE indicator_code='KEY_RATE'"))
                 first = seed_baseline(connection, load_baseline())
                 second = seed_baseline(connection, load_baseline())
                 self.assertEqual(first["policies_inserted"], 3)
@@ -190,6 +198,8 @@ class DatabaseTests(unittest.TestCase):
         with self.engine.connect() as connection:
             transaction = connection.begin()
             try:
+                connection.execute(text("DELETE FROM public.risk_policy_parameters"))
+                connection.execute(text("DELETE FROM public.macro_indicators WHERE indicator_code='KEY_RATE'"))
                 document = load_baseline()
                 seed_baseline(connection, document)
                 document["funding_spread_pct"] = "9.99"
@@ -258,7 +268,11 @@ class DatabaseTests(unittest.TestCase):
             oid = connection.execute(text("SELECT obligation_id FROM public.credit_obligations WHERE company_id=(SELECT company_id FROM public.credit_applications WHERE application_id=:id)"), {"id": self.application_id}).scalar_one()
             connection.execute(text("""INSERT INTO public.credit_repayment_history
                 (obligation_id,period_date,overdue_days) VALUES (:id,'2026-09-01',0)"""), {"id": oid})
+            before_policies = set(connection.execute(text("SELECT policy_id FROM public.risk_policy_parameters")).scalars())
+            before_macro = set(connection.execute(text("SELECT indicator_id FROM public.macro_indicators")).scalars())
             seed_baseline(connection, load_baseline())
+            added_policies = set(connection.execute(text("SELECT policy_id FROM public.risk_policy_parameters")).scalars()) - before_policies
+            added_macro = set(connection.execute(text("SELECT indicator_id FROM public.macro_indicators")).scalars()) - before_macro
         try:
             first = run_application(self.application_id, save=True, settings=self.settings,
                                     predictor=FixedPredictor(), as_of=date(2026, 10, 24))
@@ -281,8 +295,10 @@ class DatabaseTests(unittest.TestCase):
             self.assertLessEqual(live["risk_assessment"]["pd_application_1y"], 1)
         finally:
             with self.engine.begin() as connection:
-                connection.execute(text("DELETE FROM public.risk_policy_parameters WHERE policy_version='AURELIUS_MVP_20261024_V1'"))
-                connection.execute(text("DELETE FROM public.macro_indicators WHERE source='CBR official decision 2026-07-24'"))
+                for policy_id in added_policies:
+                    connection.execute(text("DELETE FROM public.risk_policy_parameters WHERE policy_id=:id"), {"id": policy_id})
+                for indicator_id in added_macro:
+                    connection.execute(text("DELETE FROM public.macro_indicators WHERE indicator_id=:id"), {"id": indicator_id})
 
 
 if __name__ == "__main__":

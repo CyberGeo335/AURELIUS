@@ -1,3 +1,4 @@
+import { requestId } from '../../domain/requestId';
 import { displayStatus } from '../../domain/status';
 import { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
@@ -109,7 +110,7 @@ export function AssistantPanel({
   const send = () =>
     action.run(async () => {
       const pending = cache.read(profile).pending ??
-        conversation.pending ?? { id: crypto.randomUUID(), text: text.trim() };
+        conversation.pending ?? { id: requestId(), text: text.trim() };
       update({ pending });
       const response = await chat.send(pending.text, pending.id);
       update({
