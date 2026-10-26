@@ -15,15 +15,15 @@ from psycopg.rows import dict_row
 # ============================================================
 
 DB_CONFIG = {
-    "host": "127.0.0.1",
-    "port": 5433,
-    "dbname": "business_scoring",
-    "user": "postgres",
-    "password": os.getenv(
-        "admin",
-        "admin"
-    ),
+    "host": os.getenv("PG_HOST", "127.0.0.1"),
+    "port": int(os.getenv("PG_PORT", "5433")),
+    "dbname": os.getenv("PG_DATABASE", "business_scoring"),
+    "user": os.getenv("PG_USER", "postgres"),
+    "password": os.getenv("PG_PASSWORD"),
 }
+
+if not DB_CONFIG["password"]:
+    raise SystemExit("Укажите PG_PASSWORD в окружении перед запуском seed.")
 
 CLIENT_COUNT = 30
 BANK_EMPLOYEE_COUNT = 2

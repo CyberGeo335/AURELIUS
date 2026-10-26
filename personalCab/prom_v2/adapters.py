@@ -38,7 +38,7 @@ class OllamaExtraction:
         from personalCab.prom.prom_lab.ai_agents_lab.agents.factory import SYSTEM_PROMPT, extraction_schema
         self.prompt = SYSTEM_PROMPT + "\nV2: результат — только предложение изменений; подтверждение выполняет отдельная типизированная команда."
         model = ChatOllama(
-            model="gpt-oss:20b", base_url=base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            model=os.getenv("OLLAMA_MODEL", "gpt-oss:20b"), base_url=base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
             temperature=0, num_ctx=16384, num_predict=4096, reasoning="low", client_kwargs={"timeout": 120},
         )
         self.chain = model.with_structured_output(extraction_schema(), method="json_schema")

@@ -24,7 +24,7 @@ DB_CONFIG = {
     "port": int(os.getenv("PG_PORT", "5433")),
     "dbname": os.getenv("PG_DATABASE", "business_scoring"),
     "user": os.getenv("PG_USER", "postgres"),
-    "password": os.getenv("PG_PASSWORD", "admin"),  # лучше задать через переменную окружения
+    "password": os.getenv("PG_PASSWORD"),
 }
 
 NOW = datetime.now(timezone.utc)

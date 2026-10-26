@@ -1,2 +1,1 @@
-# Reuse the reviewed dependency set; no modifications to the V1 package.
--r ../prom/prom_lab/ai_agents_lab/requirements.txt
+-r ../../requirements.txt

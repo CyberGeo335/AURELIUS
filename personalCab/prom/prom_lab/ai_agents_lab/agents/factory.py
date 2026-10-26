@@ -91,7 +91,7 @@ def extraction_schema() -> dict:
 class OllamaExtractor:
     def __init__(self, base_url: str | None = None, timeout: float = 120):
         self.model = ChatOllama(
-            model="gpt-oss:20b", base_url=base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            model=os.getenv("OLLAMA_MODEL", "gpt-oss:20b"), base_url=base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
             temperature=0, num_ctx=16384, num_predict=4096, reasoning="low",
             client_kwargs={"timeout": timeout},
         )

@@ -33,7 +33,7 @@ from personalCab.prom.prom_lab.ai_agents_lab.schemas.models import ActorContext,
 from personalCab.prom.prom_lab.ai_agents_lab.services.cabinet import CabinetControls
 
 ROOT = Path(__file__).resolve().parent
-MODEL = 'gpt-oss:20b'
+MODEL = os.getenv('OLLAMA_MODEL', 'gpt-oss:20b')
 LOG = logging.getLogger('aurelius.web')
 
 
