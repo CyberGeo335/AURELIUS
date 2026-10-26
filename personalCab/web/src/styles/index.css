@@ -2771,3 +2771,15 @@ td p {
     max-width: 100%;
   }
 }
+
+.http-history-table {
+  overflow-x: auto;
+}
+.decision-preview {
+  margin-top: 24px;
+  border-top: 1px solid var(--color-line);
+  padding-top: 24px;
+}
+.decision-preview > .card {
+  margin-top: 16px;
+}

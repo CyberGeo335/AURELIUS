@@ -1,3 +1,5 @@
+import { HttpBankHistory, HttpClientJourney } from './HttpHistory';
+import type { ReactNode } from 'react';
 import { ClientHome } from './ClientHome';
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -427,14 +429,93 @@ function Reasons({ app }: { app: Application }) {
     </Card>
   );
 }
-function RequestReply({ app, id, text }: { app: Application; id: string; text: string }) {
-  const api = useApi();
-  const action = useAction();
-  const [answer, setAnswer] = useState('');
+function RequestPresentation({
+  text,
+  fieldLabel,
+  children,
+}: {
+  text: string;
+  fieldLabel?: string;
+  children?: ReactNode;
+}) {
   return (
     <Card>
       <h2>Нужно уточнение</h2>
       <p>{text}</p>
+      {fieldLabel && <p className="small muted">Поле: {fieldLabel}</p>}
+      {children}
+    </Card>
+  );
+}
+function DecisionPreview({
+  app,
+  decision,
+  reason,
+  field,
+  fieldLabel,
+}: {
+  app: Application;
+  decision: string;
+  reason: string;
+  field: string;
+  fieldLabel?: string;
+}) {
+  const text = reason.trim();
+  const preview = {
+    ...app,
+    server: app.server
+      ? {
+          ...app.server,
+          offer_stale: null,
+          reasons: text ? [{ code: `BANK_${decision}`, message: text }] : [],
+          offer: app.server.offer?.offer_status === 'DRAFT'
+            ? { ...app.server.offer, offer_status: 'PROPOSED' as const }
+            : null,
+        }
+      : undefined,
+  };
+  return (
+    <section className="decision-preview" aria-label="Клиент увидит">
+      <h3>Клиент увидит</h3>
+      <p className="small muted">Предпросмотр после сохранения решения.</p>
+      {!text ? (
+        <p>Введите причину для предпросмотра.</p>
+      ) : (
+        <>
+          {decision === 'APPROVE' &&
+            (preview.server?.offer ? (
+              <Offer app={preview} />
+            ) : (
+              <p>Нет рассчитанного предложения.</p>
+            ))}
+          {decision === 'REJECT' && (
+            <p>
+              <strong>Отказ</strong>
+            </p>
+          )}
+          {decision === 'REQUEST_DATA' && (
+            <RequestPresentation
+              text={text}
+              fieldLabel={field ? (fieldLabel ?? field) : 'Выберите поле'}
+            />
+          )}
+          <Reasons app={preview} />
+        </>
+      )}
+    </section>
+  );
+}
+function RequestReply({ app, id, text }: { app: Application; id: string; text: string }) {
+  const api = useApi();
+  const action = useAction();
+  const [answer, setAnswer] = useState('');
+  const state = useCredit();
+  const field = app.server?.requests.find((r) => String(r.request_id) === id)?.field_code;
+  const fieldLabel =
+    state.requirements?.find((r) => r.product_code === app.product && r.field_code === field)
+      ?.field_label ?? field;
+  return (
+    <RequestPresentation text={text} fieldLabel={fieldLabel}>
       <Documents app={app} requestId={id} />
       <label className="form-field">
         Ваш ответ
@@ -447,7 +528,7 @@ function RequestReply({ app, id, text }: { app: Application; id: string; text: s
       >
         Отправить ответ
       </Action>
-    </Card>
+    </RequestPresentation>
   );
 }
 function Documents({ app, requestId }: { app: Application; requestId?: string }) {
@@ -535,6 +616,7 @@ export function BusinessDetail() {
         </Card>
       )}
       {app.status === 'DRAFT' && <BusinessAssistant app={app} />}
+      <HttpClientJourney app={app} />
       <Offer app={app} />
       <Reasons app={app} />
       <Card>
@@ -946,8 +1028,20 @@ function ReviewDetails({ app }: { app: Application }) {
               </Action>
             )}
           </div>
+          <DecisionPreview
+            app={app}
+            decision={decision}
+            reason={reason}
+            field={field}
+            fieldLabel={
+              state.requirements?.find(
+                (r) => r.product_code === app.product && r.field_code === field,
+              )?.field_label
+            }
+          />
         </Card>
       )}
+      <HttpBankHistory applications={[app]} single />
     </>
   );
 }

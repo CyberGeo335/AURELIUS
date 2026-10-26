@@ -46,7 +46,7 @@ export function clientStatus(app: Application) {
   return { happening: copy[displayStatus(app)][0], next: copy[displayStatus(app)][1] };
 }
 
-/** Home-only HTTP copy. The mock and other screens keep their existing text. */
+/** Public HTTP status copy shared by the home and application journey. */
 export function httpClientStatus(app: Application) {
   if (app.server?.offer_stale)
     return {

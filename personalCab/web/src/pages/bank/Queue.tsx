@@ -1,3 +1,4 @@
+import { HttpBankHistory } from '../../business/HttpHistory';
 import { BusinessQueue } from '../../business/BusinessPages';
 import { displayStatus } from '../../domain/status';
 import { useState } from 'react';
@@ -234,7 +235,7 @@ function MockQueue({ mine = false }: { mine?: boolean }) {
     </>
   );
 }
-export function BankJournal() {
+function MockBankJournal() {
   const state = useCredit();
   const rows = state.applications
     .flatMap((app) => app.history.map((event) => ({ app, event })))
@@ -288,5 +289,17 @@ export function Queue({ mine = false }: { mine?: boolean } = {}) {
     <BusinessQueue mine={mine} />
   ) : (
     <MockQueue mine={mine} />
+  );
+}
+
+export function BankJournal() {
+  const state = useCredit();
+  return import.meta.env.VITE_API_MODE === 'http' ? (
+    <>
+      <h1>Журнал действий</h1>
+      <HttpBankHistory applications={state.applications} />
+    </>
+  ) : (
+    <MockBankJournal />
   );
 }
