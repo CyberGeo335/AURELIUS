@@ -12,14 +12,12 @@
 | ОС | Linux, macOS, Windows (через Docker Desktop) | `start.sh`, `start.ps1` |
 | Python, Node, PostgreSQL, Ollama на хосте | не нужны: всё собирается и работает в контейнерах | `Dockerfile` |
 | RAM | около 16 ГБ свободной памяти для `gpt-oss:20b` | README |
-| Диск | около 14 ГБ под модель, плюс образы и том БД | README; модель в логе загрузки — 13 793 422 816 байт |
+| Диск | около 25 ГБ при встроенном Ollama: модель 13,8 ГБ, образ Ollama 8,4 ГБ, образ кабинета 1,5 ГБ, образ БД 0,6 ГБ, том БД около 70 МБ. Плюс кэш сборки (около 2,8 ГБ на проверочном ПК) | `docker system df -v`, раздел 12 |
 | GPU | не обязателен. NVIDIA можно подключить через `compose.gpu.yaml` и NVIDIA Container Toolkit | `compose.gpu.yaml` |
 | Linux | Docker с поддержкой `host-gateway` | `compose.yaml` (`extra_hosts`) |
 | Сеть | при первом запуске: загрузка образов, пакетов pip и npm и модели (около 14 ГБ) | `Dockerfile`, `deploy/ollama_ready.py` |
 
 На CPU модель работает, но первый ответ ассистента может идти долго. Таймаут одного обращения к модели в кабинете — 120 секунд (`personalCab/prom_v2/adapters.py`).
-
-> TODO: после запуска с нуля на этом коммите добавить фактические размеры образов и тома и время первого запуска.
 
 ## 2. Сервисы и порты
 
@@ -151,7 +149,7 @@ Cabinet migrations 005–009 completed.
 docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT login, password, role, company_id FROM public.user_accounts ORDER BY role, login"'
 ```
 
-> TODO: сверить формат вывода и число учёток по ролям на запущенном стенде.
+На проверочном стенде: 30 учёток `CLIENT` (по одной на каждую из 30 компаний: 26 юрлиц и 4 ИП) и 2 учётки `BANK_EMPLOYEE`, все активны.
 
 ## 6. Логи
 
@@ -233,10 +231,28 @@ docker run --rm aurelius-web-test npm test
 ## 11. Ограничения запуска
 
 - HTTPS, хэширование паролей и production-аутентификация не настроены. Это демо на синтетических данных.
-- Экономическая политика `AURELIUS_MVP_20261024_V1` в БД действует с 24.10.2026 по 17.12.2026 (`scoring/main/decision_engine/BASELINE.md`). Расчёт привязан к текущей дате.
-  > TODO: проверить и описать, что происходит с расчётом после 17.12.2026.
+- Экономическая политика `AURELIUS_MVP_20261024_V1` в `risk_policy_parameters` действует с 24.10.2026 по 17.12.2026 (проверено запросом к БД стенда; см. также `scoring/main/decision_engine/BASELINE.md`). Скоринг выбирает политику на текущую дату (`scoring/main/database.py`, `load_snapshot`). После 17.12.2026 запись не найдётся. Как поведёт себя расчёт в этом случае, не проверялось.
+- Финансовая история в дампе — 12 месяцев выручки на компанию (с 15.11.2025 по 15.10.2026, `bank_transactions`). Автоматическому расчёту PD нужно 13 завершённых месяцев (`scoring/main/ml_scoring/feature_builder.py`). Поэтому на исходных данных скоринг возвращает ручную проверку без PD. Подробнее — в [04-credit-process.md](04-credit-process.md) и [03-demo-scenarios.md](03-demo-scenarios.md).
 - Ручной запуск без Docker (для разработки) описан в [CABINET_V3.md](CABINET_V3.md) и в эту инструкцию не входит.
 
 ## 12. Результаты проверки запуска
 
-> TODO: результаты запуска с нуля на коммите `40b8038` (Windows, Docker Desktop): команды, время, состояние сервисов, healthcheck, лог `init`.
+Запуск 26.10.2026 на коммите `40b8038`: чистый `git clone -b test-dev`, `.env` из `.env.example` с изменёнными `POSTGRES_PASSWORD`, `COMPOSE_PROJECT_NAME=aurelius-docs`, `APP_PORT=55173`, `POSTGRES_PORT=55433`. Репозиторий не менялся, `git status` чистый.
+
+| Параметр | Значение |
+|---|---|
+| ОС и Docker | Windows, Docker Desktop (Linux containers), Docker 29.8.1, Compose v5.5.1; Docker выделено 16 CPU и 16,7 ГБ памяти |
+| Скрипт | `start.ps1` через PowerShell |
+| Ollama | внешний недоступен (`External Ollama unavailable; use bundled Docker service.`), использован встроенный |
+| Модель | `gpt-oss:20b` скачана с нуля в новый том (основной слой 13 793 422 816 байт), проверка генерации прошла |
+| Время | от запуска `start.ps1` (07:26:10) до старта `app` (07:32:06) — около 6 минут, из них большая часть — загрузка модели. Образ кабинета собран из кэша сборки этого ПК |
+| `docker compose ps -a` | `db` healthy, `init` Exited (0), `model-init` Exited (0), `app` healthy, `ollama` Up |
+| Лог `init` | 30 компаний, 30 заявок, 32 учётки, 3 строки политики, 1 макропоказатель; `Cabinet migrations 005–009 completed.` |
+| Healthcheck с хоста | `GET /` — 200, `GET /api/v2/session` — 401 |
+| БД | PostgreSQL 17.11; 35 таблиц в `public`; 10 таблиц в `aurelius_cabinet`; все 30 заявок дампа — `CANCELLED` |
+| Вход через API | клиент и сотрудник: `POST /api/v2/login` — 200, cookie `HttpOnly; SameSite=Strict; Path=/api/v2; Max-Age=28800`; `GET /api/v2/state` у клиента — 1 компания, 1 заявка, у сотрудника — 30 компаний, 30 заявок; после `logout` сессия — 401; неверный пароль — 401; чужой `Origin` — 403 |
+| Размеры | образ кабинета 1,54 ГБ, образ БД 640 МБ, образ Ollama 8,43 ГБ, том модели 13,79 ГБ, том БД 69 МБ |
+
+Первая попытка за минуту до этого, сразу после запуска Docker Desktop, завершилась кодом 1 без сохранённого вывода. Вторая, без изменений, прошла полностью. Причину установить не удалось.
+
+Не проверено в этом прогоне: Linux, NVIDIA (`compose.gpu.yaml`), загрузка образов без кэша сборки, `start.sh` на Windows. Предыдущая проверка на macOS (Linux ARM64 containers) — в [DOCKER_VALIDATION.md](DOCKER_VALIDATION.md), на коммите `d54cb92`.
