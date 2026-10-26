@@ -8,7 +8,7 @@
 - служебная схема — `personalCab/prom_v2/migrations/005–009`;
 - кто что пишет — код `personalCab/prom_v2/cabinet*.py` и `scoring/main/database.py`.
 
-Полный справочник таблиц и колонок — в [Справочник БД](technical/database/README_bd.md), раздел 9. Статусы и переходы — в [04-credit-process.md](04-credit-process.md#3-диаграмма-состояний-заявки).
+Полный актуальный справочник таблиц и колонок — в [расширенном справочнике v4](extended/database-reference.md). [Прежний справочник](technical/database/README_bd.md) сохраняет исторические срезы. Статусы и переходы — в [04-credit-process.md](04-credit-process.md#3-диаграмма-состояний-заявки).
 
 ## 1. Состав БД
 

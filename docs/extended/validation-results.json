@@ -1,0 +1,141 @@
+{
+  "version": "68b7b57c0e501e4575bc2a10eee20e6e42f529d4",
+  "method": "static source inspection; no pytest, vitest, Docker, DB or Ollama run",
+  "markdown_files_checked": 39,
+  "local_links_checked": 315,
+  "public_tables": 35,
+  "adr": 16,
+  "model_sha256": "1e729ce490ba9ce67b69abae6730fed469b5e13db7107348634d46cd2859472b",
+  "python_inventory": [
+    {
+      "path": "personalCab/prom_v2/tests/test_agent.py",
+      "functions": 23,
+      "static_cases": 27
+    },
+    {
+      "path": "personalCab/prom_v2/tests/test_cabinet.py",
+      "functions": 15,
+      "static_cases": 22
+    },
+    {
+      "path": "personalCab/prom_v2/tests/test_cabinet_documents.py",
+      "functions": 3,
+      "static_cases": 11
+    },
+    {
+      "path": "personalCab/prom_v2/tests/test_declared_facts.py",
+      "functions": 5,
+      "static_cases": 17
+    },
+    {
+      "path": "personalCab/prom/prom_lab/ai_agents_lab/tests/test_client_validation.py",
+      "functions": 5,
+      "static_cases": 10
+    },
+    {
+      "path": "personalCab/prom/prom_lab/ai_agents_lab/tests/test_extractor.py",
+      "functions": 5,
+      "static_cases": 5
+    },
+    {
+      "path": "scoring/main/tests/test_application_facts.py",
+      "functions": 4,
+      "static_cases": 6
+    },
+    {
+      "path": "scoring/main/tests/test_batch.py",
+      "functions": 2,
+      "static_cases": 2
+    },
+    {
+      "path": "scoring/main/tests/test_database.py",
+      "functions": 11,
+      "static_cases": 11
+    },
+    {
+      "path": "scoring/main/tests/test_pipeline.py",
+      "functions": 22,
+      "static_cases": 22
+    },
+    {
+      "path": "scoring/main/tests/test_predictor_semantics.py",
+      "functions": 7,
+      "static_cases": 7
+    },
+    {
+      "path": "deploy/tests/test_launch.py",
+      "functions": 15,
+      "static_cases": 15
+    }
+  ],
+  "python_static_cases": 155,
+  "frontend_inventory": [
+    {
+      "path": "personalCab/web/src/test/auth.test.tsx",
+      "definitions": 9,
+      "static_cases": 11
+    },
+    {
+      "path": "personalCab/web/src/test/chat.test.ts",
+      "definitions": 3,
+      "static_cases": 5
+    },
+    {
+      "path": "personalCab/web/src/test/client_home.test.tsx",
+      "definitions": 11,
+      "static_cases": 20
+    },
+    {
+      "path": "personalCab/web/src/test/domain.test.ts",
+      "definitions": 8,
+      "static_cases": 8
+    },
+    {
+      "path": "personalCab/web/src/test/http_assistant.test.tsx",
+      "definitions": 14,
+      "static_cases": 16
+    },
+    {
+      "path": "personalCab/web/src/test/http_credit.test.tsx",
+      "definitions": 15,
+      "static_cases": 20
+    },
+    {
+      "path": "personalCab/web/src/test/http_form_steps.test.tsx",
+      "definitions": 13,
+      "static_cases": 25
+    },
+    {
+      "path": "personalCab/web/src/test/http_journals.test.tsx",
+      "definitions": 7,
+      "static_cases": 9
+    },
+    {
+      "path": "personalCab/web/src/test/http_provenance.test.tsx",
+      "definitions": 10,
+      "static_cases": 12
+    },
+    {
+      "path": "personalCab/web/src/test/http_queue.test.tsx",
+      "definitions": 6,
+      "static_cases": 6
+    },
+    {
+      "path": "personalCab/web/src/test/mock.test.ts",
+      "definitions": 10,
+      "static_cases": 10
+    },
+    {
+      "path": "personalCab/web/src/test/screens.test.tsx",
+      "definitions": 14,
+      "static_cases": 14
+    },
+    {
+      "path": "personalCab/web/src/test/server_stage.test.ts",
+      "definitions": 18,
+      "static_cases": 72
+    }
+  ],
+  "frontend_static_cases": 228,
+  "errors": []
+}

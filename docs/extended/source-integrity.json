@@ -1,0 +1,20 @@
+{
+  "version": "68b7b57c0e501e4575bc2a10eee20e6e42f529d4",
+  "files_compared": 2187,
+  "method": "Git blob SHA1; accept CRLF-to-LF equivalence from Windows git archive conversion",
+  "newline_conversion_only_files": 452,
+  "changed_existing_files": [
+    "docs/00-jury-guide.md",
+    "docs/01-problem-and-scope.md",
+    "docs/02-decisions.md",
+    "docs/03-demo-scenarios.md",
+    "docs/04-credit-process.md",
+    "docs/05-architecture.md",
+    "docs/06-api.md",
+    "docs/07-data-model.md",
+    "docs/08-testing.md",
+    "docs/09-deployment.md"
+  ],
+  "missing_files": [],
+  "non_documentation_changes": []
+}

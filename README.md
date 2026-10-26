@@ -138,6 +138,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SEL
 | [docs/09-deployment.md](docs/09-deployment.md) | окружение, запуск, переменные, проблемы |
 | [docs/10-roadmap.md](docs/10-roadmap.md) | этапы развития, зависимости, критерии готовности и проверка гипотез |
 | [docs/11-strengths.md](docs/11-strengths.md) | ценность для клиента и сотрудника, сильные стороны и подтверждения |
+| [docs/extended/README.md](docs/extended/README.md) | расширенное исследование, требования, карточка модели, ADR, справочники и интеграция |
 | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) | сторонние компоненты, модели, датасеты, смоделированные интеграции |
 
 Быстрый поиск обязательных артефактов и карта соответствия требованиям кейса — в [путеводителе для жюри](docs/00-jury-guide.md#4-технические-требования-и-обязательные-артефакты).
