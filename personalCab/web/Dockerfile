@@ -24,3 +24,6 @@ CMD ["python", "-m", "personalCab.prom_v2.cabinet_server", "--host", "0.0.0.0", 
 
 FROM runtime AS test
 RUN pip install --no-cache-dir -r requirements-dev.txt && pip check
+
+# Default docker build produces the runtime image, without pytest.
+FROM runtime AS app
