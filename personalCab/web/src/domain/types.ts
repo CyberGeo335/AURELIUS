@@ -205,6 +205,7 @@ export interface ServerApplication {
   form_state: Record<string, unknown>;
   requests: {
     request_id: number;
+    requested_at?: string;
     field_code: string;
     question_text: string;
     request_status: string;
