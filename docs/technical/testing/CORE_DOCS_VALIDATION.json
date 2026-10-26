@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-26",
+  "source_commit": "a5d90c34fbc6e51cd455ae29a2501dcbbed81a15",
+  "scope": "Documentation fact check; application source unchanged by this task",
+  "python": {
+    "command": "pytest scoring/main/tests personalCab/prom_v2/tests deploy/tests personalCab/prom/prom_lab/ai_agents_lab/tests --collect-only -q -p no:cacheprovider",
+    "environment": "Linux test container, merged source mounted read-only",
+    "collected": 156,
+    "execution": "collection only; not a full Python run"
+  },
+  "frontend": {
+    "command": "npm test -- --run --reporter=json",
+    "environment": "Windows host, default test environment and API mode",
+    "node_version": "v24.20.0",
+    "passed": 232,
+    "failed": 0,
+    "pending": 0,
+    "files": [
+      {
+        "file": "personalCab/web/src/test/auth.test.tsx",
+        "cases": 11,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/chat.test.ts",
+        "cases": 5,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/client_home.test.tsx",
+        "cases": 20,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/domain.test.ts",
+        "cases": 8,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/http_assistant.test.tsx",
+        "cases": 16,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/http_credit.test.tsx",
+        "cases": 20,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/http_form_steps.test.tsx",
+        "cases": 28,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/http_journals.test.tsx",
+        "cases": 9,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/http_provenance.test.tsx",
+        "cases": 12,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/http_queue.test.tsx",
+        "cases": 6,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/mock.test.ts",
+        "cases": 10,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/request_id.test.ts",
+        "cases": 1,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/screens.test.tsx",
+        "cases": 14,
+        "status": "passed"
+      },
+      {
+        "file": "personalCab/web/src/test/server_stage.test.ts",
+        "cases": 72,
+        "status": "passed"
+      }
+    ],
+    "note": "Frontend test suite; not a new live browser/HTTP session"
+  },
+  "historical_protocols": {
+    "scenarios_30": "SCENARIOS_30.md",
+    "cleanup_regression": "CLEANUP_REGRESSION.md"
+  }
+}

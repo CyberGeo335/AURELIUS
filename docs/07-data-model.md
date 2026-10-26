@@ -1,6 +1,6 @@
 # 07. Модель данных
 
-Проверено по коду коммита `6a9a4c1` (ветка `chore/cleanup-legacy`).
+Сверено по `main` / `a5d90c3` и дампу v4 от 26.10.2026. Исправление истории c549a06 включено: [состав изменений](technical/testing/BRANCH_ALIGNMENT_C549A06.md).
 
 Источники:
 - структура `public` — `scoring/bd/v_4 (actual)/schema_actual.sql`;
@@ -380,7 +380,7 @@ erDiagram
 | `application_details` | `save` — контакты и подписант; `submit` — `confirmed_at`, `confirmation_version` | читает |
 | `application_product_details` | `save` — срок транша и параметры линии / овердрафта | читает |
 | `application_field_values` | `save`, `confirm_facts`, `answer` — значения анкеты (`CLIENT`, `UNVERIFIED`) | в DEMO читает недостающие ОКВЭД и дату регистрации с происхождением |
-| `application_field_history` | INSERT при каждом изменении значения (вместе с записью в `application_field_values`) | — |
+| `application_field_history` | только триггер `trg_log_application_field_values`; `write_field` не дублирует INSERT, повтор без изменения значения не пишет историю | — |
 | `application_data_requests` | `review REQUEST_DATA` — INSERT; `answer` — `ANSWERED`; `cancel` — `CANCELLED` | — |
 | `credit_decisions` | `review` — INSERT решения сотрудника (`BANK_*`) | INSERT решения библиотеки (`MANUAL_REVIEW` / `REJECT`) |
 | `application_product_terms` | меняет только `offer_status`: `PROPOSED` (`review APPROVE`), `ACCEPTED` (`accept`), `DECLINED` (`review REJECT`, `cancel`, `revise`, снятие) | INSERT черновика предложения (`DRAFT`) |

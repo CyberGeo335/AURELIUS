@@ -1,6 +1,6 @@
 # 05. Архитектура
 
-Проверено по коду коммита `6a9a4c1` (ветка `chore/cleanup-legacy`).
+Сверено по `main` / `a5d90c3` от 26.10.2026. Исправления c549a06 включены; [история согласования и условия проверок](technical/testing/BRANCH_ALIGNMENT_C549A06.md).
 
 Документ описывает текущую версию — кабинет v3. Процесс и статусы заявки — в [04-credit-process.md](04-credit-process.md), решения и ограничения — в [02-decisions.md](02-decisions.md), запуск — в [09-deployment.md](09-deployment.md), API — в [06-api.md](06-api.md), таблицы — в [07-data-model.md](07-data-model.md).
 
@@ -76,9 +76,9 @@ flowchart TB
 
 | Компонент | Файлы | За что отвечает |
 |---|---|---|
-| Фронт | `personalCab/web/src`; клиент API — `src/api/HttpCreditApi.ts` и метод `request` в `src/api/HttpV2Api.ts` | интерфейс клиента и сотрудника. Читает `GET /api/v2/state`, все изменения отправляет через `POST /api/v2/action` (загрузку — через `/api/v2/documents`). Для каждого действия создаёт `request_id` и при повторе после сбоя отправляет то же тело. Скрывает от клиента причины скоринга (`src/domain/clientReasons.ts`) |
+| Фронт | `personalCab/web/src`; клиент API — `src/api/HttpCreditApi.ts` и метод `request` в `src/api/HttpV2Api.ts` | интерфейс клиента и сотрудника. Читает `GET /api/v2/state`, изменения отправляет через `POST /api/v2/action` (загрузку — через `/api/v2/documents`). Создаёт UUID через `src/domain/requestId.ts`, при повторе после сбоя отправляет то же тело и ID. Представляет клиенту сообщения сотрудника (`src/domain/clientReasons.ts`) |
 | HTTP-сервер | `personalCab/prom_v2/cabinet_server.py` | `ThreadingHTTPServer` на порту 5173. Маршруты `/api/v2/*`, проверка `Origin`, лимиты размера тела, cookie, перевод исключений в коды ответа. Раздаёт `personalCab/web/dist`; путь без расширения отдаёт `index.html`. Запросы не логирует (`log_message` пустой) |
-| Ядро кабинета | `personalCab/prom_v2/cabinet.py`, класс `Cabinet` | вход и сессии; проекция заявки для роли (`project`); действия `/api/v2/action` (`action`, `mutate`): владение, роль, ответственный, версия, квитанции, advisory locks; анкета (`save`, `write_field`), проверки подачи (`validate_submission`), решение сотрудника (`review`); журнал `events` |
+| Ядро кабинета | `personalCab/prom_v2/cabinet.py`, класс `Cabinet` | вход и сессии; проекция заявки для роли (`project`), включая точный отбор причин сотрудника для клиента; действия `/api/v2/action` (`action`, `mutate`): владение, роль, ответственный, версия, квитанции, advisory locks; анкета (`save`, `write_field`), проверки подачи (`validate_submission`), решение сотрудника (`review`); журнал `events` |
 | Защита от устаревшего расчёта | `personalCab/prom_v2/cabinet_freshness.py` | блокировка 19 исходных и 3 выходных таблиц `public`, отпечаток SHA-256 входов расчёта, проверка актуальности перед одобрением и принятием, снятие устаревшего предложения |
 | Документы | `personalCab/prom_v2/cabinet_documents.py` | проверка имени, формата и размера PDF / CSV, хранение байтов в `aurelius_cabinet.documents` |
 | Ассистент | `personalCab/prom_v2/cabinet_assistant.py`, `agent.py`, `adapters.py`, `models.py`, `declared_facts.py` | действия `chat` и `confirm_facts` в черновике. Граф LangGraph `aurelius_agent_v2` (узлы `route` → `execute` → `project`) направляет сообщение либо в RAG, либо в извлечение через `gpt-oss:20b`. Диалог хранится в `aurelius_cabinet.dialogues` |
@@ -183,7 +183,7 @@ sequenceDiagram
 
 `REJECT` и `REQUEST_DATA` идут тем же путём без проверки отпечатка: создаётся запись `credit_decisions` с причиной `BANK_REJECT` / `BANK_REQUEST_DATA`, для дозапроса — строка `application_data_requests`.
 
-На исходном дампе этот путь недоступен: скоринг не строит предложение, и одобрение отклоняется с 409 (см. [02-decisions.md](02-decisions.md#ограничения-текущей-версии)).
+Доступность этого пути зависит от актуального расчёта конкретной заявки. В [прогоне на v4](technical/testing/SCENARIOS_30.md) предварительные условия рассчитаны для 16 из 30 новых заявок; одобрение и принятие в том запуске не выполнялись. Отсутствие предложения или изменение его входов блокирует одобрение согласно контракту.
 
 ### 3.3. Принятие предложения клиентом
 
@@ -283,7 +283,7 @@ sequenceDiagram
 | Механизм | Где | Что даёт |
 |---|---|---|
 | `expected_version` | `aurelius_cabinet.application_state.version`; проверка в `mutate` под `FOR UPDATE` | все действия с заявкой, кроме `create`, применяются только к той версии, которую видел пользователь. Иначе 409 `STALE_CASE_VERSION`. Каждое успешное действие увеличивает версию на 1 |
-| `request_id` и квитанции | `aurelius_cabinet.receipts`, ключ `(user_id, request_id)`, отпечаток SHA-256 всего тела | повтор с тем же телом возвращает сохранённый результат, не выполняя действие второй раз. Тот же `request_id` с другим телом — 409 `REQUEST_ID_REUSED`. Действие, завершившееся ошибкой, квитанции не оставляет |
+| `request_id` и квитанции | `aurelius_cabinet.receipts`, ключ `(user_id, request_id)`, отпечаток SHA-256 всего тела | повтор с тем же телом возвращает сохранённый результат. Тот же `request_id` с другим телом — 409 `REQUEST_ID_REUSED`. Ошибка до фиксации изменения откатывает квитанцию; сбой скоринга после сохранённой подачи оставляет `pending_score` для продолжения той же операции |
 | Advisory locks | `pg_advisory_lock(hashtextextended(…))` на ключи `cabinet-request:<user_id>:<request_id>` и `cabinet-application:<id>`, сессионные | параллельные повторы одного запроса и параллельные действия над одной заявкой выполняются по очереди. Блокировка держится и на время скоринга в отдельном соединении |
 | Блокировки строк | `SELECT … FOR UPDATE` заявки, версии, назначения, дозапроса, диалога | исключают двойное назначение и гонки при ответе на дозапрос |
 | Блокировки таблиц | `LOCK TABLE … IN SHARE ROW EXCLUSIVE MODE` на 19 исходных таблиц и 3 выходные (`cabinet_freshness.lock_inputs`); при скоринге, `review` и `accept` | пока идёт расчёт или проверка актуальности, другие клиенты БД не могут изменить его входы. Это сериализация обработки локального прототипа (Р10) |
@@ -296,6 +296,8 @@ sequenceDiagram
 - Снимки расчётов `public.application_snapshots` (`DECISION`) также защищены от изменения триггером `trg_immutable_application_snapshots`.
 - Решения `public.credit_decisions` не изменяются кабинетом: каждое решение — новая строка.
 - Связь «расчёт → решение → предложение» хранится в `aurelius_cabinet.calculation_inputs` и `offer_publications`, снятые предложения — в `stale_offers`.
+
+Единственный источник истории полей — существующий триггер v4 `trg_log_application_field_values`. `write_field` не делает дополнительной ручной вставки и возвращается без записи, если значение не изменилось. Исправление c549a06 устраняет дублирование без изменения схемы БД.
 
 Подробнее о составе таблиц — [07-data-model.md](07-data-model.md#3-служебная-схема-aurelius_cabinet).
 

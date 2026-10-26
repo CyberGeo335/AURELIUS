@@ -1,6 +1,6 @@
 # 06. API кабинета `/api/v2`
 
-Проверено по коду коммита `6a9a4c1` (ветка `chore/cleanup-legacy`).
+Сверено по `main` / `a5d90c3` от 26.10.2026, включая c549a06: [серверная проекция и request_id](technical/testing/BRANCH_ALIGNMENT_C549A06.md).
 
 Источник — код `personalCab/prom_v2/cabinet_server.py`, `cabinet.py`, `cabinet_assistant.py`, `cabinet_documents.py`, `cabinet_freshness.py`. Описан только API кабинета v3. Маршрут `/api/chat`, команды прежнего V2 (`command`) и сервер `prom_v2/web_server.py` к текущей версии не относятся.
 
@@ -165,11 +165,11 @@
 | `assessment` | всегда `null` | объект `assessment` из снимка последнего расчёта (`Assessment.to_dict()` из `scoring/main` + `persistence`): `decision`, `eligibility_status`, `reasons`, `policy_version`, `offer` (включая график), `scoring` (`pd_by_horizon`, `monthly_hazard`, `cumulative_pd`, `model_version`, `term_months`), `risk_assessment` (лимит PD и экономика), `automatic_recommendation`, `audit` (в том числе признаки модели и их источники), `persistence` (`scoring_result_id`, `decision_id`, `offer_id`). `null`, если расчёта не было |
 | `verifications` | всегда `[]` | записи `verify` из журнала: `details` (`kind`, `source_ref`, `comment`), `created_at`, `first_name`, `last_name` |
 | `dialogue` | свой диалог по этой заявке: `history` (`[{role, content}]`), `pending` (неподтверждённое предложение ассистента: `proposal_id`, `patch`, `clear_fields`, `quotes`, `source_message_id`, `source_text`, `display_values`) или `null`, `problems`. `null`, если диалога не было | всегда `null`: диалог клиента сотруднику не передаётся |
-| `reasons` | причины последнего решения | то же |
+| `reasons` | только точные `BANK_APPROVE`, `BANK_REJECT`, `BANK_REQUEST_DATA` выбранного решения | все причины выбранного решения |
 | `history` | все события заявки, включая имена действий сотрудника (`claim`, `score`, `verify`, `review`), без деталей и без автора | то же |
 | остальные поля | одинаково | одинаково |
 
-Про `reasons`: клиенту в интерфейсе показываются только `BANK_APPROVE`, `BANK_REJECT`, `BANK_REQUEST_DATA` — отбор делает фронт (`src/domain/clientReasons.ts`). API отдаёт клиенту все причины последнего решения. Это ограничение текущей версии (Р6 в [02-decisions.md](02-decisions.md#р6-клиенту-показываются-только-причины-сотрудника)).
+Про `reasons`: серверный `Cabinet.project` фильтрует точные `BANK_APPROVE`, `BANK_REJECT`, `BANK_REQUEST_DATA` для клиента. Другие коды, включая произвольные `BANK_*`, клиенту не передаются. Сотрудник получает внутренние причины; фронт использует сообщения сотрудника для клиентского представления (`src/domain/clientReasons.ts`). Это действующий контракт после включения c549a06 (Р6 в [02](02-decisions.md#р6-клиенту-показываются-только-причины-сотрудника)).
 
 PD и лимит PD есть только внутри `assessment`, поэтому клиенту они не передаются. Категорий риска в ответах API нет: в `scoring_results.risk_grade` скоринг пишет `UNRATED`, и это поле в `state` не выводится. Отдельного вывода факторов (вкладов признаков в PD) скоринг не формирует. Признаки модели, на которых посчитан результат, лежат в `assessment.audit` и доступны только сотруднику; интерфейс их не показывает.
 
@@ -218,6 +218,8 @@ PD и лимит PD есть только внутри `assessment`, поэто�
 `application_id` — строка. Новое состояние читается через `GET /api/v2/state`. Каждое успешное действие увеличивает `version` заявки на 1 и пишет событие в журнал.
 
 ### 3.2. Повтор запроса и `request_id`
+
+Клиент API и панель ассистента используют общий UUID v4 из `src/domain/requestId.ts`: `crypto.randomUUID`, при его отсутствии — `crypto.getRandomValues`. ID сохраняется для повтора после 503. Сервер принимает строку 1–120 символов; семантика квитанций ниже не зависит от способа генерации. Этот резерв поддерживает проверенные HTTP-сценарии без `randomUUID`; HTTPS и доверенный публичный Origin настраиваются отдельно.
 
 - Квитанция хранится по паре (пользователь, `request_id`) вместе с SHA-256 всего тела.
 - Тот же `request_id` и то же тело — возвращается сохранённый результат, действие не выполняется повторно.
@@ -323,7 +325,7 @@ PD и лимит PD есть только внутри `assessment`, поэто�
 
 Ошибки скоринга (заявка уже `UNDER_REVIEW`, см. 3.2): 400 `SCORING_INPUT_ERROR`, 503 `CONFIGURATION_ERROR` / `SERVICE_UNAVAILABLE`, 409 «Не найден снимок расчёта. Повторите скоринг.».
 
-На исходном дампе скоринг завершается без ошибки HTTP: решение `MANUAL_REVIEW` с причиной `DB_INPUTS_UNAVAILABLE`, без PD и без предложения ([02-decisions.md](02-decisions.md#ограничения-текущей-версии)).
+Результат зависит от полноты и применимости входов. При недоступных входах расчёт может вернуть `MANUAL_REVIEW` / `DB_INPUTS_UNAVAILABLE` без PD и предложения; это не ошибка HTTP и не кредитный отказ. На полном дампе v4 [прогон 30 новых заявок](technical/testing/SCENARIOS_30.md) получил расчёт каждой заявки и 16 черновиков условий.
 
 ### 3.8. `chat`
 
@@ -394,7 +396,7 @@ PD и лимит PD есть только внутри `assessment`, поэто�
 | `REJECT` | `REJECTED`, `decision_date` | `credit_decisions`; предложения `DRAFT` / `PROPOSED` → `DECLINED` |
 | `REQUEST_DATA` | `AWAITING_DATA`, `decision_date` | `credit_decisions`; новая строка `application_data_requests` (`OPEN`) |
 
-На исходном дампе `APPROVE` всегда даёт 409 «Для одобрения нужен рассчитанный черновик предложения.»: скоринг не строит предложение ([02-decisions.md](02-decisions.md#ограничения-текущей-версии)). `REJECT` и `REQUEST_DATA` работают.
+`APPROVE` требует актуального рассчитанного предложения; при его отсутствии возвращается 409 «Для одобрения нужен рассчитанный черновик предложения.». На v4 наличие предложения зависит от конкретной заявки: [прогон 30 сценариев](technical/testing/SCENARIOS_30.md) получил 16 черновиков условий, без выполнения одобрения. `REJECT` и `REQUEST_DATA` имеют собственные условия рассмотрения, перечисленные выше.
 
 ### 3.14. `answer`
 

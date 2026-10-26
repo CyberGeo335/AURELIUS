@@ -1,0 +1,2803 @@
+{
+  "date": "2026-10-26",
+  "source_commit": "6a9a4c15a0c0eee4c74a62a1e15b9e5bb704eaf6",
+  "input_sha256": "9cd2f608441a3fca8797af024d1d0bef9738c166f1e451b167d895baec4c38b1",
+  "transport": "real cabinet_server.Handler HTTP",
+  "llm": "gpt-oss:20b",
+  "model_version": "dt_monotone_v1_1e729ce490ba9ce6",
+  "assumptions": [
+    "New application for every row; historical applications not reused",
+    "Synthetic answers complete unrelated required fields through HTTP form",
+    "AUR-01..09 target missing field supplied only through live chat + explicit confirmation",
+    "Amount RUB 3000000; contract 36 months; working capital; all explicit DEMO consents",
+    "R02 tranche 6 MONTHS, R03 tranche 30 DAYS are fixture inputs, distinct from contract",
+    "AUR-07..09 follow expected field/check columns, not contradictory scenario titles",
+    "Sensitivity compares the same requested application features with a single intervention; all other inputs fixed",
+    "current_revenue_trend_3m is not a feature of the deployed model; no silent substitution with 12m trend",
+    "debt_to_revenue is the existing synthetic model proxy, not observed outstanding-debt/revenue"
+  ],
+  "score_comparison_notes": [
+    "Control medians group AUR-21..30 by product at the requested RUB 3000000/36 months, not reduced offers.",
+    "Cross-company differences are descriptive: other borrower features differ. They are not a causal test.",
+    "Sensitivity uses each company as its own baseline; changed values move halfway toward the generator-domain bound.",
+    "For AUR-17/18 the 3m trend test cannot run: this deployed model has no current_revenue_trend_3m input.",
+    "AUR-19/20 test DSCR, synthetic debt proxy and cash reserve together; the 3m component remains untested."
+  ],
+  "companies_unchanged": true,
+  "historical_applications_unchanged": true,
+  "database": "isolated v4 copy: aurelius_test_scenarios_20261026_r2",
+  "launch_commit": "68b7b57c0e501e4575bc2a10eee20e6e42f529d4",
+  "summary": {
+    "PASS": 26,
+    "PARTIAL": 4
+  },
+  "calculated_offer_count": 16,
+  "published_offer_count": 0,
+  "bank_decisions_performed": false,
+  "export_note": "Selected evidence from the saved 26.10.2026 run; export did not rerun the scenarios.",
+  "results": [
+    {
+      "scenario_id": "AUR-01",
+      "company_id": 35,
+      "type": "LLM",
+      "title": "Нет ИНН",
+      "expected": "Запросить ИНН",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 65,
+      "new_application": true,
+      "entity_type_matches": true,
+      "initial_answer": "По справочнику требований к кредитным заявкам:\n[R01_11] КПП организации. Формат: 9 знаков; у ИП отсутствует. Источник данных: ЕГРЮЛ / реквизиты ООО. Заполнение: Автозаполнение. Обязательно для: ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/10\n[R01_04] Цель кредита. Формат: Оборотные расходы; уточнение назначения. Источник данных: Клиент. Заполнение: Ввод клиента. Обязательно для: ИП и ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/3\nЭто требования к заполнению анкеты; они не подтверждают данные клиента, согласие или одобрение кредита. Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: Кредит для бизнеса: разовая закупка, развитие бизнеса; Кредит с господдержкой: проект с господдержкой; Возобновляемая кредитная линия: регулярные закупки; Автокредит: покупка транспорта; Овердрафт: кассовый разрыв; Business One Credit: повседневные расходы по карте; Бизнес-ипотека: покупка помещения; Деньги на дело: финансирование под залог имущества; Рефинансирование: рефинансирование долга; Альфа-Старт: небольшие транши; Универсальный кредитный лимит: резервный лимит; Кредит для селлеров: работа на маркетплейсе; Кредит на покупки для бизнеса: закупка у партнёра; Банковская гарантия: обеспечение контракта; Лизинг: покупка транспорта, использование оборудования; Факторинг: поставка с отсрочкой платежа. Для части направлений потребуется отдельное обращение к сотруднику. Укажите недостающий реквизит: ИНН заёмщика. Можно сообщить его помощнику или заполнить в форме.",
+      "missing_field": "R01_03",
+      "profile_field_is_null": true,
+      "missing_field_requested": true,
+      "reply": "Мой ИНН: 9900000017.",
+      "proposal": {
+        "proposal_id": "PROP-0b49622bf711443d8fb6e60122a0ccdf",
+        "patch": {
+          "inn": "9900000017"
+        },
+        "clear_fields": [],
+        "quotes": {
+          "inn": "ИНН: 9900000017"
+        },
+        "source_message_id": "a2950ea81d4b4cd2bdfe502a73e85c3f",
+        "source_text": "Мой ИНН: 9900000017.",
+        "display_values": {
+          "inn": "9900000017"
+        }
+      },
+      "saved_value": "9900000017",
+      "saved_through_chat": true,
+      "saved_provenance": {
+        "value_source": "CLIENT",
+        "verification_status": "UNVERIFIED"
+      },
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.2,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.5000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.2,
+        "pd_application_1y": 0.1920135195162822,
+        "positive_headroom": true,
+        "annual_headroom_pct": "9.0000",
+        "pd_application_term": 0.4825874597086037,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.1920135195162822,
+      "requested_pd_36m": 0.4825874597086037,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 29.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 49.76,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.5000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-02",
+      "company_id": 36,
+      "type": "LLM",
+      "title": "Нет наименования",
+      "expected": "Запросить наименование организации",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 66,
+      "new_application": true,
+      "entity_type_matches": true,
+      "initial_answer": "По справочнику требований к кредитным заявкам:\n[R01_11] КПП организации. Формат: 9 знаков; у ИП отсутствует. Источник данных: ЕГРЮЛ / реквизиты ООО. Заполнение: Автозаполнение. Обязательно для: ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/10\n[R01_04] Цель кредита. Формат: Оборотные расходы; уточнение назначения. Источник данных: Клиент. Заполнение: Ввод клиента. Обязательно для: ИП и ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/3\nЭто требования к заполнению анкеты; они не подтверждают данные клиента, согласие или одобрение кредита. Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: Кредит для бизнеса: разовая закупка, развитие бизнеса; Кредит с господдержкой: проект с господдержкой; Возобновляемая кредитная линия: регулярные закупки; Автокредит: покупка транспорта; Овердрафт: кассовый разрыв; Business One Credit: повседневные расходы по карте; Бизнес-ипотека: покупка помещения; Деньги на дело: финансирование под залог имущества; Рефинансирование: рефинансирование долга; Альфа-Старт: небольшие транши; Универсальный кредитный лимит: резервный лимит; Кредит для селлеров: работа на маркетплейсе; Кредит на покупки для бизнеса: закупка у партнёра; Банковская гарантия: обеспечение контракта; Лизинг: покупка транспорта, использование оборудования; Факторинг: поставка с отсрочкой платежа. Для части направлений потребуется отдельное обращение к сотруднику. Укажите недостающий реквизит: Полное наименование организации. Можно сообщить его помощнику или заполнить в форме.",
+      "missing_field": "R01_12",
+      "profile_field_is_null": true,
+      "missing_field_requested": true,
+      "reply": "Полное наименование организации: ООО Тестовая компания 36.",
+      "proposal": {
+        "proposal_id": "PROP-c7bdfe74f507463781cd1aa8fb3d3cf0",
+        "patch": {
+          "company_name": "ООО Тестовая компания 36."
+        },
+        "clear_fields": [],
+        "quotes": {
+          "company_name": "Полное наименование организации: ООО Тестовая компания 36."
+        },
+        "source_message_id": "fa71bea369fd4623bfc80720cc7be34e",
+        "source_text": "Полное наименование организации: ООО Тестовая компания 36.",
+        "display_values": {
+          "company_name": "ООО Тестовая компания 36."
+        }
+      },
+      "saved_value": "ООО Тестовая компания 36.",
+      "saved_through_chat": true,
+      "saved_provenance": {
+        "value_source": "CLIENT",
+        "verification_status": "UNVERIFIED"
+      },
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.2,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.5000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.2,
+        "pd_application_1y": 0.1920135195162822,
+        "positive_headroom": true,
+        "annual_headroom_pct": "9.0000",
+        "pd_application_term": 0.4825874597086037,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.1920135195162822,
+      "requested_pd_36m": 0.4825874597086037,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 29.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 135.18,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.5000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-03",
+      "company_id": 37,
+      "type": "LLM",
+      "title": "Нет ОГРН",
+      "expected": "Запросить ОГРН",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 67,
+      "new_application": true,
+      "entity_type_matches": true,
+      "initial_answer": "По справочнику требований к кредитным заявкам:\n[R01_11] КПП организации. Формат: 9 знаков; у ИП отсутствует. Источник данных: ЕГРЮЛ / реквизиты ООО. Заполнение: Автозаполнение. Обязательно для: ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/10\n[R01_04] Цель кредита. Формат: Оборотные расходы; уточнение назначения. Источник данных: Клиент. Заполнение: Ввод клиента. Обязательно для: ИП и ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/3\nЭто требования к заполнению анкеты; они не подтверждают данные клиента, согласие или одобрение кредита. Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: Кредит для бизнеса: разовая закупка, развитие бизнеса; Кредит с господдержкой: проект с господдержкой; Возобновляемая кредитная линия: регулярные закупки; Автокредит: покупка транспорта; Овердрафт: кассовый разрыв; Business One Credit: повседневные расходы по карте; Бизнес-ипотека: покупка помещения; Деньги на дело: финансирование под залог имущества; Рефинансирование: рефинансирование долга; Альфа-Старт: небольшие транши; Универсальный кредитный лимит: резервный лимит; Кредит для селлеров: работа на маркетплейсе; Кредит на покупки для бизнеса: закупка у партнёра; Банковская гарантия: обеспечение контракта; Лизинг: покупка транспорта, использование оборудования; Факторинг: поставка с отсрочкой платежа. Для части направлений потребуется отдельное обращение к сотруднику. Укажите недостающий реквизит: ОГРН. Можно сообщить его помощнику или заполнить в форме.",
+      "missing_field": "R01_09",
+      "profile_field_is_null": true,
+      "missing_field_requested": true,
+      "reply": "ОГРН: 1990000000010.",
+      "proposal": {
+        "proposal_id": "PROP-ff5fdebe20794f2ba74280242f8f441f",
+        "patch": {
+          "ogrn": "1990000000010"
+        },
+        "clear_fields": [],
+        "quotes": {
+          "ogrn": "ОГРН: 1990000000010."
+        },
+        "source_message_id": "78da51ba52b84122b2d8864655b83900",
+        "source_text": "ОГРН: 1990000000010.",
+        "display_values": {
+          "ogrn": "1990000000010"
+        }
+      },
+      "saved_value": "1990000000010",
+      "saved_through_chat": true,
+      "saved_provenance": {
+        "value_source": "CLIENT",
+        "verification_status": "UNVERIFIED"
+      },
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.2,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.5000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.2,
+        "pd_application_1y": 0.1920135195162822,
+        "positive_headroom": true,
+        "annual_headroom_pct": "9.0000",
+        "pd_application_term": 0.4825874597086037,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.1920135195162822,
+      "requested_pd_36m": 0.4825874597086037,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 29.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 70.32,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.5000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-04",
+      "company_id": 38,
+      "type": "LLM",
+      "title": "Нет ОГРНИП",
+      "expected": "Запросить ОГРНИП",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 68,
+      "new_application": true,
+      "entity_type_matches": true,
+      "initial_answer": "По справочнику требований к кредитным заявкам:\n[R01_04] Цель кредита. Формат: Оборотные расходы; уточнение назначения. Источник данных: Клиент. Заполнение: Ввод клиента. Обязательно для: ИП и ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/3\nЭто требования к заполнению анкеты; они не подтверждают данные клиента, согласие или одобрение кредита. Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: Кредит для бизнеса: разовая закупка, развитие бизнеса; Кредит с господдержкой: проект с господдержкой; Возобновляемая кредитная линия: регулярные закупки; Автокредит: покупка транспорта; Овердрафт: кассовый разрыв; Business One Credit: повседневные расходы по карте; Бизнес-ипотека: покупка помещения; Деньги на дело: финансирование под залог имущества; Рефинансирование: рефинансирование долга; Альфа-Старт: небольшие транши; Универсальный кредитный лимит: резервный лимит; Кредит для селлеров: работа на маркетплейсе; Кредит на покупки для бизнеса: закупка у партнёра; Банковская гарантия: обеспечение контракта; Лизинг: покупка транспорта, использование оборудования; Факторинг: поставка с отсрочкой платежа. Для части направлений потребуется отдельное обращение к сотруднику. Укажите недостающий реквизит: ОГРНИП. Можно сообщить его помощнику или заполнить в форме.",
+      "missing_field": "R01_10",
+      "profile_field_is_null": true,
+      "missing_field_requested": true,
+      "reply": "ОГРНИП: 399000000000041.",
+      "proposal": {
+        "proposal_id": "PROP-ef62e0deaf6c49118003b4190f13788b",
+        "patch": {
+          "ogrnip": "399000000000041"
+        },
+        "clear_fields": [],
+        "quotes": {
+          "ogrnip": "ОГРНИП: 399000000000041."
+        },
+        "source_message_id": "9b70c8e2b5be40d2874daa58decb0007",
+        "source_text": "ОГРНИП: 399000000000041.",
+        "display_values": {
+          "ogrnip": "399000000000041"
+        }
+      },
+      "saved_value": "399000000000041",
+      "saved_through_chat": true,
+      "saved_provenance": {
+        "value_source": "CLIENT",
+        "verification_status": "UNVERIFIED"
+      },
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.2,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.5000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.2,
+        "pd_application_1y": 0.19192758159859302,
+        "positive_headroom": true,
+        "annual_headroom_pct": "9.0000",
+        "pd_application_term": 0.48208893608318704,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.19192758159859302,
+      "requested_pd_36m": 0.48208893608318704,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 30.0,
+        "entity_type": "IP",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 52.25,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.5000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-05",
+      "company_id": 39,
+      "type": "LLM",
+      "title": "Нет юридического адреса",
+      "expected": "Запросить юридический адрес",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 69,
+      "new_application": true,
+      "entity_type_matches": true,
+      "initial_answer": "По справочнику требований к кредитным заявкам:\n[R01_11] КПП организации. Формат: 9 знаков; у ИП отсутствует. Источник данных: ЕГРЮЛ / реквизиты ООО. Заполнение: Автозаполнение. Обязательно для: ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/10\n[R01_04] Цель кредита. Формат: Оборотные расходы; уточнение назначения. Источник данных: Клиент. Заполнение: Ввод клиента. Обязательно для: ИП и ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/3\nЭто требования к заполнению анкеты; они не подтверждают данные клиента, согласие или одобрение кредита. Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: Кредит для бизнеса: разовая закупка, развитие бизнеса; Кредит с господдержкой: проект с господдержкой; Возобновляемая кредитная линия: регулярные закупки; Автокредит: покупка транспорта; Овердрафт: кассовый разрыв; Business One Credit: повседневные расходы по карте; Бизнес-ипотека: покупка помещения; Деньги на дело: финансирование под залог имущества; Рефинансирование: рефинансирование долга; Альфа-Старт: небольшие транши; Универсальный кредитный лимит: резервный лимит; Кредит для селлеров: работа на маркетплейсе; Кредит на покупки для бизнеса: закупка у партнёра; Банковская гарантия: обеспечение контракта; Лизинг: покупка транспорта, использование оборудования; Факторинг: поставка с отсрочкой платежа. Для части направлений потребуется отдельное обращение к сотруднику. Укажите недостающий реквизит: Юридический адрес. Можно сообщить его помощнику или заполнить в форме.",
+      "missing_field": "R01_19",
+      "profile_field_is_null": true,
+      "missing_field_requested": true,
+      "reply": "Юридический адрес: г. Москва, ул. Тестовая, д. 1.",
+      "proposal": {
+        "proposal_id": "PROP-eaa09ba466024d8fb2bc6f8eef9eddd9",
+        "patch": {
+          "legal_address": "г. Москва, ул. Тестовая, д. 1."
+        },
+        "clear_fields": [],
+        "quotes": {
+          "legal_address": "Юридический адрес: г. Москва, ул. Тестовая, д. 1."
+        },
+        "source_message_id": "0b542cd23d2249afac73bdec5aad0ced",
+        "source_text": "Юридический адрес: г. Москва, ул. Тестовая, д. 1.",
+        "display_values": {
+          "legal_address": "г. Москва, ул. Тестовая, д. 1."
+        }
+      },
+      "saved_value": "г. Москва, ул. Тестовая, д. 1.",
+      "saved_through_chat": true,
+      "saved_provenance": {
+        "value_source": "CLIENT",
+        "verification_status": "UNVERIFIED"
+      },
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.18888888888888888,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.18888888888888888,
+        "pd_application_1y": 0.1887873363908037,
+        "positive_headroom": true,
+        "annual_headroom_pct": "8.5000",
+        "pd_application_term": 0.4761772369444457,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.1887873363908037,
+      "requested_pd_36m": 0.4761772369444457,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 30.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 81.86,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-06",
+      "company_id": 40,
+      "type": "LLM",
+      "title": "Нет ФИО руководителя",
+      "expected": "Запросить ФИО руководителя",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 70,
+      "new_application": true,
+      "entity_type_matches": true,
+      "initial_answer": "По справочнику требований к кредитным заявкам:\n[R01_11] КПП организации. Формат: 9 знаков; у ИП отсутствует. Источник данных: ЕГРЮЛ / реквизиты ООО. Заполнение: Автозаполнение. Обязательно для: ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/10\n[R01_04] Цель кредита. Формат: Оборотные расходы; уточнение назначения. Источник данных: Клиент. Заполнение: Ввод клиента. Обязательно для: ИП и ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/3\nЭто требования к заполнению анкеты; они не подтверждают данные клиента, согласие или одобрение кредита. Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: Кредит для бизнеса: разовая закупка, развитие бизнеса; Кредит с господдержкой: проект с господдержкой; Возобновляемая кредитная линия: регулярные закупки; Автокредит: покупка транспорта; Овердрафт: кассовый разрыв; Business One Credit: повседневные расходы по карте; Бизнес-ипотека: покупка помещения; Деньги на дело: финансирование под залог имущества; Рефинансирование: рефинансирование долга; Альфа-Старт: небольшие транши; Универсальный кредитный лимит: резервный лимит; Кредит для селлеров: работа на маркетплейсе; Кредит на покупки для бизнеса: закупка у партнёра; Банковская гарантия: обеспечение контракта; Лизинг: покупка транспорта, использование оборудования; Факторинг: поставка с отсрочкой платежа. Для части направлений потребуется отдельное обращение к сотруднику. Укажите недостающий реквизит: ФИО руководителя. Можно сообщить его помощнику или заполнить в форме.",
+      "missing_field": "R01_27",
+      "profile_field_is_null": true,
+      "missing_field_requested": true,
+      "reply": "ФИО руководителя: Иванов Иван Иванович.",
+      "proposal": {
+        "proposal_id": "PROP-bc212d24bd59483a9110142e67fdc0da",
+        "patch": {
+          "director_name": "Иванов Иван Иванович"
+        },
+        "clear_fields": [],
+        "quotes": {
+          "director_name": "ФИО руководителя: Иванов Иван Иванович."
+        },
+        "source_message_id": "d2ef03b85f5f495abc23255948d93c0a",
+        "source_text": "ФИО руководителя: Иванов Иван Иванович.",
+        "display_values": {
+          "director_name": "Иванов Иван Иванович"
+        }
+      },
+      "saved_value": "Иванов Иван Иванович",
+      "saved_through_chat": true,
+      "saved_provenance": {
+        "value_source": "CLIENT",
+        "verification_status": "UNVERIFIED"
+      },
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.18888888888888888,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.18888888888888888,
+        "pd_application_1y": 0.1887873363908037,
+        "positive_headroom": true,
+        "annual_headroom_pct": "8.5000",
+        "pd_application_term": 0.4761772369444457,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.1887873363908037,
+      "requested_pd_36m": 0.4761772369444457,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 30.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 45.62,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-07",
+      "company_id": 41,
+      "type": "LLM",
+      "title": "Нет суммы кредита",
+      "expected": "Запросить основной ОКВЭД",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 71,
+      "new_application": true,
+      "entity_type_matches": true,
+      "initial_answer": "По справочнику требований к кредитным заявкам:\n[R01_11] КПП организации. Формат: 9 знаков; у ИП отсутствует. Источник данных: ЕГРЮЛ / реквизиты ООО. Заполнение: Автозаполнение. Обязательно для: ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/10\n[R01_04] Цель кредита. Формат: Оборотные расходы; уточнение назначения. Источник данных: Клиент. Заполнение: Ввод клиента. Обязательно для: ИП и ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/3\nЭто требования к заполнению анкеты; они не подтверждают данные клиента, согласие или одобрение кредита. Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: Кредит для бизнеса: разовая закупка, развитие бизнеса; Кредит с господдержкой: проект с господдержкой; Возобновляемая кредитная линия: регулярные закупки; Автокредит: покупка транспорта; Овердрафт: кассовый разрыв; Business One Credit: повседневные расходы по карте; Бизнес-ипотека: покупка помещения; Деньги на дело: финансирование под залог имущества; Рефинансирование: рефинансирование долга; Альфа-Старт: небольшие транши; Универсальный кредитный лимит: резервный лимит; Кредит для селлеров: работа на маркетплейсе; Кредит на покупки для бизнеса: закупка у партнёра; Банковская гарантия: обеспечение контракта; Лизинг: покупка транспорта, использование оборудования; Факторинг: поставка с отсрочкой платежа. Для части направлений потребуется отдельное обращение к сотруднику. Укажите недостающий реквизит: Основной ОКВЭД. Можно сообщить его помощнику или заполнить в форме.",
+      "missing_field": "R01_17",
+      "profile_field_is_null": true,
+      "missing_field_requested": true,
+      "reply": "Основной ОКВЭД: 46.90.",
+      "proposal": {
+        "proposal_id": "PROP-d372bc8b6be744ff95c6f8266c996e6d",
+        "patch": {
+          "okved_main": "46.90"
+        },
+        "clear_fields": [],
+        "quotes": {
+          "okved_main": "Основной ОКВЭД: 46.90."
+        },
+        "source_message_id": "fa7c09fee7284f418a255231b1377c3c",
+        "source_text": "Основной ОКВЭД: 46.90.",
+        "display_values": {
+          "okved_main": "46.90"
+        }
+      },
+      "saved_value": "46.90",
+      "saved_through_chat": true,
+      "saved_provenance": {
+        "value_source": "CLIENT",
+        "verification_status": "UNVERIFIED"
+      },
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        },
+        {
+          "code": "REPORTED_COMPANY_FACTS",
+          "message": "Application-scoped company facts require independent employee verification"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.18888888888888888,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.18888888888888888,
+        "pd_application_1y": 0.1887873363908037,
+        "positive_headroom": true,
+        "annual_headroom_pct": "8.5000",
+        "pd_application_term": 0.4761772369444457,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.1887873363908037,
+      "requested_pd_36m": 0.4761772369444457,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 30.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 45.2,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-08",
+      "company_id": 42,
+      "type": "LLM",
+      "title": "Нет срока кредита",
+      "expected": "Запросить дату государственной регистрации",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 72,
+      "new_application": true,
+      "entity_type_matches": true,
+      "initial_answer": "По справочнику требований к кредитным заявкам:\n[R01_11] КПП организации. Формат: 9 знаков; у ИП отсутствует. Источник данных: ЕГРЮЛ / реквизиты ООО. Заполнение: Автозаполнение. Обязательно для: ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/10\n[R01_04] Цель кредита. Формат: Оборотные расходы; уточнение назначения. Источник данных: Клиент. Заполнение: Ввод клиента. Обязательно для: ИП и ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/3\nЭто требования к заполнению анкеты; они не подтверждают данные клиента, согласие или одобрение кредита. Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: Кредит для бизнеса: разовая закупка, развитие бизнеса; Кредит с господдержкой: проект с господдержкой; Возобновляемая кредитная линия: регулярные закупки; Автокредит: покупка транспорта; Овердрафт: кассовый разрыв; Business One Credit: повседневные расходы по карте; Бизнес-ипотека: покупка помещения; Деньги на дело: финансирование под залог имущества; Рефинансирование: рефинансирование долга; Альфа-Старт: небольшие транши; Универсальный кредитный лимит: резервный лимит; Кредит для селлеров: работа на маркетплейсе; Кредит на покупки для бизнеса: закупка у партнёра; Банковская гарантия: обеспечение контракта; Лизинг: покупка транспорта, использование оборудования; Факторинг: поставка с отсрочкой платежа. Для части направлений потребуется отдельное обращение к сотруднику. Укажите недостающий реквизит: Дата государственной регистрации. Можно сообщить его помощнику или заполнить в форме.",
+      "missing_field": "R01_15",
+      "profile_field_is_null": true,
+      "missing_field_requested": true,
+      "reply": "Дата государственной регистрации: 2024-04-13.",
+      "proposal": {
+        "proposal_id": "PROP-bc3081b3327a4eca88222b7f642e09a8",
+        "patch": {
+          "registration_date": "2024-04-13"
+        },
+        "clear_fields": [],
+        "quotes": {
+          "registration_date": "Дата государственной регистрации: 2024-04-13."
+        },
+        "source_message_id": "6f870cfb3ffb4831991cbc0ec015f01d",
+        "source_text": "Дата государственной регистрации: 2024-04-13.",
+        "display_values": {
+          "registration_date": "2024-04-13"
+        }
+      },
+      "saved_value": "2024-04-13",
+      "saved_through_chat": true,
+      "saved_provenance": {
+        "value_source": "CLIENT",
+        "verification_status": "UNVERIFIED"
+      },
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        },
+        {
+          "code": "REPORTED_COMPANY_FACTS",
+          "message": "Application-scoped company facts require independent employee verification"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.18888888888888888,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.18888888888888888,
+        "pd_application_1y": 0.1887873363908037,
+        "positive_headroom": true,
+        "annual_headroom_pct": "8.5000",
+        "pd_application_term": 0.4761772369444457,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.1887873363908037,
+      "requested_pd_36m": 0.4761772369444457,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 30.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 46.49,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-09",
+      "company_id": 43,
+      "type": "LLM",
+      "title": "Нет цели кредита",
+      "expected": "Запросить фактический вид деятельности",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 73,
+      "new_application": true,
+      "entity_type_matches": true,
+      "initial_answer": "По справочнику требований к кредитным заявкам:\n[R01_11] КПП организации. Формат: 9 знаков; у ИП отсутствует. Источник данных: ЕГРЮЛ / реквизиты ООО. Заполнение: Автозаполнение. Обязательно для: ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/10\n[R01_04] Цель кредита. Формат: Оборотные расходы; уточнение назначения. Источник данных: Клиент. Заполнение: Ввод клиента. Обязательно для: ИП и ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/3\nЭто требования к заполнению анкеты; они не подтверждают данные клиента, согласие или одобрение кредита. Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: Кредит для бизнеса: разовая закупка, развитие бизнеса; Кредит с господдержкой: проект с господдержкой; Возобновляемая кредитная линия: регулярные закупки; Автокредит: покупка транспорта; Овердрафт: кассовый разрыв; Business One Credit: повседневные расходы по карте; Бизнес-ипотека: покупка помещения; Деньги на дело: финансирование под залог имущества; Рефинансирование: рефинансирование долга; Альфа-Старт: небольшие транши; Универсальный кредитный лимит: резервный лимит; Кредит для селлеров: работа на маркетплейсе; Кредит на покупки для бизнеса: закупка у партнёра; Банковская гарантия: обеспечение контракта; Лизинг: покупка транспорта, использование оборудования; Факторинг: поставка с отсрочкой платежа. Для части направлений потребуется отдельное обращение к сотруднику. Укажите недостающий реквизит: Фактический вид деятельности. Можно сообщить его помощнику или заполнить в форме.",
+      "missing_field": "R01_18",
+      "profile_field_is_null": true,
+      "missing_field_requested": true,
+      "reply": "Фактический вид деятельности: оптовая торговля.",
+      "proposal": {
+        "proposal_id": "PROP-d39122d52e874b47996ded6b9ede5654",
+        "patch": {
+          "actual_activity_description": "оптовая торговля."
+        },
+        "clear_fields": [],
+        "quotes": {
+          "actual_activity_description": "Фактический вид деятельности: оптовая торговля."
+        },
+        "source_message_id": "1c2d091ba7204fdc84c079ed866beb57",
+        "source_text": "Фактический вид деятельности: оптовая торговля.",
+        "display_values": {
+          "actual_activity_description": "оптовая торговля."
+        }
+      },
+      "saved_value": "оптовая торговля.",
+      "saved_through_chat": true,
+      "saved_provenance": {
+        "value_source": "CLIENT",
+        "verification_status": "UNVERIFIED"
+      },
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.18888888888888888,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.18888888888888888,
+        "pd_application_1y": 0.1887873363908037,
+        "positive_headroom": true,
+        "annual_headroom_pct": "8.5000",
+        "pd_application_term": 0.4761772369444457,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.1887873363908037,
+      "requested_pd_36m": 0.4761772369444457,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 30.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 49.29,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-10",
+      "company_id": 44,
+      "type": "LLM",
+      "title": "Полная заявка",
+      "expected": "Проверить полную анкету и подтвердить сведения",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 74,
+      "new_application": true,
+      "entity_type_matches": true,
+      "initial_answer": "По справочнику требований к кредитным заявкам:\n[R01_11] КПП организации. Формат: 9 знаков; у ИП отсутствует. Источник данных: ЕГРЮЛ / реквизиты ООО. Заполнение: Автозаполнение. Обязательно для: ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/10\n[R01_04] Цель кредита. Формат: Оборотные расходы; уточнение назначения. Источник данных: Клиент. Заполнение: Ввод клиента. Обязательно для: ИП и ООО. Источник требования: knowledge/Требования к кредитным заявкам.json#/products/R01/requirements/3\nЭто требования к заполнению анкеты; они не подтверждают данные клиента, согласие или одобрение кредита. Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: Кредит для бизнеса: разовая закупка, развитие бизнеса; Кредит с господдержкой: проект с господдержкой; Возобновляемая кредитная линия: регулярные закупки; Автокредит: покупка транспорта; Овердрафт: кассовый разрыв; Business One Credit: повседневные расходы по карте; Бизнес-ипотека: покупка помещения; Деньги на дело: финансирование под залог имущества; Рефинансирование: рефинансирование долга; Альфа-Старт: небольшие транши; Универсальный кредитный лимит: резервный лимит; Кредит для селлеров: работа на маркетплейсе; Кредит на покупки для бизнеса: закупка у партнёра; Банковская гарантия: обеспечение контракта; Лизинг: покупка транспорта, использование оборудования; Факторинг: поставка с отсрочкой платежа. Для части направлений потребуется отдельное обращение к сотруднику.",
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.18888888888888888,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.18888888888888888,
+        "pd_application_1y": 0.1887873363908037,
+        "positive_headroom": true,
+        "annual_headroom_pct": "8.5000",
+        "pd_application_term": 0.4761772369444457,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.1887873363908037,
+      "requested_pd_36m": 0.4761772369444457,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 30.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 0.6,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-11",
+      "company_id": 45,
+      "type": "SCORE",
+      "title": "Высокий долг/выручка",
+      "expected": "Сравнить PD с базовым сценарием",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 75,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "INSUFFICIENT_CAPACITY",
+          "message": "Debt service capacity is insufficient"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.1111111111111111,
+        "term_months": 36,
+        "scored_amount": null,
+        "decision_method": "annual_pd_limit",
+        "pd_limit_1y_raw": 0.1111111111111111,
+        "pd_application_1y": null,
+        "positive_headroom": true,
+        "annual_headroom_pct": "5.0000",
+        "pd_application_term": null,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.5132656414610677,
+      "requested_pd_36m": 0.8918455491154056,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 0.7902439024390244,
+        "debt_to_revenue": 2.1354166666666665,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 30.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 0.7902439024390244,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 410000.0,
+        "outstanding_debt_to_monthly_revenue": 15.0,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "sensitivity": {
+        "features": {
+          "industry": "retail",
+          "monthly_revenue": 1200000.0,
+          "revenue_trend_12m": 0.0,
+          "revenue_volatility": 0.0,
+          "operating_margin": 0.27,
+          "cash_buffer_months": 1.0,
+          "dscr": 0.7902439024390244,
+          "debt_to_revenue": 2.1354166666666665,
+          "prior_overdue_30d": 0.0,
+          "macro_stress": 0.0,
+          "age_months": 30.0,
+          "entity_type": "OOO",
+          "requested_amount": 3000000.0,
+          "annual_rate": 0.255
+        },
+        "interventions": {
+          "debt_to_revenue": {
+            "baseline": 2.1354166666666665,
+            "scenario": 2.567708333333333
+          }
+        },
+        "baseline_pd_12m": 0.5132656414610677,
+        "scenario_pd_12m": 0.5132656414610677,
+        "delta_pd_12m": 0.0,
+        "baseline_pd_36m": 0.8918455491154056,
+        "scenario_pd_36m": 0.8918455491154056,
+        "direction_ok": true
+      },
+      "control_median_pd_12m": 0.18762289823252631,
+      "delta_to_control_median_pp": 32.56427432285414,
+      "seconds": 0.6,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-12",
+      "company_id": 46,
+      "type": "SCORE",
+      "title": "Низкий долг/выручка",
+      "expected": "Сравнить PD с базовым сценарием",
+      "product_code": "R02",
+      "status": "PASS",
+      "application_id": 76,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.1643982464587317,
+      "requested_pd_36m": 0.42640792790153603,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 8.0,
+        "debt_to_revenue": 0.0625,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 30.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": null,
+      "sensitivity": {
+        "features": {
+          "industry": "retail",
+          "monthly_revenue": 1200000.0,
+          "revenue_trend_12m": 0.0,
+          "revenue_volatility": 0.0,
+          "operating_margin": 0.27,
+          "cash_buffer_months": 1.0,
+          "dscr": 8.0,
+          "debt_to_revenue": 0.0625,
+          "prior_overdue_30d": 0.0,
+          "macro_stress": 0.0,
+          "age_months": 30.0,
+          "entity_type": "OOO",
+          "requested_amount": 3000000.0,
+          "annual_rate": 0.255
+        },
+        "interventions": {
+          "debt_to_revenue": {
+            "baseline": 0.0625,
+            "scenario": 0.04625
+          }
+        },
+        "baseline_pd_12m": 0.1643982464587317,
+        "scenario_pd_12m": 0.1638719114117051,
+        "delta_pd_12m": -0.0005263350470265937,
+        "baseline_pd_36m": 0.42640792790153603,
+        "scenario_pd_36m": 0.4252892340710538,
+        "direction_ok": true
+      },
+      "control_median_pd_12m": 0.18762289823252631,
+      "delta_to_control_median_pp": -2.3224651773794625,
+      "seconds": 0.48,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-13",
+      "company_id": 47,
+      "type": "SCORE",
+      "title": "Низкий DSCR",
+      "expected": "Сравнить PD с базовым сценарием",
+      "product_code": "R03",
+      "status": "PASS",
+      "application_id": 77,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.4987041407777163,
+      "requested_pd_36m": 0.8815413531214761,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 0.9,
+        "debt_to_revenue": 1.875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 30.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.28
+      },
+      "financial_observations": null,
+      "sensitivity": {
+        "features": {
+          "industry": "retail",
+          "monthly_revenue": 1200000.0,
+          "revenue_trend_12m": 0.0,
+          "revenue_volatility": 0.0,
+          "operating_margin": 0.27,
+          "cash_buffer_months": 1.0,
+          "dscr": 0.9,
+          "debt_to_revenue": 1.875,
+          "prior_overdue_30d": 0.0,
+          "macro_stress": 0.0,
+          "age_months": 30.0,
+          "entity_type": "OOO",
+          "requested_amount": 3000000.0,
+          "annual_rate": 0.28
+        },
+        "interventions": {
+          "dscr": {
+            "baseline": 0.9,
+            "scenario": 0.47500000000000003
+          }
+        },
+        "baseline_pd_12m": 0.4987041407777163,
+        "scenario_pd_12m": 0.5716418329373563,
+        "delta_pd_12m": 0.07293769215963997,
+        "baseline_pd_36m": 0.8815413531214761,
+        "scenario_pd_36m": 0.924606111311821,
+        "direction_ok": true
+      },
+      "control_median_pd_12m": 0.1907463182697926,
+      "delta_to_control_median_pp": 30.79578225079237,
+      "seconds": 0.48,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-14",
+      "company_id": 48,
+      "type": "SCORE",
+      "title": "Высокий DSCR",
+      "expected": "Сравнить PD с базовым сценарием",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 78,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.16666666666666666,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "28.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.16666666666666666,
+        "pd_application_1y": 0.16633499163268073,
+        "positive_headroom": true,
+        "annual_headroom_pct": "7.5000",
+        "pd_application_term": 0.43051166333791635,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.16633499163268073,
+      "requested_pd_36m": 0.43051166333791635,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 8.0,
+        "debt_to_revenue": 0.09375,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 31.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 18.0,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 18000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "sensitivity": {
+        "features": {
+          "industry": "retail",
+          "monthly_revenue": 1200000.0,
+          "revenue_trend_12m": 0.0,
+          "revenue_volatility": 0.0,
+          "operating_margin": 0.27,
+          "cash_buffer_months": 1.0,
+          "dscr": 8.0,
+          "debt_to_revenue": 0.09375,
+          "prior_overdue_30d": 0.0,
+          "macro_stress": 0.0,
+          "age_months": 31.0,
+          "entity_type": "OOO",
+          "requested_amount": 3000000.0,
+          "annual_rate": 0.255
+        },
+        "interventions": {
+          "dscr": {
+            "baseline": 8.0,
+            "scenario": 8.0
+          }
+        },
+        "baseline_pd_12m": 0.16633499163268073,
+        "scenario_pd_12m": 0.16633499163268073,
+        "delta_pd_12m": 0.0,
+        "baseline_pd_36m": 0.43051166333791635,
+        "scenario_pd_36m": 0.43051166333791635,
+        "direction_ok": true
+      },
+      "control_median_pd_12m": 0.18762289823252631,
+      "delta_to_control_median_pp": -2.1287906599845585,
+      "seconds": 0.5,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "28.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-15",
+      "company_id": 49,
+      "type": "SCORE",
+      "title": "Низкий денежный резерв",
+      "expected": "Сравнить PD с базовым сценарием",
+      "product_code": "R02",
+      "status": "PASS",
+      "application_id": 79,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.24961188319128025,
+      "requested_pd_36m": 0.5882201883721013,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 0.03333333333333333,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 31.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": null,
+      "sensitivity": {
+        "features": {
+          "industry": "retail",
+          "monthly_revenue": 1200000.0,
+          "revenue_trend_12m": 0.0,
+          "revenue_volatility": 0.0,
+          "operating_margin": 0.27,
+          "cash_buffer_months": 0.03333333333333333,
+          "dscr": 3.6,
+          "debt_to_revenue": 0.46875,
+          "prior_overdue_30d": 0.0,
+          "macro_stress": 0.0,
+          "age_months": 31.0,
+          "entity_type": "OOO",
+          "requested_amount": 3000000.0,
+          "annual_rate": 0.255
+        },
+        "interventions": {
+          "cash_buffer_months": {
+            "baseline": 0.03333333333333333,
+            "scenario": 0.016666666666666666
+          }
+        },
+        "baseline_pd_12m": 0.24961188319128025,
+        "scenario_pd_12m": 0.24961188319128025,
+        "delta_pd_12m": 0.0,
+        "baseline_pd_36m": 0.5882201883721013,
+        "scenario_pd_36m": 0.5882201883721013,
+        "direction_ok": true
+      },
+      "control_median_pd_12m": 0.18762289823252631,
+      "delta_to_control_median_pp": 6.198898495875394,
+      "seconds": 0.5,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-16",
+      "company_id": 50,
+      "type": "SCORE",
+      "title": "Высокий денежный резерв",
+      "expected": "Сравнить PD с базовым сценарием",
+      "product_code": "R03",
+      "status": "PASS",
+      "application_id": 80,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.11199869449204858,
+      "requested_pd_36m": 0.31150455251864184,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 7.5,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 31.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.28
+      },
+      "financial_observations": null,
+      "sensitivity": {
+        "features": {
+          "industry": "retail",
+          "monthly_revenue": 1200000.0,
+          "revenue_trend_12m": 0.0,
+          "revenue_volatility": 0.0,
+          "operating_margin": 0.27,
+          "cash_buffer_months": 7.5,
+          "dscr": 3.6,
+          "debt_to_revenue": 0.46875,
+          "prior_overdue_30d": 0.0,
+          "macro_stress": 0.0,
+          "age_months": 31.0,
+          "entity_type": "OOO",
+          "requested_amount": 3000000.0,
+          "annual_rate": 0.28
+        },
+        "interventions": {
+          "cash_buffer_months": {
+            "baseline": 7.5,
+            "scenario": 12.75
+          }
+        },
+        "baseline_pd_12m": 0.11199869449204858,
+        "scenario_pd_12m": 0.11127462439197788,
+        "delta_pd_12m": -0.0007240701000706951,
+        "baseline_pd_36m": 0.31150455251864184,
+        "scenario_pd_36m": 0.3097392971406796,
+        "direction_ok": true
+      },
+      "control_median_pd_12m": 0.1907463182697926,
+      "delta_to_control_median_pp": -7.8747623777744025,
+      "seconds": 0.5,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-17",
+      "company_id": 51,
+      "type": "SCORE",
+      "title": "Падение выручки",
+      "expected": "Сравнить PD с базовым сценарием",
+      "product_code": "R01",
+      "status": "PARTIAL",
+      "application_id": 81,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "INSUFFICIENT_CAPACITY",
+          "message": "Debt service capacity is insufficient"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.1111111111111111,
+        "term_months": 36,
+        "scored_amount": null,
+        "decision_method": "annual_pd_limit",
+        "pd_limit_1y_raw": 0.1111111111111111,
+        "pd_application_1y": null,
+        "positive_headroom": true,
+        "annual_headroom_pct": "5.0000",
+        "pd_application_term": null,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.3602432000668233,
+      "requested_pd_36m": 0.7399588140775866,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 100000.0,
+        "revenue_trend_12m": -0.9,
+        "revenue_volatility": 0.7522598433825665,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 12.0,
+        "dscr": 0.3,
+        "debt_to_revenue": 1.0026737967914439,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 31.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 0.3,
+        "historical_mean_revenue": 561000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 10.0,
+        "monthly_cash_available_for_debt_service": 27000.0
+      },
+      "sensitivity": {
+        "features": {
+          "industry": "retail",
+          "monthly_revenue": 100000.0,
+          "revenue_trend_12m": -0.9,
+          "revenue_volatility": 0.7522598433825665,
+          "operating_margin": 0.27,
+          "cash_buffer_months": 12.0,
+          "dscr": 0.3,
+          "debt_to_revenue": 1.0026737967914439,
+          "prior_overdue_30d": 0.0,
+          "macro_stress": 0.0,
+          "age_months": 31.0,
+          "entity_type": "OOO",
+          "requested_amount": 3000000.0,
+          "annual_rate": 0.255
+        },
+        "interventions": {},
+        "baseline_pd_12m": 0.3602432000668233,
+        "scenario_pd_12m": 0.3602432000668233,
+        "delta_pd_12m": 0.0,
+        "baseline_pd_36m": 0.7399588140775866,
+        "scenario_pd_36m": 0.7399588140775866,
+        "direction_ok": null
+      },
+      "unsupported_feature": "current_revenue_trend_3m",
+      "control_median_pd_12m": 0.18762289823252631,
+      "delta_to_control_median_pp": 17.2620301834297,
+      "seconds": 0.62,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-18",
+      "company_id": 52,
+      "type": "SCORE",
+      "title": "Рост выручки",
+      "expected": "Сравнить PD с базовым сценарием",
+      "product_code": "R02",
+      "status": "PARTIAL",
+      "application_id": 82,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.1831316281716826,
+      "requested_pd_36m": 0.4681437525358483,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 2760000.0,
+        "revenue_trend_12m": 1.2999999999999998,
+        "revenue_volatility": 0.27111585600031973,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 0.43478260869565216,
+        "dscr": 8.0,
+        "debt_to_revenue": 0.293733681462141,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 31.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": null,
+      "sensitivity": {
+        "features": {
+          "industry": "retail",
+          "monthly_revenue": 2760000.0,
+          "revenue_trend_12m": 1.2999999999999998,
+          "revenue_volatility": 0.27111585600031973,
+          "operating_margin": 0.27,
+          "cash_buffer_months": 0.43478260869565216,
+          "dscr": 8.0,
+          "debt_to_revenue": 0.293733681462141,
+          "prior_overdue_30d": 0.0,
+          "macro_stress": 0.0,
+          "age_months": 31.0,
+          "entity_type": "OOO",
+          "requested_amount": 3000000.0,
+          "annual_rate": 0.255
+        },
+        "interventions": {},
+        "baseline_pd_12m": 0.1831316281716826,
+        "scenario_pd_12m": 0.1831316281716826,
+        "delta_pd_12m": 0.0,
+        "baseline_pd_36m": 0.4681437525358483,
+        "scenario_pd_36m": 0.4681437525358483,
+        "direction_ok": null
+      },
+      "unsupported_feature": "current_revenue_trend_3m",
+      "control_median_pd_12m": 0.18762289823252631,
+      "delta_to_control_median_pp": -0.44912700608437106,
+      "seconds": 0.51,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-19",
+      "company_id": 53,
+      "type": "SCORE",
+      "title": "Комплексное ухудшение",
+      "expected": "Сравнить PD с базовым сценарием",
+      "product_code": "R03",
+      "status": "PARTIAL",
+      "application_id": 83,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.978899612230936,
+      "requested_pd_36m": 0.9999924754439679,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 100000.0,
+        "revenue_trend_12m": -0.9,
+        "revenue_volatility": 0.7522598433825665,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 0.4,
+        "dscr": 0.075,
+        "debt_to_revenue": 3.0,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 31.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.28
+      },
+      "financial_observations": null,
+      "sensitivity": {
+        "features": {
+          "industry": "retail",
+          "monthly_revenue": 100000.0,
+          "revenue_trend_12m": -0.9,
+          "revenue_volatility": 0.7522598433825665,
+          "operating_margin": 0.27,
+          "cash_buffer_months": 0.4,
+          "dscr": 0.075,
+          "debt_to_revenue": 3.0,
+          "prior_overdue_30d": 0.0,
+          "macro_stress": 0.0,
+          "age_months": 31.0,
+          "entity_type": "OOO",
+          "requested_amount": 3000000.0,
+          "annual_rate": 0.28
+        },
+        "interventions": {
+          "dscr": {
+            "baseline": 0.075,
+            "scenario": 0.0625
+          },
+          "debt_to_revenue": {
+            "baseline": 3.0,
+            "scenario": 3.0
+          },
+          "cash_buffer_months": {
+            "baseline": 0.4,
+            "scenario": 0.2
+          }
+        },
+        "baseline_pd_12m": 0.978899612230936,
+        "scenario_pd_12m": 0.9823804028276082,
+        "delta_pd_12m": 0.0034807905966721675,
+        "baseline_pd_36m": 0.9999924754439679,
+        "scenario_pd_36m": 0.9999956586524512,
+        "direction_ok": true
+      },
+      "unsupported_feature": "current_revenue_trend_3m",
+      "control_median_pd_12m": 0.1907463182697926,
+      "delta_to_control_median_pp": 78.81532939611434,
+      "seconds": 0.51,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-20",
+      "company_id": 54,
+      "type": "SCORE",
+      "title": "Финансовая устойчивость",
+      "expected": "Сравнить PD с базовым сценарием",
+      "product_code": "R01",
+      "status": "PARTIAL",
+      "application_id": 84,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.1111111111111111,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "25.5000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.1111111111111111,
+        "pd_application_1y": 0.09328657535283513,
+        "positive_headroom": true,
+        "annual_headroom_pct": "5.0000",
+        "pd_application_term": 0.26778647377891773,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.09328657535283513,
+      "requested_pd_36m": 0.26778647377891773,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 2760000.0,
+        "revenue_trend_12m": 1.2999999999999998,
+        "revenue_volatility": 0.27111585600031973,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 3.260869565217391,
+        "dscr": 8.0,
+        "debt_to_revenue": 0.0587467362924282,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 31.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 41.4,
+        "historical_mean_revenue": 1915000.0,
+        "existing_monthly_debt_service": 18000.0,
+        "outstanding_debt_to_monthly_revenue": 0.05434782608695652,
+        "monthly_cash_available_for_debt_service": 745200.0
+      },
+      "sensitivity": {
+        "features": {
+          "industry": "retail",
+          "monthly_revenue": 2760000.0,
+          "revenue_trend_12m": 1.2999999999999998,
+          "revenue_volatility": 0.27111585600031973,
+          "operating_margin": 0.27,
+          "cash_buffer_months": 3.260869565217391,
+          "dscr": 8.0,
+          "debt_to_revenue": 0.0587467362924282,
+          "prior_overdue_30d": 0.0,
+          "macro_stress": 0.0,
+          "age_months": 31.0,
+          "entity_type": "OOO",
+          "requested_amount": 3000000.0,
+          "annual_rate": 0.255
+        },
+        "interventions": {
+          "dscr": {
+            "baseline": 8.0,
+            "scenario": 8.0
+          },
+          "debt_to_revenue": {
+            "baseline": 0.0587467362924282,
+            "scenario": 0.0443733681462141
+          },
+          "cash_buffer_months": {
+            "baseline": 3.260869565217391,
+            "scenario": 10.630434782608695
+          }
+        },
+        "baseline_pd_12m": 0.09328657535283513,
+        "scenario_pd_12m": 0.07683747398281326,
+        "delta_pd_12m": -0.016449101370021868,
+        "baseline_pd_36m": 0.26778647377891773,
+        "scenario_pd_36m": 0.22467349686175853,
+        "direction_ok": true
+      },
+      "unsupported_feature": "current_revenue_trend_3m",
+      "control_median_pd_12m": 0.18762289823252631,
+      "delta_to_control_median_pp": -9.433632287969118,
+      "seconds": 0.52,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "25.5000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-21",
+      "company_id": 55,
+      "type": "CONTROL",
+      "title": "Обычная компания 01",
+      "expected": "Контроль финансового скоринга; анкета требует отдельной проверки",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 85,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.18888888888888888,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.18888888888888888,
+        "pd_application_1y": 0.1887873363908037,
+        "positive_headroom": true,
+        "annual_headroom_pct": "8.5000",
+        "pd_application_term": 0.4761772369444457,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.1887873363908037,
+      "requested_pd_36m": 0.4761772369444457,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 31.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 2.59,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-22",
+      "company_id": 56,
+      "type": "CONTROL",
+      "title": "Обычная компания 02",
+      "expected": "Контроль финансового скоринга; анкета требует отдельной проверки",
+      "product_code": "R02",
+      "status": "PASS",
+      "application_id": 86,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.1887873363908037,
+      "requested_pd_36m": 0.4761772369444457,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 31.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": null,
+      "seconds": 0.53,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-23",
+      "company_id": 57,
+      "type": "CONTROL",
+      "title": "Обычная компания 03",
+      "expected": "Контроль финансового скоринга; анкета требует отдельной проверки",
+      "product_code": "R03",
+      "status": "PASS",
+      "application_id": 87,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.19192758159859302,
+      "requested_pd_36m": 0.48208893608318704,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 31.0,
+        "entity_type": "IP",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.28
+      },
+      "financial_observations": null,
+      "seconds": 0.52,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-24",
+      "company_id": 58,
+      "type": "CONTROL",
+      "title": "Обычная компания 04",
+      "expected": "Контроль финансового скоринга; анкета требует отдельной проверки",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 88,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.18888888888888888,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.18888888888888888,
+        "pd_application_1y": 0.18762289823252631,
+        "positive_headroom": true,
+        "annual_headroom_pct": "8.5000",
+        "pd_application_term": 0.4739154528665458,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.18762289823252631,
+      "requested_pd_36m": 0.4739154528665458,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 32.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 0.55,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-25",
+      "company_id": 59,
+      "type": "CONTROL",
+      "title": "Обычная компания 05",
+      "expected": "Контроль финансового скоринга; анкета требует отдельной проверки",
+      "product_code": "R02",
+      "status": "PASS",
+      "application_id": 89,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.18762289823252631,
+      "requested_pd_36m": 0.4739154528665458,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 32.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": null,
+      "seconds": 0.54,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-26",
+      "company_id": 60,
+      "type": "CONTROL",
+      "title": "Обычная компания 06",
+      "expected": "Контроль финансового скоринга; анкета требует отдельной проверки",
+      "product_code": "R03",
+      "status": "PASS",
+      "application_id": 90,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.1907463182697926,
+      "requested_pd_36m": 0.4798136615589307,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 32.0,
+        "entity_type": "IP",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.28
+      },
+      "financial_observations": null,
+      "seconds": 0.53,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-27",
+      "company_id": 61,
+      "type": "CONTROL",
+      "title": "Обычная компания 07",
+      "expected": "Контроль финансового скоринга; анкета требует отдельной проверки",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 91,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.18888888888888888,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.18888888888888888,
+        "pd_application_1y": 0.18762289823252631,
+        "positive_headroom": true,
+        "annual_headroom_pct": "8.5000",
+        "pd_application_term": 0.4739154528665458,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.18762289823252631,
+      "requested_pd_36m": 0.4739154528665458,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 32.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 0.57,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-28",
+      "company_id": 62,
+      "type": "CONTROL",
+      "title": "Обычная компания 08",
+      "expected": "Контроль финансового скоринга; анкета требует отдельной проверки",
+      "product_code": "R02",
+      "status": "PASS",
+      "application_id": 92,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.18762289823252631,
+      "requested_pd_36m": 0.4739154528665458,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 32.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": null,
+      "seconds": 0.54,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-29",
+      "company_id": 63,
+      "type": "CONTROL",
+      "title": "Обычная компания 09",
+      "expected": "Контроль финансового скоринга; анкета требует отдельной проверки",
+      "product_code": "R03",
+      "status": "PASS",
+      "application_id": 93,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "REJECT",
+      "reasons": [
+        {
+          "code": "TERM_OUTSIDE_PRODUCT",
+          "message": "Contract term is outside product conditions"
+        }
+      ],
+      "risk_assessment": {},
+      "requested_pd_12m": 0.1907463182697926,
+      "requested_pd_36m": 0.4798136615589307,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 32.0,
+        "entity_type": "IP",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.28
+      },
+      "financial_observations": null,
+      "seconds": 0.55,
+      "calculated_offer": null,
+      "automatic_recommendation": "NEGATIVE",
+      "eligibility_status": "INELIGIBLE"
+    },
+    {
+      "scenario_id": "AUR-30",
+      "company_id": 64,
+      "type": "CONTROL",
+      "title": "Обычная компания 10",
+      "expected": "Контроль финансового скоринга; анкета требует отдельной проверки",
+      "product_code": "R01",
+      "status": "PASS",
+      "application_id": 94,
+      "new_application": true,
+      "entity_type_matches": true,
+      "scoring_present": true,
+      "application_status": "UNDER_REVIEW",
+      "decision": "MANUAL_REVIEW",
+      "reasons": [
+        {
+          "code": "BANK_CONFIRMATION_REQUIRED",
+          "message": "Automatic checks passed; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "risk_assessment": {
+        "method": "annual_pd_limit",
+        "pd_limit_1y": 0.18888888888888888,
+        "term_months": 36,
+        "scored_amount": "3000000.00",
+        "annual_rate_pct": "29.0000",
+        "decision_method": "annual_pd_limit",
+        "passes_pd_limit": true,
+        "pd_1y_evaluated": true,
+        "pd_limit_1y_raw": 0.18888888888888888,
+        "pd_application_1y": 0.18762289823252631,
+        "positive_headroom": true,
+        "annual_headroom_pct": "8.5000",
+        "pd_application_term": 0.4739154528665458,
+        "annual_funding_rate_pct": "15.5000",
+        "comparison_horizon_months": 12
+      },
+      "requested_pd_12m": 0.18762289823252631,
+      "requested_pd_36m": 0.4739154528665458,
+      "requested_features": {
+        "industry": "retail",
+        "monthly_revenue": 1200000.0,
+        "revenue_trend_12m": 0.0,
+        "revenue_volatility": 0.0,
+        "operating_margin": 0.27,
+        "cash_buffer_months": 1.0,
+        "dscr": 3.6,
+        "debt_to_revenue": 0.46875,
+        "prior_overdue_30d": 0.0,
+        "macro_stress": 0.0,
+        "age_months": 32.0,
+        "entity_type": "OOO",
+        "requested_amount": 3000000.0,
+        "annual_rate": 0.255
+      },
+      "financial_observations": {
+        "raw_dscr": 3.6,
+        "historical_mean_revenue": 1200000.0,
+        "existing_monthly_debt_service": 90000.0,
+        "outstanding_debt_to_monthly_revenue": 0.8333333333333334,
+        "monthly_cash_available_for_debt_service": 324000.0
+      },
+      "seconds": 0.58,
+      "calculated_offer": {
+        "amount": "3000000.00",
+        "term_months": 36,
+        "annual_rate_pct": "29.0000"
+      },
+      "automatic_recommendation": "REVIEW_REQUIRED",
+      "eligibility_status": "ELIGIBLE"
+    }
+  ],
+  "published_csv_canonical_sha256": "28ca44722c577a160a82b5d5133b13896108e26568602e6ede09d70ab3f515da",
+  "published_csv_note": "Original input_sha256 refers to uploaded CRLF bytes; versioned CSV uses Git text normalization. Canonical hash is computed after replacing CRLF with LF."
+}
