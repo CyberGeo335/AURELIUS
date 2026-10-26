@@ -1,3 +1,4 @@
+import { ClientHome } from './ClientHome';
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useApi, useCredit, useSession, useAction } from '../app/context';
@@ -73,50 +74,10 @@ export function BusinessProducts() {
   );
 }
 export function BusinessHome() {
-  const state = useCredit();
-  const { session } = useSession();
-  const company = state.companies.find((c) => c.id === session?.profile);
   return (
-    <>
-      <HeroPanel>
-        <p className="hero-eyebrow">Кредитный кабинет</p>
-        <h1>{company?.name}</h1>
-        <p>Заполните заявку и отслеживайте решение банка.</p>
-        <Action tone="white" asChild>
-          <Link to="/client/products">Подать заявку</Link>
-        </Action>
-      </HeroPanel>
-      <Card>
-        <h2>Ваши заявки</h2>
-        {state.applications.length ? (
-          state.applications.map((app) => (
-            <div className="product-row" key={app.id}>
-              <div>
-                <Link
-                  to={
-                    app.status === 'DRAFT'
-                      ? `/client/new/${app.id}`
-                      : `/client/applications/${app.id}`
-                  }
-                >
-                  № {app.id} · {products[app.product]}
-                </Link>
-                <p>
-                  Запрошено: {requestedAmount(app)} · {requestedTerm(app)}
-                </p>
-              </div>
-              <div className="application-progress">
-                <StatusBadge app={app} />
-                <StageTrack app={app} mini />
-              </div>
-            </div>
-          ))
-        ) : (
-          <p>Пока нет заявок.</p>
-        )}
-      </Card>
+    <ClientHome>
       <BusinessProducts />
-    </>
+    </ClientHome>
   );
 }
 function initialFields(rows: ServerRequirement[], app: Application, company: Company) {

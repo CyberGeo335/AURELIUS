@@ -2690,6 +2690,41 @@ td p {
 .business-v3 {
   min-width: 320px;
 }
+.client-home {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.client-home-grid.without-assistant {
+  grid-template-columns: 1.12fr 2.14fr;
+}
+.client-home-stages {
+  min-width: 0;
+}
+.client-home .application-progress {
+  align-items: flex-start;
+}
+.client-home .product-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+@media (max-width: 1000px) {
+  .client-home-grid,
+  .client-home-grid.without-assistant {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .client-home .hero-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .client-home-stages .stage-track {
+    min-width: 850px;
+  }
+  .client-home-stages {
+    overflow-x: auto;
+  }
+}
 @media (max-width: 1000px) {
   .business-v3 .header-inner {
     height: auto;

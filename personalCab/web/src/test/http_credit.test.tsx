@@ -117,7 +117,9 @@ describe('HTTP stage tracks', () => {
     ['/bank/applications/456', false],
   ] as const)('restores the existing track at %s (mini=%s)', async (path, mini) => {
     mount(path);
-    const [track] = await screen.findAllByRole('list', { name: 'Этапы обработки' });
+    const tracks = await screen.findAllByRole('list', { name: 'Этапы обработки' });
+    const track =
+      path === '/client' ? tracks.find((t) => t.classList.contains('mini'))! : tracks[0];
     expect(track.classList.contains('mini')).toBe(mini);
     const steps = track.querySelectorAll('.chevron');
     expect(steps).toHaveLength(path.startsWith('/bank') ? 6 : 5);
