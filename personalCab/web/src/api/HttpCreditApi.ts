@@ -12,6 +12,7 @@ import type {
   ServerRequirement,
 } from '../domain/types';
 import { HttpV2Api } from './HttpV2Api';
+import { stageFromServer } from '../domain/serverStage';
 
 export interface BusinessState {
   companies: Record<string, unknown>[];
@@ -61,7 +62,21 @@ export class HttpCreditApi implements CreditApi {
     this.state = {
       version: 1,
       companies,
-      applications: data.applications.map(project),
+      applications: data.applications.map((application) => {
+        const company = data.companies.find((c) => c.company_id === application.company_id);
+        const entity = company?.entity_type;
+        const requiredFields =
+          entity === 'INDIVIDUAL_ENTREPRENEUR' || entity === 'LEGAL_ENTITY'
+            ? data.requirements
+                .filter(
+                  (r) =>
+                    r.product_code === application.product_code &&
+                    (entity === 'INDIVIDUAL_ENTREPRENEUR' ? r.required_ip : r.required_ooo),
+                )
+                .map((r) => r.field_code)
+            : undefined;
+        return project(application, requiredFields);
+      }),
       requirements: data.requirements,
       catalog: data.catalog,
     };
@@ -175,7 +190,11 @@ export class HttpCreditApi implements CreditApi {
   };
 }
 
-function project(a: ServerApplication): Application {
+function project(a: ServerApplication, requiredFields?: readonly string[]): Application {
+  const serverTracks = {
+    client: stageFromServer(a, 'client', requiredFields),
+    bank: stageFromServer(a, 'bank', requiredFields),
+  };
   const offer = a.offer
     ? {
         id: String(a.offer.offer_id),
@@ -197,7 +216,10 @@ function project(a: ServerApplication): Application {
     status: a.application_status,
     decision: a.decision,
     offerStatus: a.offer?.offer_status,
-    stage: a.application_status === 'DRAFT' ? 0 : a.application_status === 'APPROVED' ? 5 : 2,
+    // -1 explicitly means that no current stage is established. HTTP rendering
+    // uses independent serverTracks states, never the mock's numeric prefix.
+    stage: serverTracks.client?.current ?? -1,
+    serverTracks,
     revision: a.version,
     created: Date.parse(a.application_date),
     updated: Date.parse(a.application_date),

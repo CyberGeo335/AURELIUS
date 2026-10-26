@@ -1,4 +1,5 @@
 import type { Status } from './status';
+import type { ServerTrack, TrackRole } from './serverStage';
 export type Product = 'R01' | 'R02' | 'R03';
 export type Entity = 'IP' | 'OOO';
 export type Profile = string;
@@ -71,6 +72,7 @@ export interface Application {
   /** Mock-only demo playback; never persisted to the business DB. */
   demoExecution?: 'SIGNED_DEMO' | 'FUNDED_DEMO';
   server?: ServerApplication;
+  serverTracks?: Record<TrackRole, ServerTrack | null>;
   stage: number;
   revision: number;
   created: number;
