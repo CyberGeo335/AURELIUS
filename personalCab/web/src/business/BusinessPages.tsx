@@ -10,6 +10,7 @@ import {
   HeroPanel,
   KeyValue,
   StatusBadge,
+  StageTrack,
 } from '../components/v2/primitives';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -104,7 +105,10 @@ export function BusinessHome() {
                   Запрошено: {requestedAmount(app)} · {requestedTerm(app)}
                 </p>
               </div>
-              <StatusBadge app={app} />
+              <div className="application-progress">
+                <StatusBadge app={app} />
+                <StageTrack app={app} mini />
+              </div>
             </div>
           ))
         ) : (
@@ -562,6 +566,7 @@ export function BusinessDetail() {
           Запрошено: {requestedAmount(app)} · {requestedTerm(app)}
         </p>
         <p>Цель: {app.purpose || 'Не указана'}</p>
+        <StageTrack app={app} />
       </HeroPanel>
       {app.status === 'DRAFT' && (
         <Card>
@@ -760,6 +765,7 @@ export function BusinessQueue({ mine = false }: { mine?: boolean }) {
                   </td>
                   <td>
                     <StatusBadge app={app} />
+                    <StageTrack app={app} bank mini />
                   </td>
                   <td>
                     <Responsible app={app} />
@@ -813,6 +819,7 @@ function ReviewDetails({ app }: { app: Application }) {
         </p>
         <p>Цель: {app.purpose || 'Не указана'}</p>
       </HeroPanel>
+      <StageTrack app={app} bank />
       <Card>
         <h2>Ответственный</h2>
         <Responsible app={app} />

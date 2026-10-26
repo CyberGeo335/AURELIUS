@@ -7,6 +7,7 @@ import type { Application, Company } from '../../domain/types';
 import { statusLabels } from '../../domain/status';
 import { decimal, datetime, money, MIN_COVERAGE } from '../../domain/finance';
 import { applicableFields } from '../../domain/forms';
+import { stageFromServer } from '../../domain/serverStage';
 export function Action({
   tone = 'red',
   className = '',
@@ -72,48 +73,74 @@ export function StageTrack({
   const labels = bank
     ? ['Приём', 'Проверка данных', 'Обогащение', 'Скоринг', 'Политика', 'Решение']
     : ['Отправлена', 'Данные подтверждены', 'Кредитная история', 'Оценка риска', 'Решение'];
-  const current = Math.min(labels.length - 1, app.stage);
+  const role = bank ? 'bank' : 'client';
+  const serverTrack = app.server
+    ? (app.serverTracks?.[role] ?? stageFromServer(app.server, role))
+    : undefined;
+  if (app.server && !serverTrack) return null;
+  const current = app.server ? serverTrack!.current : Math.min(labels.length - 1, app.stage);
+  const states =
+    serverTrack?.states ??
+    labels.map((_, i) => (i < current! ? 'done' : i === current ? 'current' : 'unknown'));
+  const stopped = serverTrack
+    ? serverTrack.stopped
+    : bank && displayStatus(app) === 'MANUAL_REVIEW';
   return (
-    <ol
-      aria-label="Этапы обработки"
-      className={`stage-track ${mini ? 'mini' : ''}`}
-      style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}
-    >
-      {labels.map((label, i) => (
-        <motion.li
-          layout={!reduced}
-          initial={reduced || mini ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            type: 'spring',
-            bounce: 0,
-            duration: 0.35,
-            opacity: { delay: mini ? 0 : i * 0.04 },
-          }}
-          key={label}
-          aria-current={i === current ? 'step' : undefined}
-          className={`chevron ${i < current ? 'done' : i === current ? 'current' : 'future'}`}
-        >
-          {i === current && !mini && (
-            <motion.span
-              aria-hidden
-              className="stage-marker"
-              layoutId={reduced ? undefined : `${trackId}-current`}
-              transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-            />
-          )}
-          <span className={mini ? 'sr-only' : 'stage-label'}>
-            {label}
-            {bank && i === current && displayStatus(app) === 'MANUAL_REVIEW' ? ' · стоп' : ''}
-          </span>
-        </motion.li>
-      ))}
-      {!mini && (
-        <li className="sr-only" aria-live="polite" aria-atomic="true">
-          Текущий этап: {labels[current]}. {statusLabels[displayStatus(app)]}.
-        </li>
-      )}
-    </ol>
+    <>
+      <ol
+        aria-label="Этапы обработки"
+        title={serverTrack?.notice ?? undefined}
+        className={`stage-track ${mini ? 'mini' : ''}`}
+        style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}
+      >
+        {labels.map((label, i) => (
+          <motion.li
+            layout={!reduced}
+            initial={reduced || mini ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              type: 'spring',
+              bounce: 0,
+              duration: 0.35,
+              opacity: { delay: mini ? 0 : i * 0.04 },
+            }}
+            key={label}
+            aria-current={i === current ? 'step' : undefined}
+            title={
+              serverTrack
+                ? `${label}: ${states[i] === 'done' ? 'Пройден' : states[i] === 'current' ? (stopped ? 'Ожидается решение сотрудника' : 'Текущий этап') : 'Нет подтверждения'}`
+                : undefined
+            }
+            aria-label={
+              serverTrack
+                ? `${label}: ${states[i] === 'done' ? 'Пройден' : states[i] === 'current' ? (stopped ? 'Ожидается решение сотрудника' : 'Текущий этап') : 'Нет подтверждения'}`
+                : undefined
+            }
+            className={`chevron ${states[i] === 'unknown' ? 'future' : states[i]}`}
+          >
+            {i === current && !mini && (
+              <motion.span
+                aria-hidden
+                className="stage-marker"
+                layoutId={reduced ? undefined : `${trackId}-current`}
+                transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+              />
+            )}
+            <span className={mini ? 'sr-only' : 'stage-label'}>
+              {label}
+              {bank && i === current && stopped ? ' · стоп' : ''}
+            </span>
+          </motion.li>
+        ))}
+        {!mini && (
+          <li className="sr-only" aria-live="polite" aria-atomic="true">
+            {current === null ? 'Текущий этап не подтверждён' : `Текущий этап: ${labels[current]}`}.{' '}
+            {statusLabels[displayStatus(app)]}.
+          </li>
+        )}
+      </ol>
+      {!mini && serverTrack?.notice && <p className="small muted">{serverTrack.notice}</p>}
+    </>
   );
 }
 export function HeroPanel({ children, symbol = '₽' }: { children: ReactNode; symbol?: string }) {

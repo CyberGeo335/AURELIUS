@@ -309,3 +309,13 @@ it('covers status/decision/assessment/offer/history combinations without complet
               );
             }
 });
+
+it('recognizes a calculated zero PD and does not invent a policy version', () => {
+  const a = serverApplication({
+    assessment: { risk_assessment: { pd_application_1y: 0 } },
+    decision: 'MANUAL_REVIEW',
+  });
+  const track = stageFromServer(a, 'bank', required)!;
+  expect(track.states[3]).toBe('done');
+  expect(track.states[4]).toBe('unknown');
+});

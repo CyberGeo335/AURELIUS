@@ -55,6 +55,124 @@ const state = {
   catalog: [],
 };
 
+describe('HTTP stage tracks', () => {
+  const requirement = {
+    product_code: 'R01',
+    field_number: 3,
+    field_code: 'R01_03',
+    field_label: 'ИНН',
+    required_ooo: true,
+    required_ip: true,
+    target_db_field: 'companies.inn',
+    format_rule: null,
+  };
+  const checking = {
+    ...application,
+    application_status: 'UNDER_REVIEW',
+    decision: 'MANUAL_REVIEW',
+    offer: null,
+    assessment: null,
+    fields: [
+      {
+        field_code: 'R01_03',
+        field_value: '7701000000',
+        verification_status: 'VERIFIED',
+        value_source: 'BANK',
+      },
+    ],
+    assignment: {
+      employee_id: 10,
+      first_name: 'Иван',
+      last_name: 'Иванов',
+      assigned_at: '2026-10-26',
+    },
+  };
+  function mount(path: string, app = checking) {
+    vi.stubEnv('VITE_API_MODE', 'http');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        Response.json(
+          url.endsWith('session')
+            ? path.startsWith('/bank')
+              ? { ...user, role: 'BANK_EMPLOYEE', company_id: null }
+              : user
+            : { ...state, applications: [app], requirements: [requirement] },
+        ),
+      ),
+    );
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <Providers>
+          <App />
+        </Providers>
+      </MemoryRouter>,
+    );
+  }
+  it.each([
+    ['/client', true],
+    ['/client/applications/456', false],
+    ['/bank', true],
+    ['/bank/mine', true],
+    ['/bank/applications/456', false],
+  ] as const)('restores the existing track at %s (mini=%s)', async (path, mini) => {
+    mount(path);
+    const [track] = await screen.findAllByRole('list', { name: 'Этапы обработки' });
+    expect(track.classList.contains('mini')).toBe(mini);
+    const steps = track.querySelectorAll('.chevron');
+    expect(steps).toHaveLength(path.startsWith('/bank') ? 6 : 5);
+    expect(steps[1]).toHaveClass('done');
+    expect(steps[2]).toHaveClass('future');
+    expect(steps[2]).toHaveAttribute('title', expect.stringContaining('Нет подтверждения'));
+    if (path.startsWith('/bank')) expect(steps[5]).toHaveTextContent('Решение · стоп');
+    else expect(steps[3]).toHaveClass('future');
+  });
+  it.each(['DRAFT', 'CANCELLED'])('does not render a track for %s', async (application_status) => {
+    mount('/client/applications/456', { ...checking, application_status });
+    await screen.findByRole('heading', { name: 'Причины решения' });
+    expect(screen.queryByRole('list', { name: 'Этапы обработки' })).not.toBeInTheDocument();
+  });
+  it('renders refusal without pretending the intermediate stages completed', async () => {
+    mount('/client/applications/456', {
+      ...checking,
+      application_status: 'REJECTED',
+      decision: 'REJECT',
+    });
+    const track = await screen.findByRole('list', { name: 'Этапы обработки' });
+    expect(track.querySelectorAll('.done')).toHaveLength(0);
+    expect(track.querySelectorAll('.current')).toHaveLength(1);
+    expect(screen.getByText('Решение: отказ')).toBeInTheDocument();
+  });
+  it('keeps stale-offer steps neutral', async () => {
+    mount('/client/applications/456', {
+      ...checking,
+      offer_stale: { reason: 'Source changed' },
+    } as typeof checking);
+    const track = await screen.findByRole('list', { name: 'Этапы обработки' });
+    expect(track.querySelectorAll('.done,.current')).toHaveLength(0);
+    expect(screen.getByText('Требуется повторная проверка')).toBeInTheDocument();
+  });
+  it('does not complete a missing required field merely because all supplied fields are verified', async () => {
+    vi.stubEnv('VITE_API_MODE', 'http');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          ...state,
+          applications: [checking],
+          requirements: [requirement, { ...requirement, field_code: 'R01_05' }],
+        }),
+      ),
+    );
+    const api = new HttpCreditApi();
+    await api.refresh();
+    const projected = api.getSnapshot().applications[0];
+    expect(projected.stage).toBe(-1);
+    expect(projected.serverTracks?.client?.states[1]).toBe('unknown');
+    expect(projected.history).toEqual([]);
+  });
+});
+
 describe('HTTP cabinet', () => {
   it('does not overwrite a saved assistant change with an older form', async () => {
     vi.stubEnv('VITE_API_MODE', 'http');
