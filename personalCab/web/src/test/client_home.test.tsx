@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { Providers } from '../app/context';
 import { App } from '../app/App';
@@ -100,7 +100,7 @@ async function mount(applications: ServerApplication[], companies = [company]) {
 const hero = () => document.querySelector('.client-home .hero') as HTMLElement;
 
 describe('V2 client home with HTTP data', () => {
-  it('shows an empty state, company and products without a fictional request or assistant', async () => {
+  it('shows an empty state, company and products without a fictional request and with the new application assistant', async () => {
     const home = await mount([]);
     expect(
       within(home).getByRole('heading', { name: 'Дайте бизнесу больше возможностей' }),
@@ -110,7 +110,7 @@ describe('V2 client home with HTTP data', () => {
       '/client/products',
     );
     expect(within(home).queryByRole('link', { name: 'Открыть заявку' })).not.toBeInTheDocument();
-    expect(within(home).queryByText('Помощник с заявкой')).not.toBeInTheDocument();
+    expect(within(home).getByText('Помощник с заявкой')).toBeInTheDocument();
     expect(home.querySelector('.stage-track')).toBeNull();
     expect(within(home).getByText('14.06.2024')).toBeInTheDocument();
     expect(within(home).getByText('7701000000')).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe('V2 client home with HTTP data', () => {
       within(home).getByRole('heading', { name: 'Финансирование бизнеса' }),
     ).toBeInTheDocument();
   });
-  it('opens a draft form and links its assistant to the detail page', async () => {
+  it('opens a draft form and opens its floating assistant', async () => {
     const home = await mount([app({ application_status: 'DRAFT' })]);
     expect(
       within(hero()).getByRole('heading', { name: /Продолжим вашу заявку/ }),
@@ -127,10 +127,10 @@ describe('V2 client home with HTTP data', () => {
       'href',
       '/client/new/1',
     );
-    expect(within(home).getByRole('link', { name: /Продолжить с помощником/ })).toHaveAttribute(
-      'href',
-      '/client/applications/1',
-    );
+    fireEvent.click(within(home).getByRole('button', { name: /Продолжить с помощником/ }));
+    expect(
+      within(screen.getByRole('dialog')).getByRole('link', { name: 'Открыть заявку' }),
+    ).toHaveAttribute('href', '/client/applications/1');
     expect(home.querySelector('.stage-track')).toBeNull();
     expect(
       within(hero()).getByText('Продолжите заполнение, подтвердите сведения и отправьте заявку.'),
@@ -176,7 +176,7 @@ describe('V2 client home with HTTP data', () => {
     expect(hero().querySelector('.hero-next')?.textContent).toContain(next);
     expect(within(home).queryByRole('link', { name: 'Что дальше' })).not.toBeInTheDocument();
     expect(home.textContent).not.toMatch(/демо|лизинг|ответьте до|подпишите|внешн.*источник/i);
-    expect(within(home).queryByText('Помощник с заявкой')).not.toBeInTheDocument();
+    expect(within(home).getByText('Помощник с заявкой')).toBeInTheDocument();
   });
   it('uses the latest eligible application, even with newer drafts and closed applications', async () => {
     await mount([
@@ -215,10 +215,10 @@ describe('V2 client home with HTTP data', () => {
       }),
     ]);
     expect(within(hero()).getByText('Заявка № 1')).toBeInTheDocument();
-    expect(within(home).getByRole('link', { name: /Продолжить с помощником/ })).toHaveAttribute(
-      'href',
-      '/client/applications/2',
-    );
+    fireEvent.click(within(home).getByRole('button', { name: /Продолжить с помощником/ }));
+    expect(
+      within(screen.getByRole('dialog')).getByRole('link', { name: 'Открыть заявку' }),
+    ).toHaveAttribute('href', '/client/applications/2');
   });
   it('falls back to the latest application when none are eligible', async () => {
     await mount([

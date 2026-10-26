@@ -1,3 +1,4 @@
+import { useHttpAssistant } from './HttpAssistant';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { ArrowUpRight, MessageCircle, ShieldCheck } from 'lucide-react';
@@ -48,6 +49,7 @@ function registrationDate(value: string) {
 
 export function ClientHome({ children }: { children: ReactNode }) {
   const state = useCredit();
+  const openAssistant = useHttpAssistant();
   const { session } = useSession();
   const company = state.companies.find((c) => c.id === session?.profile);
   const applications = state.applications
@@ -113,7 +115,7 @@ export function ClientHome({ children }: { children: ReactNode }) {
         </EmptyState>
       )}
 
-      <div className={`home-grid client-home-grid ${draft ? '' : 'without-assistant'}`}>
+      <div className="home-grid client-home-grid">
         {firstRequest ? (
           <Card className="dark action-card">
             <p className="attention-text">● Нужен ваш ответ</p>
@@ -141,25 +143,23 @@ export function ClientHome({ children }: { children: ReactNode }) {
           </Card>
         )}
 
-        {draft && (
-          <Card className="assistant-teaser">
-            <h3>
-              <span className="assistant-icon">
-                <MessageCircle aria-hidden size={20} />
-              </span>
-              Помощник с заявкой
-            </h3>
-            <p className="muted">
-              Опишите, на что нужны деньги. Помощник предложит данные для заполнения черновика — вы
-              проверите и подтвердите изменения.
-            </p>
-            <Action tone="soft" asChild>
-              <Link to={`/client/applications/${draft.id}`}>
-                Продолжить с помощником <ArrowUpRight aria-hidden size={18} />
-              </Link>
-            </Action>
-          </Card>
-        )}
+        <Card className="assistant-teaser">
+          <h3>
+            <span className="assistant-icon">
+              <MessageCircle aria-hidden size={20} />
+            </span>
+            Помощник с заявкой
+          </h3>
+          <p className="muted">
+            {draft
+              ? 'Опишите, на что нужны деньги. Помощник предложит данные для заполнения черновика — вы проверите и подтвердите изменения.'
+              : 'Пока нет черновика. Опишите задачу — помощник поможет выбрать продукт и создать заявку.'}
+          </p>
+          <Action tone="soft" onClick={() => openAssistant(draft?.id ?? null)}>
+            {draft ? 'Продолжить с помощником' : 'Создать заявку с помощником'}{' '}
+            <ArrowUpRight aria-hidden size={18} />
+          </Action>
+        </Card>
 
         {company?.server ? (
           <CompanyCard company={{ ...company, registered: registrationDate(company.registered) }} />
