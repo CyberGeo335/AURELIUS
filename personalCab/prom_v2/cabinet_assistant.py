@@ -4,6 +4,13 @@ Only CHAT/CONFIRM_FACTS enter the graph. No legacy repositories, bank modules,
 consent commands, submission commands or user credentials enter this boundary.
 """
 from psycopg.types.json import Jsonb
+from .declared_facts import COMPANY_TARGETS
+
+
+def company_request_field(target):
+    # Some catalog rows combine the code and its descriptive name.
+    target = target.removeprefix('public.').split(' + ')[0]
+    return next((field for field, column in COMPANY_TARGETS.items() if column == target), None)
 
 PURPOSES = {
     'INVENTORY': 'Закупка товаров', 'WORKING_CAPITAL': 'Пополнение оборотных средств',
@@ -72,6 +79,8 @@ def run_dialogue(cabinet, db, user, app, body, meta):
     # Canonical DB form wins over stale dialogue state on every turn. Never take
     # loan amounts/terms from historical company applications.
     company = db.execute('SELECT inn,entity_type,information_reliability_status FROM public.companies WHERE company_id=%s', (app['company_id'],)).fetchone()
+    requirements = db.execute('SELECT * FROM public.application_field_requirements WHERE product_code=%s ORDER BY field_number', (app['product_code'],)).fetchall()
+    applicable = [r for r in requirements if r['required_ip' if company['entity_type'] == 'INDIVIDUAL_ENTREPRENEUR' else 'required_ooo']]
     values = case.request.model_dump()
     values['amount_rub'] = int(app['requested_amount']) if app['requested_amount'] is not None and app['requested_amount'] == int(app['requested_amount']) else None
     values['term_months'] = app['requested_term_months']
@@ -81,9 +90,23 @@ def run_dialogue(cabinet, db, user, app, body, meta):
     values['purpose'] = reverse.get(app['purpose'])
     fields = {r['field_code']: r['field_value'] for r in db.execute('SELECT field_code,field_value FROM public.application_field_values WHERE application_id=%s', (aid,))}
     legal = {'ООО': 'OOO', 'OOO': 'OOO', 'АО': 'AO', 'AO': 'AO', 'ИП': 'IP', 'IP': 'IP', 'Другая форма': 'OTHER'}
-    values['legal_form'] = legal.get(fields.get(app['product_code'] + '_12')) or legal.get(fields.get(app['product_code'] + '_02'))
+    for requirement in applicable:
+        field = company_request_field(requirement['target_db_field'])
+        value = fields.get(requirement['field_code'])
+        if field and requirement['field_code'] in fields and value in (None, ''):
+            values[field] = None
+            continue
+        if field and value not in (None, ''):
+            candidate = legal.get(value) if field == 'legal_form' else value
+            try:
+                parsed = LoanRequest.model_validate({field: candidate})
+            except ValueError:
+                continue
+            if candidate is not None:
+                values[field] = getattr(parsed, field)
     if company['information_reliability_status'] == 'VERIFIED':
-        values['inn'] = company['inn']
+        if company['inn']:
+            values['inn'] = company['inn']
         if company['entity_type'] == 'INDIVIDUAL_ENTREPRENEUR':
             values['legal_form'] = 'IP'
     case.request = LoanRequest.model_validate(values)
@@ -125,7 +148,7 @@ def run_dialogue(cabinet, db, user, app, body, meta):
         code = app['product_code']
         for field, value in proposed.items():
             # Only independently accepted fields can reach the public form.
-            if getattr(case.request, field) != value:
+            if case.request.model_dump(mode='json').get(field) != value:
                 continue
             if field == 'amount_rub':
                 patch['amount'] = value
@@ -136,12 +159,15 @@ def run_dialogue(cabinet, db, user, app, body, meta):
             elif field == 'purpose':
                 patch['purpose'] = PURPOSES[value]
                 fields[code + '_04'] = PURPOSES[value]
-            elif field == 'inn':
-                fields[code + '_03'] = value
-            elif field == 'legal_form':
-                fields[code + '_02'] = 'ИП' if value == 'IP' else 'Юридическое лицо'
-                if value != 'IP':
-                    fields[code + '_12'] = {'OOO': 'ООО', 'AO': 'АО', 'OTHER': 'Другая форма'}[value]
+            elif field in COMPANY_TARGETS:
+                display = {'IP': 'ИП', 'OOO': 'ООО', 'AO': 'АО', 'OTHER': 'Другая форма'}.get(value, value) if field == 'legal_form' else str(value)
+                for requirement in applicable:
+                    if company_request_field(requirement['target_db_field']) == field:
+                        fields[requirement['field_code']] = display
+            if field == 'legal_form':
+                for requirement in applicable:
+                    if requirement['target_db_field'] == 'companies.entity_type':
+                        fields[requirement['field_code']] = 'ИП' if value == 'IP' else 'Юридическое лицо'
         if patch or fields:
             cabinet.save(db, app, {**patch, 'fields': fields}, meta['form_state'])
         case.history[-1]['content'] = 'Подтверждённые поля анкеты сохранены. Сведения о характере потребности сохранены в диалоге. Проверьте оставшиеся поля анкеты. ' + case.history[-1]['content']
@@ -151,5 +177,13 @@ def run_dialogue(cabinet, db, user, app, body, meta):
         suggestions = '; '.join(f"{card.name}: {', '.join(NEEDS[need] for need in card.needs)}" for card in cards)
         # Names and use cases come only from the existing 16-direction catalog.
         case.history[-1]['content'] += ' Если пока не знаете цель или характер потребности, выберите направление и опишите пример задачи: ' + suggestions + '. Для части направлений потребуется отдельное обращение к сотруднику.'
+    current_fields = {r['field_code']: r['field_value'] for r in db.execute(
+        'SELECT field_code,field_value FROM public.application_field_values WHERE application_id=%s', (aid,))}
+    for requirement in applicable:
+        field = company_request_field(requirement['target_db_field'])
+        if (field and current_fields.get(requirement['field_code']) in (None, '')
+                and getattr(case.request, field) is None and pending.get(field) is None):
+            case.history[-1]['content'] += ' Укажите недостающий реквизит: ' + requirement['field_label'] + '. Можно сообщить его помощнику или заполнить в форме.'
+            break
     db.execute('INSERT INTO aurelius_cabinet.dialogues(application_id,user_id,company_id,payload) VALUES(%s,%s,%s,%s) ON CONFLICT(application_id,user_id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=now()',
                (aid, user['user_id'], app['company_id'], Jsonb(case.model_dump(mode='json'))))

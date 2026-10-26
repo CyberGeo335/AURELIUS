@@ -1,0 +1,438 @@
+{
+  "date": "2026-10-26",
+  "database": "isolated copy of v_4 (actual), removed after validation",
+  "transport": "actual same-origin HTTP via cabinet_server.Handler",
+  "llm": "local Ollama gpt-oss:20b",
+  "predictor": "actual registered CatBoost; no fixed predictor",
+  "missing_fields_filled_through_form": false,
+  "results": [
+    {
+      "scenario": "AUR-01",
+      "company_id": 35,
+      "application_id": 65,
+      "chat_saved_field": "R01_03",
+      "no_manual_missing_field_fill": true,
+      "company_unchanged": true,
+      "scoring_present": true,
+      "decision": "MANUAL_REVIEW",
+      "eligibility_status": "ELIGIBLE",
+      "reasons": [
+        {
+          "code": "REDUCED_AMOUNT",
+          "message": "A smaller amount passes; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "seconds": 18.69
+    },
+    {
+      "scenario": "AUR-02",
+      "company_id": 36,
+      "application_id": 66,
+      "chat_saved_field": "R01_12",
+      "no_manual_missing_field_fill": true,
+      "company_unchanged": true,
+      "scoring_present": true,
+      "decision": "MANUAL_REVIEW",
+      "eligibility_status": "ELIGIBLE",
+      "reasons": [
+        {
+          "code": "REDUCED_AMOUNT",
+          "message": "A smaller amount passes; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "seconds": 13.11
+    },
+    {
+      "scenario": "AUR-03",
+      "company_id": 37,
+      "application_id": 67,
+      "chat_saved_field": "R01_09",
+      "no_manual_missing_field_fill": true,
+      "company_unchanged": true,
+      "scoring_present": true,
+      "decision": "MANUAL_REVIEW",
+      "eligibility_status": "ELIGIBLE",
+      "reasons": [
+        {
+          "code": "REDUCED_AMOUNT",
+          "message": "A smaller amount passes; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "seconds": 21.23
+    },
+    {
+      "scenario": "AUR-04",
+      "company_id": 38,
+      "application_id": 68,
+      "chat_saved_field": "R01_10",
+      "no_manual_missing_field_fill": true,
+      "company_unchanged": true,
+      "scoring_present": true,
+      "decision": "MANUAL_REVIEW",
+      "eligibility_status": "ELIGIBLE",
+      "reasons": [
+        {
+          "code": "REDUCED_AMOUNT",
+          "message": "A smaller amount passes; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "seconds": 11.62
+    },
+    {
+      "scenario": "AUR-05",
+      "company_id": 39,
+      "application_id": 69,
+      "chat_saved_field": "R01_19",
+      "no_manual_missing_field_fill": true,
+      "company_unchanged": true,
+      "scoring_present": true,
+      "decision": "MANUAL_REVIEW",
+      "eligibility_status": "ELIGIBLE",
+      "reasons": [
+        {
+          "code": "REDUCED_AMOUNT",
+          "message": "A smaller amount passes; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "seconds": 17.94
+    },
+    {
+      "scenario": "AUR-06",
+      "company_id": 40,
+      "application_id": 70,
+      "chat_saved_field": "R01_27",
+      "no_manual_missing_field_fill": true,
+      "company_unchanged": true,
+      "scoring_present": true,
+      "decision": "MANUAL_REVIEW",
+      "eligibility_status": "ELIGIBLE",
+      "reasons": [
+        {
+          "code": "REDUCED_AMOUNT",
+          "message": "A smaller amount passes; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "seconds": 11.6
+    },
+    {
+      "scenario": "AUR-07",
+      "company_id": 41,
+      "application_id": 71,
+      "chat_saved_field": "R01_17",
+      "no_manual_missing_field_fill": true,
+      "company_unchanged": true,
+      "scoring_present": true,
+      "decision": "MANUAL_REVIEW",
+      "eligibility_status": "ELIGIBLE",
+      "reasons": [
+        {
+          "code": "REDUCED_AMOUNT",
+          "message": "A smaller amount passes; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        },
+        {
+          "code": "REPORTED_COMPANY_FACTS",
+          "message": "Application-scoped company facts require independent employee verification"
+        }
+      ],
+      "seconds": 12.35
+    },
+    {
+      "scenario": "AUR-08",
+      "company_id": 42,
+      "application_id": 72,
+      "chat_saved_field": "R01_15",
+      "no_manual_missing_field_fill": true,
+      "company_unchanged": true,
+      "scoring_present": true,
+      "decision": "MANUAL_REVIEW",
+      "eligibility_status": "ELIGIBLE",
+      "reasons": [
+        {
+          "code": "REDUCED_AMOUNT",
+          "message": "A smaller amount passes; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        },
+        {
+          "code": "REPORTED_COMPANY_FACTS",
+          "message": "Application-scoped company facts require independent employee verification"
+        }
+      ],
+      "seconds": 12.41
+    },
+    {
+      "scenario": "AUR-09",
+      "company_id": 43,
+      "application_id": 73,
+      "chat_saved_field": "R01_18",
+      "no_manual_missing_field_fill": true,
+      "company_unchanged": true,
+      "scoring_present": true,
+      "decision": "MANUAL_REVIEW",
+      "eligibility_status": "ELIGIBLE",
+      "reasons": [
+        {
+          "code": "REDUCED_AMOUNT",
+          "message": "A smaller amount passes; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "seconds": 10.65
+    },
+    {
+      "scenario": "AUR-10",
+      "company_id": 44,
+      "application_id": 74,
+      "chat_saved_field": null,
+      "no_manual_missing_field_fill": true,
+      "company_unchanged": true,
+      "scoring_present": true,
+      "decision": "MANUAL_REVIEW",
+      "eligibility_status": "ELIGIBLE",
+      "reasons": [
+        {
+          "code": "REDUCED_AMOUNT",
+          "message": "A smaller amount passes; bank employee confirmation required"
+        },
+        {
+          "code": "GUARANTOR_CONDITION",
+          "message": "Guarantor requirement needs internal resolution"
+        },
+        {
+          "code": "LEGAL_CHECKS_CLEAR",
+          "message": "Internal check not resolved: legal_checks_clear"
+        },
+        {
+          "code": "CREDIT_HISTORY_CHECKED",
+          "message": "Internal check not resolved: credit_history_checked"
+        },
+        {
+          "code": "FEES_RESOLVED",
+          "message": "Internal check not resolved: fees_resolved"
+        },
+        {
+          "code": "PURPOSE_RESOLVED",
+          "message": "Internal check not resolved: purpose_resolved"
+        },
+        {
+          "code": "MVP_INPUTS_CONFIRMATION",
+          "message": "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"
+        }
+      ],
+      "seconds": 6.32
+    }
+  ]
+}

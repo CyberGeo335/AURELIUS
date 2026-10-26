@@ -42,7 +42,9 @@ export function HttpAssistantProvider({ children }: { children: ReactNode }) {
   const [selection, setSelection] = useState<{ path: string; id: string | null } | null>(null);
   // Unsaved input is ephemeral, separated by draft; never persist customer messages locally.
   const [texts, setTexts] = useState<Record<string, string>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<
+    Record<string, { message: string; retryChat: boolean } | undefined>
+  >({});
   const [busy, setBusy] = useState(false);
   const locked = useRef(false);
   const launcher = useRef<HTMLButtonElement>(null);
@@ -116,7 +118,7 @@ export function HttpAssistantProvider({ children }: { children: ReactNode }) {
     locked.current = true;
     setBusy(true);
     let errorContext = context;
-    setErrors((old) => ({ ...old, [context]: '' }));
+    setErrors((old) => ({ ...old, [context]: undefined }));
     try {
       await operation((key) => {
         errorContext = key;
@@ -127,7 +129,10 @@ export function HttpAssistantProvider({ children }: { children: ReactNode }) {
         e.code === 'EXTRACTION_UNAVAILABLE'
           ? 'Помощник не смог разобрать сообщение — повторите или заполните форму'
           : (e.message ?? 'Не удалось выполнить действие. Повторите попытку.');
-      setErrors((old) => ({ ...old, [errorContext]: message }));
+      setErrors((old) => ({
+        ...old,
+        [errorContext]: { message, retryChat: e.code === 'EXTRACTION_UNAVAILABLE' },
+      }));
     } finally {
       locked.current = false;
       setBusy(false);
@@ -281,6 +286,7 @@ export function HttpAssistantProvider({ children }: { children: ReactNode }) {
                     </Action>
                     <Link
                       to={editable ? `/client/new/${app.id}` : `/client/applications/${app.id}`}
+                      onClick={close}
                     >
                       {editable ? 'Заполнить форму' : 'Посмотреть заявку'}
                     </Link>
@@ -293,7 +299,17 @@ export function HttpAssistantProvider({ children }: { children: ReactNode }) {
                 Помощник думает, это может занять несколько минут
               </p>
             )}
-            <ErrorState message={editable ? (errors[context] ?? '') : ''} />
+            <ErrorState message={editable ? (errors[context]?.message ?? '') : ''} />
+            {editable && app && errors[context]?.retryChat && (
+              <div className="http-assistant-actions">
+                <Action tone="soft" disabled={busy || !text.trim()} onClick={send}>
+                  Повторить сообщение
+                </Action>
+                <Link to={`/client/new/${app.id}`} onClick={close}>
+                  Продолжить через форму
+                </Link>
+              </div>
+            )}
             {editable && (
               <div className="http-assistant-composer">
                 <label className="form-field">

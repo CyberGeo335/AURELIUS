@@ -450,8 +450,29 @@ class Cabinet:
     def write_field(db, app, code, value):
         if not isinstance(value, str) or len(value) > 10000:
             raise ApiError(400, "Значение поля должно быть текстом до 10000 символов.")
-        if not db.execute("SELECT 1 FROM public.application_field_requirements WHERE product_code=%s AND field_code=%s", (app["product_code"], code)).fetchone():
+        requirement = db.execute("SELECT target_db_field FROM public.application_field_requirements WHERE product_code=%s AND field_code=%s", (app["product_code"], code)).fetchone()
+        if not requirement:
             raise ApiError(400, "Поле не относится к продукту.")
+        if value:
+            from .cabinet_assistant import company_request_field
+            from .models import LoanRequest
+            from personalCab.prom.prom_lab.ai_agents_lab.services.questionnaire import validate_answer
+            field = company_request_field(requirement['target_db_field'])
+            if field:
+                candidate = {'ООО': 'OOO', 'АО': 'AO', 'ИП': 'IP', 'Другая форма': 'OTHER'}.get(value, value) if field == 'legal_form' else value
+                try:
+                    parsed = LoanRequest.model_validate({field: candidate})
+                    if field in {'inn', 'ogrn', 'ogrnip'}:
+                        entity = db.execute('SELECT entity_type FROM public.companies WHERE company_id=%s', (app['company_id'],)).fetchone()['entity_type']
+                        validate_answer(value, 'text', requirement['target_db_field'], 'IP' if entity == 'INDIVIDUAL_ENTREPRENEUR' else None)
+                        if field == 'inn' and entity == 'LEGAL_ENTITY' and len(value) != 10:
+                            raise ValueError('Legal entity INN requires 10 digits')
+                        if (field == 'ogrn' and entity == 'INDIVIDUAL_ENTREPRENEUR') or (field == 'ogrnip' and entity == 'LEGAL_ENTITY'):
+                            raise ValueError('Registration identifier does not match entity type')
+                    if field == 'registration_date' and parsed.registration_date > date.today():
+                        raise ValueError('Registration date cannot be in the future')
+                except ValueError as exc:
+                    raise ApiError(400, 'Проверьте формат реквизита: ' + code) from exc
         old = db.execute("SELECT field_value FROM public.application_field_values WHERE application_id=%s AND field_code=%s", (app["application_id"], code)).fetchone()
         if old and old["field_value"] == value:
             return

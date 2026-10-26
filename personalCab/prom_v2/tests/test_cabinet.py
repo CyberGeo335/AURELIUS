@@ -43,6 +43,13 @@ def command(cabinet, user, action, aid=None, **kwargs):
     return cabinet.action(user, body)
 
 
+def reported_fixture_value(requirement):
+    # Typed synthetic answers; placeholders are not registration IDs or dates.
+    return {'R01_09': '1990000000010', 'R01_10': '399000000000041',
+            'R01_14': 'ООО', 'R01_15': '2019-01-15', 'R01_17': '46.90'}.get(
+                requirement['field_code'], 'Test fixture value')
+
+
 def test_migration_is_additive_and_idempotent(cabinet):
     query = "SELECT conname,pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE connamespace='public'::regnamespace ORDER BY conname,definition"
     with cabinet.connect() as db:
@@ -182,7 +189,7 @@ def test_scoring_outage_retries_submission_without_duplicate_mutation(cabinet, u
     aid = int(command(cabinet, client, 'create', product='R01')['application_id'])
     with cabinet.connect() as db:
         company = db.execute('SELECT inn,entity_type FROM companies WHERE company_id=%s', (client['company_id'],)).fetchone()
-    fields = {r['field_code']: 'Test fixture' for r in cabinet.state(client)['requirements'] if r['product_code'] == 'R01'}
+    fields = {r['field_code']: reported_fixture_value(r) for r in cabinet.state(client)['requirements'] if r['product_code'] == 'R01' and r['required_ooo']}
     fields.update(R01_01='R01', R01_03=company['inn'] or '7701000000', R01_05='1000000', R01_06='36', R01_31='Подтверждаю')
     command(cabinet, client, 'save', aid, patch={'amount': '1000000', 'term': 36, 'purpose': 'Пополнение оборотных средств', 'fields': fields,
         'consentBki': True, 'consentData': True, 'businessConfirmed': True})
@@ -222,7 +229,7 @@ def test_actual_scorer_result_review_accept_and_client_redaction(cabinet, users,
         db.execute("INSERT INTO public.credit_repayment_history(obligation_id,period_date,overdue_days) VALUES(%s,'2026-09-01',0)", (oid,))
     actor = {**client, "company_id": cid}  # Trusted fixture identity, never an HTTP field.
     requirements = cabinet.state(actor)["requirements"]
-    fields = {r["field_code"]: "Test fixture value" for r in requirements if r["product_code"] == "R01" and r["required_ooo"]}
+    fields = {r["field_code"]: reported_fixture_value(r) for r in requirements if r["product_code"] == "R01" and r["required_ooo"]}
     fields.update(R01_01="R01", R01_02="LEGAL_ENTITY", R01_03=fixture_inn, R01_05="1000000", R01_06="36", R01_31="Подтверждаю")
     command(cabinet, actor, "save", aid, patch={"amount": "1000000", "term": 36, "purpose": "Пополнение оборотных средств", "fields": fields,
         "consentBki": True, "consentData": True, "businessConfirmed": True})
@@ -428,7 +435,8 @@ def test_v2_dialogue_confirmation_form_sync_and_isolation(cabinet, users):
     app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
     assert str(app['requested_amount']) == '1500000.00'
     assert app['requested_term_months'] == 36 and app['purpose'] == 'Моя сохранённая цель'
-    assert next(f['field_value'] for f in app['fields'] if f['field_code'] == 'R01_12') == 'ООО'
+    assert next(f['field_value'] for f in app['fields'] if f['field_code'] == 'R01_14') == 'ООО'
+    assert not any(f['field_code'] == 'R01_12' for f in app['fields'])
     assert app['application_status'] == 'DRAFT' and not app['form_state'].get('consentData')
     assert next(a for a in cabinet.state(bank)['applications'] if a['application_id'] == aid)['dialogue'] is None
     for actor in (bank, other):
@@ -459,3 +467,64 @@ def test_dialogue_model_outage_is_retryable_without_fake_history(cabinet, users)
     assert error.value.status == 503
     app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
     assert app['dialogue'] is None and app['version'] == 1
+
+
+def test_dialogue_nine_company_facts_confirm_into_questionnaire_only(cabinet, users):
+    from personalCab.prom_v2.adapters import CatalogProducts, ReferenceKnowledge, checked_extraction
+    class Extractor:
+        def extract(self, text, case):
+            return checked_extraction({'patch': {}, 'evidence': {}}, text, case)
+    cabinet.dialogue_dependencies = (Extractor(), CatalogProducts(), ReferenceKnowledge())
+    cases = [
+        (35, 'ИНН', '9900000017', 'R01_03'),
+        (36, 'полное наименование организации', 'ООО Тестовая компания 36', 'R01_12'),
+        (37, 'ОГРН', '1990000000032', 'R01_09'),
+        (38, 'ОГРНИП', '399000000000041', 'R01_10'),
+        (39, 'юридический адрес', 'г. Москва, ул. Демонстрационная, д. 1', 'R01_19'),
+        (40, 'ФИО руководителя', 'Иванов Иван Иванович', 'R01_27'),
+        (41, 'основной ОКВЭД', '46.90', 'R01_17'),
+        (42, 'дата государственной регистрации', '2024-05-04', 'R01_15'),
+        (43, 'фактический вид деятельности', 'Оптовая торговля товарами для бизнеса', 'R01_18'),
+    ]
+    for cid, label, value, code in cases:
+        with cabinet.connect() as db:
+            credentials = db.execute("SELECT login,password FROM public.user_accounts WHERE company_id=%s AND role='CLIENT' AND is_active LIMIT 1", (cid,)).fetchone()
+            before = db.execute('SELECT * FROM public.companies WHERE company_id=%s', (cid,)).fetchone()
+        _, client = cabinet.login(credentials['login'], credentials['password'])
+        aid = int(command(cabinet, client, 'create', product='R01')['application_id'])
+        command(cabinet, client, 'save', aid, patch={'amount': '3000000', 'term': 12, 'purpose': 'Пополнение оборотных средств'})
+        command(cabinet, client, 'chat', aid, text=f'{label} — {value}.')
+        app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
+        assert app['dialogue']['pending']
+        assert not any(f['field_code'] == code for f in app['fields'])
+        command(cabinet, client, 'confirm_facts', aid, proposal_id=app['dialogue']['pending']['proposal_id'])
+        app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
+        assert next(f['field_value'] for f in app['fields'] if f['field_code'] == code) == value
+        with cabinet.connect() as db:
+            assert db.execute('SELECT * FROM public.companies WHERE company_id=%s', (cid,)).fetchone() == before
+            fact = db.execute('SELECT value_source,verification_status FROM public.application_field_values WHERE application_id=%s AND field_code=%s', (aid, code)).fetchone()
+        assert fact == {'value_source': 'CLIENT', 'verification_status': 'UNVERIFIED'}
+
+
+def test_dialogue_reads_saved_legal_form_and_inn_without_reasking(cabinet, users):
+    from personalCab.prom_v2.adapters import CatalogProducts, ReferenceKnowledge, checked_extraction
+    seen = []
+    class Extractor:
+        def extract(self, text, case):
+            seen.append(case.request.model_dump())
+            return checked_extraction({'patch': {}, 'evidence': {}}, text, case)
+    cabinet.dialogue_dependencies = (Extractor(), CatalogProducts(), ReferenceKnowledge())
+    client = users[0]
+    aid = int(command(cabinet, client, 'create', product='R01')['application_id'])
+    command(cabinet, client, 'save', aid, patch={'amount': '3000000', 'term': 12,
+        'purpose': 'Пополнение оборотных средств', 'fields': {
+            'R01_03': '9900000017', 'R01_12': 'ООО Тестовая компания 35', 'R01_14': 'ООО'}})
+    for text in ('Расскажите о текущем запросе', 'Уточняю известные сведения'):
+        command(cabinet, client, 'chat', aid, text=text)
+    assert all(s['inn'] == '9900000017' and s['legal_form'] == 'OOO'
+               and s['amount_rub'] == 3000000 and s['term_months'] == 12 for s in seen)
+    command(cabinet, client, 'save', aid, patch={'fields': {'R01_14': ''}})
+    command(cabinet, client, 'chat', aid, text='Проверьте недостающие реквизиты')
+    assert seen[-1]['legal_form'] is None
+    app = next(a for a in cabinet.state(client)['applications'] if a['application_id'] == aid)
+    assert 'Укажите недостающий реквизит:' in app['dialogue']['history'][-1]['content']

@@ -77,6 +77,22 @@ def validate_extraction(response, text: str, case: Case) -> Extraction:
         if numeric_conflict(field, value, quote):
             problems.append(FieldProblem(field=field, code='UNSUPPORTED_ASSERTION'))
             continue
+        if field in {'company_name', 'ogrn', 'ogrnip', 'legal_address', 'director_name',
+                     'okved_main', 'registration_date', 'actual_activity_description'}:
+            if str(value) not in quote:
+                problems.append(FieldProblem(field=field, code='UNSUPPORTED_ASSERTION'))
+                continue
+            if field in {'ogrn', 'ogrnip', 'okved_main'} and not re.search(
+                    r'(?<![0-9A-Za-z])' + re.escape(str(value)) + r'(?![0-9A-Za-z]|\.[0-9])', quote):
+                problems.append(FieldProblem(field=field, code='UNSUPPORTED_ASSERTION'))
+                continue
+            legal_form = response['patch'].get('legal_form') or case.request.legal_form
+            if (field == 'ogrn' and legal_form == 'IP') or (field == 'ogrnip' and legal_form in {'OOO', 'AO'}):
+                problems.append(FieldProblem(field=field, code='CONFLICT'))
+                continue
+        if field == 'business_age_months' and re.search(r'\d{4}-\d{2}-\d{2}', quote) and not re.search(r'месяц|мес\b', quote.casefold()):
+            problems.append(FieldProblem(field=field, code='UNSUPPORTED_ASSERTION'))
+            continue
         if field=='inn':
             from .questionnaire import validate_answer
             try:

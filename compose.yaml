@@ -27,7 +27,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задайте непустой POSTGRES_PASSWORD в .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - "./scoring/bd/v_3 (actual)/business_scoring_wauth.backup:/seed/business_scoring.backup:ro"
+      - "./scoring/bd/v_4 (actual)/business_scoring_wauth.backup:/seed/business_scoring.backup:ro"
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     healthcheck:

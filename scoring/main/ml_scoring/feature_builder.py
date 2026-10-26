@@ -195,7 +195,7 @@ def build_features(snapshot: dict, annual_rate_pct, amount=None) -> tuple[dict, 
             raise InputError("Registration is after assessment date")
         features["age_months"] = ((as_of.year - registered.year) * 12 + as_of.month
                                   - registered.month - (as_of.day < registered.day))
-        sources["age_months"] = "companies.registration_date; completed calendar months"
+        sources["age_months"] = snapshot.get('reported_company_facts', {}).get('registration_date', {}).get('source_ref', 'companies.registration_date') + "; completed calendar months"
     if company.get("entity_type") not in ENTITY_MAP:
         raise InputError("Unknown borrower entity_type")
     features["entity_type"] = ENTITY_MAP[company["entity_type"]]

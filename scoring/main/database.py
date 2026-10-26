@@ -32,6 +32,10 @@ def load_snapshot(connection, application_id: int, context: dict) -> dict:
     if not context.get("as_of"):
         raise InputError("Explicit as_of date is required")
     as_of = date.fromisoformat(str(context["as_of"])[:10])
+    reported_facts = {}
+    if context.get('automatic_input_policy', {}).get('demo_only') is True:
+        from .application_facts import application_company
+        company, reported_facts = application_company(connection, application, company, as_of, demo_only=True)
     product = _one(_rows(connection, "SELECT * FROM public.credit_products WHERE product_code=:p",
                          p=application["product_code"]), "product")
     terms = _rows(connection, """SELECT * FROM public.credit_product_terms WHERE product_code=:p
@@ -67,6 +71,7 @@ def load_snapshot(connection, application_id: int, context: dict) -> dict:
         key_rate_date = context.get("key_rate_effective_date")
     snapshot = {
         "as_of": as_of.isoformat(), "application": application, "company": company,
+        "reported_company_facts": reported_facts,
         "product": product, "terms": terms, "rate_option": rate, "repayment_option": repayment,
         "product_details": product_details[0] if product_details else {},
         "submission_confirmed": bool(details and details[0].get("confirmed_at")

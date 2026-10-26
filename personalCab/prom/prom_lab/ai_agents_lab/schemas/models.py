@@ -88,6 +88,14 @@ class ActorContext(Model):
 
 class LoanRequest(Model):
     inn: str | None = Field(default=None, pattern=r'^(?:[0-9]{10}|[0-9]{12})$')
+    company_name: str | None = Field(default=None, min_length=1, max_length=500)
+    ogrn: str | None = Field(default=None, pattern=r'^[0-9]{13}$')
+    ogrnip: str | None = Field(default=None, pattern=r'^[0-9]{15}$')
+    legal_address: str | None = Field(default=None, min_length=1, max_length=2000)
+    director_name: str | None = Field(default=None, min_length=1, max_length=500)
+    okved_main: str | None = Field(default=None, pattern=r'^[0-9]{2}(?:\.[0-9]{1,2}){0,2}$')
+    registration_date: date | None = None
+    actual_activity_description: str | None = Field(default=None, min_length=1, max_length=2000)
     project_name: str | None = Field(default=None,min_length=1,max_length=100)
     borrower_id: str | None = Field(default=None, min_length=1, max_length=120)
     legal_form: Literal["IP", "OOO", "AO", "OTHER"] | None = None
@@ -109,9 +117,20 @@ class LoanRequest(Model):
     tranche_term_months: int | None = Field(default=None, strict=True, gt=0, le=600)
     drawdown_period_months: int | None = Field(default=None, strict=True, gt=0, le=600)
 
+    @field_validator('registration_date')
+    @classmethod
+    def registered_in_past(cls, value):
+        if value is not None and value > date.today():
+            raise ValueError('Registration date cannot be in the future')
+        return value
+
 
 REQUIRED_FIELDS = ("borrower_id", "legal_form", "purpose", "amount_rub", "term_months")
 FIELD_LABELS = {
+    "company_name": "полное наименование организации", "ogrn": "ОГРН", "ogrnip": "ОГРНИП",
+    "legal_address": "юридический адрес", "director_name": "ФИО руководителя",
+    "okved_main": "основной ОКВЭД", "registration_date": "дата государственной регистрации",
+    "actual_activity_description": "фактический вид деятельности",
     "inn": "укажите ИНН: только цифры, 12 для ИП или 10 для юридического лица",
     "borrower_id": "выберите ИП или компанию", "legal_form": "укажите форму бизнеса: ИП, ООО или другую",
     "purpose": "на что нужны деньги", "amount_rub": "какая сумма нужна в рублях",

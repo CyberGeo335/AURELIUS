@@ -22,6 +22,8 @@ def extraction_context(case: Case) -> ExtractionContext:
 
 
 def checked_extraction(raw, text, case):
+    from .declared_facts import declared_facts
+    raw = declared_facts(raw, text)
     context = extraction_context(case)
     # V1 skips validation of unchanged values. A proposal must be grounded even
     # when the model repeats a known value contradicted by the new message.

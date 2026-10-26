@@ -32,6 +32,8 @@ def automatic_context(connection, application_id, policy, as_of=None):
     as_of = as_of or date.today()
     application = _one(_rows(connection, "SELECT * FROM public.credit_applications WHERE application_id=:id", id=application_id), "application")
     company = _one(_rows(connection, "SELECT * FROM public.companies WHERE company_id=:id", id=application["company_id"]), "company")
+    from .application_facts import application_company
+    company, reported_facts = application_company(connection, application, company, as_of, demo_only=policy.demo_only)
     if application.get("missing_data_status") != "COMPLETE":
         raise InputError("Questionnaire completeness has not been resolved by the upstream service")
     if company.get("registration_date") is None:
@@ -77,7 +79,7 @@ def automatic_context(connection, application_id, policy, as_of=None):
         "repayment_option_id": repayment_id, "individual_annual_rate_pct": str(rate_pct),
         "individual_rate_source": rate_source, "feature_contract_version": "db_auto_v3",
         "model_features": {"industry": category, "macro_stress": defaults["macro_stress_scenario"]},
-        "feature_provenance": {"industry": defaults["version"] + ":companies.okved_main; " + defaults["industry_description"],
+        "feature_provenance": {"industry": defaults["version"] + ":" + reported_facts.get('okved_main', {}).get('source_ref', 'companies.okved_main') + "; " + defaults["industry_description"],
                                "macro_stress": defaults["version"] + ":" + defaults["macro_stress_description"]},
         "internal_confirmations": {}, "automatic_input_policy": defaults,
     }

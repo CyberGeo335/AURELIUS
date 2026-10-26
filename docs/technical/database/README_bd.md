@@ -1,9 +1,11 @@
 # Справочник базы данных PostgreSQL
 
-> **Текущее состояние на 24.10.2026:** актуальный полный дамп —
-> [v_3 (actual)](../../../scoring/bd/v_3%20%28actual%29/README.md), 35 таблиц с учётом user_accounts.
+> **Текущее состояние на 26.10.2026:** актуальный полный дамп —
+> [v_4 (actual)](../../../scoring/bd/v_4%20%28actual%29/README.md), 35 таблиц с учётом user_accounts.
 > В macro_indicators есть 1 наблюдение KEY_RATE=14%, в risk_policy_parameters —
-> 3 строки AURELIUS_MVP_20261024_V1. Предыдущий снимок сохранён в v_2.
+> 3 строки AURELIUS_MVP_20261024_V1. В bank_transactions — 780 операций,
+> включая синтетическую выручку за сентябрь и октябрь 2025 всем 30 компаниям.
+> Предыдущий снимок сохранён в v_3.
 > Описания прежнего наполнения ниже являются историческими срезами.
 > Текущий контракт скоринга/решения — [../main/INTEGRATION.md](../scoring/INTEGRATION.md),
 > значения и происхождение допущений — [../main/decision_engine/BASELINE.md](../../../scoring/main/decision_engine/BASELINE.md).

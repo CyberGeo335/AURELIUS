@@ -41,6 +41,9 @@ def evaluate_application(snapshot: dict, policy: Policy, predictor=None) -> Asse
     economic = validate_economic_inputs(snapshot)
     if snapshot.get("automatic_input_policy"):
         review.append(reason("MVP_INPUTS_CONFIRMATION", "Bank employee must confirm indicative pricing, financial source coverage and model proxy assumptions"))
+    if snapshot.get('reported_company_facts'):
+        review.append(reason('REPORTED_COMPANY_FACTS', 'Application-scoped company facts require independent employee verification'))
+        result.audit['reported_company_facts'] = snapshot['reported_company_facts']
     if snapshot.get("economic_policy_metadata", {}).get("demo_only") and not policy.demo_only:
         raise ConfigurationError("Seeded MVP economics requires an explicitly marked demo policy")
     if snapshot.get("feature_contract_version") in ("db_proxy_v1", "db_proxy_v2", "db_auto_v2", "db_auto_v3", "db_diagnostic_v1", "db_diagnostic_v2") and not policy.demo_only:

@@ -296,6 +296,58 @@ it('keeps the panel open, blocks repeated sends while waiting, and retains input
   expect(send).toBeEnabled();
   expect(panel).toBeVisible();
 });
+it('shows company fact labels and quotes without applying the unconfirmed proposal', async () => {
+  const { api } = await mount('/client', [draft(456, { dialogue: {
+    history: [], problems: [], pending: {
+      ...pending,
+      patch: { company_name: 'ООО Тест', ogrn: '1990000000032', ogrnip: '399000000000041',
+        legal_address: 'г. Москва', director_name: 'Иванов Иван Иванович', okved_main: '46.90',
+        registration_date: '2024-05-04', actual_activity_description: 'Оптовая торговля' },
+      quotes: { registration_date: 'дата государственной регистрации — 2024-05-04' },
+    },
+  } })]);
+  const panel = open();
+  for (const label of ['Полное наименование организации', 'ОГРН', 'ОГРНИП', 'Юридический адрес',
+    'ФИО руководителя', 'Основной ОКВЭД', 'Дата государственной регистрации', 'Фактический вид деятельности']) {
+    expect(within(panel).getByText(label, { exact: true })).toBeVisible();
+  }
+  expect(panel).toHaveTextContent('Из сообщения: «дата государственной регистрации — 2024-05-04»');
+  expect(api.getSnapshot().applications[0].server?.fields).toEqual([]);
+});
+it('retries extraction 503 with the same request and clears the error after success', async () => {
+  const { commands, setHandler } = await mount();
+  setHandler(async () => Response.json({ code: 'EXTRACTION_UNAVAILABLE' }, { status: 503 }));
+  const panel = open();
+  const input = within(panel).getByLabelText('Расскажите о потребности');
+  fireEvent.change(input, { target: { value: 'Миллион на закупку товара' } });
+  fireEvent.click(within(panel).getByRole('button', { name: 'Отправить сообщение' }));
+  const retry = await within(panel).findByRole('button', { name: 'Повторить сообщение' });
+  expect(commands).toHaveLength(1);
+  setHandler(async () => Response.json({ application_id: '456' }));
+  fireEvent.click(retry);
+  await waitFor(() => expect(input).toHaveValue(''));
+  expect(commands).toHaveLength(2);
+  expect(commands[1]).toEqual(commands[0]);
+  expect(within(panel).queryByRole('alert')).toBeNull();
+  expect(within(panel).queryByRole('button', { name: 'Повторить сообщение' })).toBeNull();
+});
+it('opens the same draft form after extraction 503 and preserves the unsent text', async () => {
+  const { commands, setHandler } = await mount();
+  setHandler(async () => Response.json({ code: 'EXTRACTION_UNAVAILABLE' }, { status: 503 }));
+  const panel = open();
+  fireEvent.change(within(panel).getByLabelText('Расскажите о потребности'), {
+    target: { value: 'Сохранить этот текст' },
+  });
+  fireEvent.click(within(panel).getByRole('button', { name: 'Отправить сообщение' }));
+  const form = await within(panel).findByRole('link', { name: 'Продолжить через форму' });
+  expect(form).toHaveAttribute('href', '/client/new/456');
+  fireEvent.click(form);
+  expect(await screen.findByRole('heading', { name: 'Анкета' })).toBeVisible();
+  expect(panel).not.toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Открыть чат с помощником' }));
+  expect(within(panel).getByLabelText('Расскажите о потребности')).toHaveValue('Сохранить этот текст');
+  expect(commands).toHaveLength(1);
+});
 it('does not recreate a draft when its initial chat fails after successful creation', async () => {
   const { commands, setHandler, setApps } = await mount('/client', []);
   setHandler(async (body) => {

@@ -214,6 +214,39 @@ class DatabaseTests(unittest.TestCase):
         self.assertIsNone(first["scoring"])
         self.assertEqual(first["reasons"][0]["code"], "DB_INPUTS_UNAVAILABLE")
 
+    def test_reported_company_inputs_are_scoped_to_confirmed_application_and_cutoff(self):
+        from datetime import date
+        from sqlalchemy import text
+        from main.application_facts import application_company
+        with self.engine.connect() as connection:
+            transaction = connection.begin()
+            try:
+                app = dict(connection.execute(text('SELECT * FROM public.credit_applications WHERE application_id=:id'),
+                                              {'id': self.application_id}).mappings().one())
+                company = dict(connection.execute(text('SELECT * FROM public.companies WHERE company_id=:id'),
+                                                  {'id': app['company_id']}).mappings().one())
+                connection.execute(text("""INSERT INTO public.application_field_values
+                    (application_id,product_code,field_code,field_value,value_source,verification_status,obtained_at)
+                    VALUES (:id,'R01','R01_17','\"46.90\"','CLIENT','UNVERIFIED','2026-10-26')"""),
+                    {'id': self.application_id})
+                before, _ = application_company(connection, app, company, date(2026, 10, 25), demo_only=True)
+                self.assertIsNone(before['okved_main'])
+                resolved, sources = application_company(connection, app, company, date(2026, 10, 26), demo_only=True)
+                self.assertEqual(resolved['okved_main'], '46.90')
+                self.assertEqual(sources['okved_main']['verification_status'], 'UNVERIFIED')
+                other = dict(app, application_id=-self.application_id)
+                isolated, _ = application_company(connection, other, company, date(2026, 10, 26), demo_only=True)
+                self.assertIsNone(isolated['okved_main'])
+                connection.execute(text('UPDATE public.application_details SET confirmed_at=NULL WHERE application_id=:id'),
+                                   {'id': self.application_id})
+                unconfirmed, _ = application_company(connection, app, company, date(2026, 10, 26), demo_only=True)
+                self.assertIsNone(unconfirmed['okved_main'])
+                stored = connection.execute(text('SELECT okved_main FROM public.companies WHERE company_id=:id'),
+                                            {'id': app['company_id']}).scalar_one()
+                self.assertIsNone(stored)
+            finally:
+                transaction.rollback()
+
     def test_application_id_only_builds_features_without_external_context(self):
         from datetime import date
         from sqlalchemy import text
