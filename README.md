@@ -1,152 +1,150 @@
-# AURELIUS — умный кредитный кабинет
+# AURELIUS — умный кредитный кабинет предпринимателя
 
-Текущий запуск: кабинет v3, PostgreSQL 17, `scoring/main`, Agent V2 и Ollama.
-Это DEMO на синтетических данных. Финансовая модель и политика при Docker-запуске не меняются.
+Прототип цифрового кредитного конвейера для малого и микробизнеса, сделанный на хакатоне Альфа-Банка «Альфа Будущее». В одном веб-продукте собраны путь клиента и обработка заявки в банке: от черновика заявки до решения сотрудника и принятия предложения. Все данные синтетические, доступа к системам банка нет.
 
-## Быстрый старт
+Проверено на коммите `40b8038` (ветка `test-dev`).
 
-Нужны Git, Docker Engine с Compose v2 (или Docker Desktop в режиме Linux containers).
-Для `gpt-oss:20b` предусмотрите примерно 16 ГБ доступной RAM и 14 ГБ под модель,
-а также дополнительное место под образы и БД. CPU поддерживается; первый ответ может быть долгим.
-На Linux нужен Docker с поддержкой `host-gateway`. Python и Node на хосте не нужны.
+## Для кого
 
-Из корня клонированного репозитория, Linux/macOS:
+- **Клиент** — представитель ИП или ООО, оформляющий кредит от имени компании.
+- **Сотрудник банка** — рассматривает заявки: запускает скоринг, проверяет сведения, запрашивает данные и принимает решение.
+
+## Что умеет текущая версия
+
+Клиент:
+- входит по логину и паролю из БД; роль и компания определяются сервером;
+- создаёт заявку на один из продуктов R01–R03, заполняет анкету по требованиям продукта, подтверждает сведения и отправляет заявку;
+- в черновике может описать потребность ассистенту (`gpt-oss:20b` через Ollama). Ассистент предлагает значения полей с цитатами из сообщения, а в анкету они попадают только после явного подтверждения;
+- отвечает на дозапрос банка текстом и файлом PDF или CSV;
+- видит статус заявки, предложение банка (сумму, срок, ставку) или причину отказа от сотрудника; принимает предложение.
+
+Сотрудник банка:
+- видит общую очередь и «Мои разборы», берёт заявку в работу;
+- запускает скоринг (`scoring/main`, CatBoost) и видит годовую PD, лимит PD и рассчитанное предложение;
+- фиксирует проверку сведений с указанием источника;
+- принимает решение: одобрить рассчитанное предложение, отказать или запросить данные. Решение всегда сопровождается причиной.
+
+Система сохраняет все изменения в PostgreSQL, проверяет роль и владельца заявки, версию и повтор запроса (`request_id`), ведёт журнал событий и снимает предложение, если исходные данные изменились до его принятия.
+
+Сценарий завершается принятием предложения клиентом. Подписание документов и выдача средств в текущей версии не реализованы.
+
+## Схема
+
+```mermaid
+flowchart LR
+    B[Браузер: кабинет клиента и сотрудника] -->|HTTP /api/v2, cookie| S[cabinet_server<br/>personalCab/prom_v2]
+    S -->|статика| W[personalCab/web/dist]
+    S --> P[(PostgreSQL 17<br/>business_scoring:<br/>public v3 + aurelius_cabinet)]
+    S -->|библиотека| M[scoring/main<br/>CatBoost, политика, предложение]
+    M --> P
+    S -->|ассистент| O[Ollama<br/>gpt-oss:20b]
+    S --> R[RAG по knowledge/]
+```
+
+Подробная архитектура — в [docs/05-architecture.md](docs/05-architecture.md).
+
+## Запуск за 5 минут
+
+Нужны Git и Docker Engine с Compose v2 (или Docker Desktop в режиме Linux-контейнеров). Python и Node на хосте не нужны. Для `gpt-oss:20b` нужно около 16 ГБ свободной RAM и около 14 ГБ на диске. Первый запуск дольше пяти минут: скачивается модель.
+
+Linux / macOS:
 
 ```sh
+git clone -b test-dev https://github.com/CyberGeo335/AURELIUS.git
+cd AURELIUS
 cp .env.example .env
-# Откройте .env и задайте POSTGRES_PASSWORD.
+# Откройте .env и задайте непустой POSTGRES_PASSWORD.
 sh start.sh
 ```
 
 Windows PowerShell:
 
 ```powershell
+git clone -b test-dev https://github.com/CyberGeo335/AURELIUS.git
+cd AURELIUS
 Copy-Item .env.example .env
-# Откройте .env и задайте POSTGRES_PASSWORD.
+# Откройте .env и задайте непустой POSTGRES_PASSWORD.
 powershell -NoProfile -ExecutionPolicy Bypass -File .\start.ps1
 ```
 
-После готовности модели кабинет доступен по http://127.0.0.1:5173.
-Скрипт собирает фронт в HTTP-режиме, проверяет внешний Ollama из Docker.
-Если внешний Ollama недоступен, запускает `ollama/ollama` в Docker и использует его.
-На хост Ollama не устанавливается. Linux получает `host.docker.internal:host-gateway`.
-При доступном Ollama существующая модель используется без повторной загрузки.
-Отсутствующая модель скачивается автоматически; прогресс виден в выводе запуска и логах.
-Кабинет ждёт завершения скачивания и успешной проверки инференса.
+После готовности модели откройте http://127.0.0.1:5173.
+
+Скрипт сначала проверяет внешний Ollama (`OLLAMA_BASE_URL`). Если тот недоступен, скрипт поднимает Ollama в Docker, скачивает модель и ждёт успешной проверки генерации. При первом запуске в пустой том восстанавливается синтетическая БД `scoring/bd/v_3 (actual)/business_scoring_wauth.backup`.
+
+Статус и логи:
 
 ```sh
-docker compose logs -f model-init app
 docker compose ps -a
+docker compose logs -f model-init app
 ```
 
-При ошибке запуска скрипт останавливается: проверки не отключаются.
-`docker compose up -d` подходит, когда внешний Ollama уже доступен по адресу из `.env`;
-для автоматического выбора внешнего Ollama или контейнера используйте `start.sh` / `start.ps1`.
-Повторять запуск также следует через этот скрипт.
+Переменные окружения, порты, остановка, сброс, GPU и частые ошибки описаны в [docs/09-deployment.md](docs/09-deployment.md).
 
-## База данных и вход
+## Тестовые учётные записи
 
-В пустой том автоматически восстанавливается `scoring/bd/v_3 (actual)/business_scoring_wauth.backup`.
-Проверяются 30 компаний, 30 заявок, 32 учётные записи, 3 набора параметров политики и 1 макропоказатель.
-Проверка фиксируется в отдельной `aurelius_deploy`, не меняя схему `public`.
-После первого запуска заявки могут добавляться: повторный старт не требует ровно 30 заявок.
-`init` применяет только миграции кабинета 005–009. Документы и диалоги хранятся в PostgreSQL.
-Том БД сохраняется при остановке; модели встроенного Ollama — в отдельном томе.
-
-Просмотр синтетических логинов и открытых паролей (вывод содержит пароли):
+В БД 32 синтетические учётные записи: 30 клиентов, каждый привязан к своей компании, и 2 сотрудника банка (`scoring/bd/seeds/seed_user_accounts.py`). Логины и пароли берутся из запущенной БД (вывод содержит пароли открытым текстом):
 
 ```sh
-docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT login, password FROM public.user_accounts ORDER BY login"'
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT login, password, role, company_id FROM public.user_accounts ORDER BY role, login"'
 ```
 
-Та же команда работает в PowerShell. Роли клиент/сотрудник определяются самой БД.
-Не публикуйте вывод и не сохраняйте `generated_credentials.csv` в Git.
+`role=CLIENT` — клиент, `role=BANK_EMPLOYEE` — сотрудник банка. Пароли хранятся как есть; это допущение демо.
 
-## Настройки
+Заявки из дампа отменены. Новые заявки создаются в ходе сценария.
 
-Все пользовательские настройки — в корневом `.env`; пароля по умолчанию нет.
-Не используйте пробел вместо пароля. Значения с `$`/`#` заключайте в одинарные кавычки.
-`DATABASE_URL` и совместимый `AURELIUS_DATABASE_URL` создаются entrypoint из одного набора `PG_*`;
-пароль и имя пользователя кодируются для URL автоматически. Не нужно вручную кодировать пароль.
-В Docker БД всегда `db:5432`; `POSTGRES_PORT` — только порт доступа с хоста.
-Фронт требует `VITE_API_MODE=http`; после изменения build-настроек требуется пересборка.
-Модель и её `features.json`/`best_config.json` копируются из `scoring/main/ml_scoring/model`.
-Старая схема `aurelius_v2`, старый web_server и frontend/server в запуск не входят.
-`compose.v2.yaml` — альтернативное имя того же актуального Compose, без отдельной БД.
-`Dockerfile.v2` и `personalCab/web/Dockerfile` также собирают актуальный кабинет:
-контекст сборки — корень репозитория, target `runtime`.
+## Сценарий проверки
 
-Для NVIDIA установите NVIDIA Container Toolkit и подключите override перед запуском:
+> TODO: короткий сценарий из 5–7 шагов появится после проверки на стенде (этап 4). Подробные пути будут в [docs/03-demo-scenarios.md](docs/03-demo-scenarios.md).
 
-```sh
-COMPOSE_FILE=compose.yaml:compose.gpu.yaml sh start.sh
-```
+## Документация
 
-```powershell
-$env:COMPOSE_FILE = 'compose.yaml;compose.gpu.yaml'
-.\start.ps1
-```
+| Файл | Что внутри |
+|---|---|
+| [docs/00-jury-guide.md](docs/00-jury-guide.md) | путеводитель и карта соответствия требованиям кейса |
+| [docs/01-problem-and-scope.md](docs/01-problem-and-scope.md) | проблема, решение, границы MVP |
+| [docs/02-decisions.md](docs/02-decisions.md) | ключевые решения, ограничения, развитие |
+| [docs/03-demo-scenarios.md](docs/03-demo-scenarios.md) | демо-пути со скриншотами |
+| [docs/04-credit-process.md](docs/04-credit-process.md) | кредитный процесс, диаграмма состояний заявки, скоринг ≠ решение |
+| [docs/05-architecture.md](docs/05-architecture.md) | архитектура и enterprise-аспекты |
+| [docs/06-api.md](docs/06-api.md), [docs/api/openapi.yaml](docs/api/openapi.yaml), [docs/api/aurelius.postman_collection.json](docs/api/aurelius.postman_collection.json) | API, OpenAPI и коллекция запросов |
+| [docs/07-data-model.md](docs/07-data-model.md) | модель данных, синтетические данные, учётки |
+| [docs/08-testing.md](docs/08-testing.md) | тестовые сценарии и результаты прогонов |
+| [docs/09-deployment.md](docs/09-deployment.md) | окружение, запуск, переменные, проблемы |
+| [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) | сторонние компоненты, модели, датасеты, смоделированные интеграции |
 
-Override влияет только на встроенный Ollama. По умолчанию используется CPU.
+> TODO: файлы `00`–`08` и `docs/api/` пишутся на следующих этапах. До их появления ссылки не работают.
 
-## Остановка, обновление и сброс
+## Используемые компоненты
 
-Остановка без удаления данных:
+- Фронт: React 19, TypeScript, Vite, Tailwind CSS, Radix UI, Motion; шрифты Onest и Unbounded (`personalCab/web/package.json`, `package-lock.json`).
+- Backend: Python 3.13, стандартный `http.server`, psycopg 3 (`personalCab/prom_v2/cabinet_server.py`, `requirements.txt`).
+- БД: PostgreSQL 17.
+- Скоринг: CatBoost, собственная модель `dt_monotone_v1`, обученная на синтетике (`scoring/main`).
+- Ассистент: LangGraph, LangChain, Ollama, `gpt-oss:20b` (открытые веса); RAG на FAISS по `knowledge/`.
 
-```sh
-docker compose --profile bundled down
-```
+Версии зафиксированы в `requirements.lock.txt` и `personalCab/web/package-lock.json`, образ Ollama — по digest в `compose.yaml`. Полный перечень с лицензиями — в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Обновление:
+## Ограничения демо
 
-```sh
-git pull --ff-only
-sh start.sh
-```
+- Данные синтетические. Внешние источники (БКИ, ЕГРЮЛ/ЕГРИП, ФНС, Реестр МСП, банковская выписка) смоделированы данными в БД.
+- Подписание документов и выдача средств не реализованы.
+- Пароли хранятся открытым текстом, HTTPS не настроен.
+- Внутренние причины скоринга скрывает от клиента интерфейс; ответ API клиенту их пока содержит.
+- LLM только с открытыми весами (`gpt-oss:20b`), запускается локально. Платные сервисы не используются.
 
-В Windows после `git pull --ff-only` выполните `start.ps1`.
-Обновление не восстанавливает дамп поверх существующего тома и не скачивает установленную модель снова.
+## Что не входит в текущую версию
 
-**Полный сброс удаляет БД, документы, диалоги и модели встроенного Ollama:**
+В репозитории остались материалы прежних этапов. Они не запускаются и не описывают текущее поведение:
 
-```sh
-docker compose --profile bundled down -v
-```
+- `personalCab/frontend/` — первый кабинет на HTML/JS со своим Python-сервером;
+- `personalCab/prom_v2/web_server.py` и БД `aurelius_v2` — предыдущий сервер V2;
+- mock-режим фронта (сборка без `VITE_API_MODE=http`) с локальными демо-учётками и симуляцией подписи и выдачи;
+- `docs/V2_*.md`, `docs/DEMO_MODULES_1_5.md`, `AGENTS.md`, `DataAndArcBuild/architecture/`, `DataAndArcBuild/architecture_v2/` — описания прежних этапов.
 
-Чтобы сбросить только БД, сначала выполните `down`, затем удалите только том
-`<COMPOSE_PROJECT_NAME>_postgres_data` через `docker volume rm`.
-Следующий запуск восстановит исходный дамп. Не применяйте сброс к нужным данным.
-Если подключён том от прежнего запуска без `aurelius_deploy`, init остановится:
-используйте новое `COMPOSE_PROJECT_NAME` для новой установки; существующую БД не перезаписывайте.
+Код из `personalCab/prom/` частично используется текущим ассистентом: RAG `personalCab/prom/rag` и схема извлечения из `personalCab/prom/prom_lab/ai_agents_lab/agents/factory.py`.
 
-## Сервер и частые ошибки
+## Версия
 
-Для публикации на сервере задайте `APP_BIND_HOST=0.0.0.0`, откройте `APP_PORT` в firewall.
-Для внешнего использования нужен HTTPS-прокси. Он здесь не настроен;
-текущий backend проверяет HTTP Origin, поэтому для HTTPS нужна отдельная настройка приложения.
-PostgreSQL публикуется только на loopback, Ollama-контейнер не публикует порт наружу.
+Документация проверена на коммите `40b8038` ветки `test-dev`. Версия для жюри фиксируется тегом или commit hash на момент дедлайна.
 
-- Порт занят: измените `APP_PORT` / `POSTGRES_PORT` в `.env` и повторите скрипт.
-- Ollama недоступен: проверьте `OLLAMA_BASE_URL`, доступность из Docker и `docker compose logs model-init`.
-  Внешняя Ollama, слушающая только loopback, может быть недоступна контейнерам — тогда скрипт выберет встроенную.
-- Модель не помещается в RAM: увеличьте память Docker Desktop / сервера. Кабинет не запустится до готовности модели.
-- Нет места: освободите диск; повторите скрипт. Том моделей сохраняет скачанные данные.
-- Ошибка пароля / `.env`: задайте непустой `POSTGRES_PASSWORD`; смена переменной не меняет пароль уже созданной БД.
-- Ошибка восстановления: смотрите `docker compose logs db`; не восстанавливайте дамп поверх существующей БД.
-
-## Проверки
-
-Python 3.13, точные runtime-зависимости в `requirements.txt`; pytest отдельно в `requirements-dev.txt`.
-Исследовательское окружение `scoring/requirements.txt` в образ не устанавливается.
-
-```sh
-docker compose --profile tools build tests
-docker compose --profile tools run --rm --no-deps tests
-# Фронт: из корня репозитория собрать стадию web и запустить тесты.
-docker build --target web -t aurelius-web-test .
-docker run --rm aurelius-web-test npm test
-```
-
-Интеграционные тесты требуют отдельную seeded БД с именем `aurelius_test*` и
-`AURELIUS_TEST_DATABASE_URL`. Не направляйте их в рабочую БД. Без неё тесты PostgreSQL пропускаются.
-Подробности API и ограничений: [docs/CABINET_V3.md](docs/CABINET_V3.md).
+> TODO: указать итоговый тег или commit hash.
