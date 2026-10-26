@@ -1,0 +1,55 @@
+# Исторические материалы
+
+Исторические материалы. Описывают прежние версии и не являются описанием текущего кабинета v3.
+
+- `architecture/AI_CreditSys_Agent_Architecture.md` — AI-CreditSys: агент кредитования малого и микробизнеса.
+- `architecture/AURELIUS_CREDIT_PROCESS_SUMMARY.md` — AURELIUS: как ММБ получает кредит и где работают AI и скоринг.
+- `architecture/README.md` — README.
+- `architecture/ResearchInfo/b2b_credit_scoring_chat_summary.md` — Кредитный скоринг B2B и ММБ: выжимка обсуждения.
+- `architecture/ResearchInfo/credit_scoring_chat_summary.md` — Кредитный скоринг ММБ: выжимка обсуждения.
+- `architecture/architecture/00_architecture_overview.md` — Архитектура AURELIUS · модули 1–5 DEMO.
+- `architecture/architecture/01_dialogue_and_workflow.md` — Модуль 1. Диалог и управление заявкой.
+- `architecture/architecture/02_product_matching.md` — Модуль 2. Подбор кредитного продукта.
+- `architecture/architecture/03.1_database_schema.md` — 03.1. Схема БД и таблиц AURELIUS.
+- `architecture/architecture/03_data_and_features.md` — Модуль 3. Сбор данных и подготовка признаков.
+- `architecture/architecture/04_scoring_and_offers.md` — Модуль 4. Скоринг CatBoost и расчёт вариантов.
+- `architecture/architecture/05_decision_and_servicing.md` — Модуль 5. Банковское решение, оформление и сопровождение.
+- `architecture/architecture_v2/00_overview.md` — V2 · обзор и границы.
+- `architecture/architecture_v2/01_contracts_and_access.md` — V2 · контракты состояния и доступа.
+- `architecture/architecture_v2/02_agent_and_rag.md` — V2 · диалоговый агент и RAG.
+- `architecture/architecture_v2/03_data_and_evidence.md` — V2 · данные, согласия и evidence.
+- `architecture/architecture_v2/04_assessment_and_lending.md` — V2 · оценка, предложения и исполнение.
+- `architecture/architecture_v2/05_web_and_api.md` — V2 · WEB и версионный API.
+- `architecture/architecture_v2/06_decisions_and_delivery.md` — V2 · решения, трассируемость и этапы.
+- `architecture/architecture_v2/README.md` — AURELIUS · архитектура V2.
+- `reports/CABINET_V3.md` — Кабинет с PostgreSQL v3 и scoring/main.
+- `reports/CABINET_V3_INTEGRATION_REPORT.md` — Интеграция кабинета: состояние 26.10.2026.
+- `reports/CLIENT_AUTH_AND_REVIEW.md` — Клиентский вход и проверка изменений.
+- `reports/DEMO_MODULES_1_5.md` — AURELIUS: модули 1–5 в локальном DEMO.
+- `reports/DOCKER_INTEGRATIONS.md` — Docker: границы интеграций.
+- `reports/DOCKER_VALIDATION.md` — Проверка Docker-запуска — 26.10.2026.
+- `reports/POSTGRES_INTEGRATION.md` — Интеграция PostgreSQL · 24.10.2026.
+- `reports/V2_INTEGRATED_DEMO.md` — V2 · интегрированный DEMO.
+- `reports/V2_MIGRATION_AUDIT.md` — Аудит миграции V2.
+- `reports/V2_MIGRATION_FIXES.md` — Исправления B01–B04 в V2.
+- `reports/V2_MIGRATION_FIXES_2.md` — Исправления B05–B14 в интегрированном V2.
+- `reports/WEB_FRONTEND_COMPARISON_AND_AGENT_MIGRATION.md` — Сравнение кабинетов и план переноса ИИ-агента в WEB V2.
+- `reports/WEB_REQUIREMENTS_ARCHITECTURE_REVIEW.md` — Совместимость требований WEB V2 с архитектурой AURELIUS.
+- `screenshots/cabinet-v3-accepted.png` — cabinet-v3-accepted.
+- `screenshots/modules-1-5-demo.png` — modules-1-5-demo.
+- `screenshots/v2-addressed-follow-up.png` — v2-addressed-follow-up.
+- `screenshots/v2-audit-cross-account-draft.png` — v2-audit-cross-account-draft.
+- `screenshots/v2-audit-version-conflict.png` — v2-audit-version-conflict.
+- `screenshots/v2-fixed-conflict.png` — v2-fixed-conflict.
+- `screenshots/v2-fixed-fees.png` — v2-fixed-fees.
+- `screenshots/v2-fixed-stale-evidence.png` — v2-fixed-stale-evidence.
+- `screenshots/v2-follow-up-checking.png` — v2-follow-up-checking.
+- `screenshots/v2-follow-up-completed.png` — v2-follow-up-completed.
+- `screenshots/v2-integrated.png` — v2-integrated.
+- `reports/prom_lab_AURELIUS.md` — AURELIUS: паттерн агентного приложения.
+- `reports/prom_lab_README.md` — AURELIUS workflow — модули 1–5 DEMO.
+- `reports/prom_v2_README.md` — AURELIUS · агент V2.
+- `reports/prom_v2_VALIDATION.md` — Проверка V2 · 25.10.2026.
+- `reports/web_REQUIREMENTS-AUDIT.md` — Проверка функциональных требований фронтенда.
+- `reports/web_VERIFICATION.md` — Проверка AURELIUS V2 — 24 октября 2026.
+- `reports/web_FRONTEND-REQUIREMENTS.md` — AURELIUS — функциональные требования к интерфейсу.
