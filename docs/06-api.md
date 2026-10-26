@@ -536,4 +536,4 @@ docker run --rm --network <проект>_default -v "$PWD/docs/api:/etc/newman" 
 | Решение скоринга после `submit` и `score` | `MANUAL_REVIEW`, причина `DB_INPUTS_UNAVAILABLE`: «DB proxy needs 13 complete positive-revenue months; no zero-filling missing history», PD не рассчитана |
 | Созданные заявки | 4 (`application_id` 65–68) |
 
-Подробный разбор прогонов будет в [08-testing.md](08-testing.md).
+Подробный разбор прогонов — в [08-testing.md](08-testing.md).
